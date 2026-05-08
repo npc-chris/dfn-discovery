@@ -2,7 +2,7 @@
 
 ## Product Goal
 
-DFN Gap Analyzer helps product companies decide whether a manufacturing job can be routed to a Nigerian factory with acceptable cost, lead time, capability fit, and operational risk.
+DFN Discovery helps product companies decide whether a manufacturing job can be routed to a Nigerian factory with acceptable cost, lead time, capability fit, and operational risk.
 
 This is not a general chat product. The system should ingest structured and semi-structured inputs, compute scores, and return decision-ready outputs.
 
@@ -12,7 +12,7 @@ The product should be built as a small set of cooperating services with one thin
 
 ## Main Repo Integration Boundary
 
-DFN Gap Analyzer should remain a standalone runtime and data boundary.
+DFN Discovery should remain a standalone runtime and data boundary.
 
 It may integrate with the main DFN repo through versioned contracts and identity, but it should not share live application state, local databases, or unversioned internal modules.
 
@@ -192,7 +192,7 @@ This layer should be thin. It should render and orchestrate, not decide.
 
 ### 8. Main Repo Integration Layer
 
-This is not a separate business service. It is the boundary that keeps DFN Gap Analyzer decoupled while still allowing it to consume upstream identity, contracts, and optional shared UI assets from the main DFN repository.
+This is not a separate business service. It is the boundary that keeps DFN Discovery decoupled while still allowing it to consume upstream identity, contracts, and optional shared UI assets from the main DFN repository.
 
 Owns:
 
@@ -217,7 +217,7 @@ Does not own:
 7. Site and Real Estate Intelligence adds location suitability.
 8. Presentation Layer combines the outputs into a decision brief.
 
-If the main DFN repo needs to participate, it should do so before or after these steps through the integration boundary above, not by embedding its logic inside the Gap Analyzer service stack.
+If the main DFN repo needs to participate, it should do so before or after these steps through the integration boundary above, not by embedding its logic inside the Discovery service stack.
 
 The user should see a recommendation, supporting evidence, and confidence level.
 

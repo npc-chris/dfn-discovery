@@ -1,4 +1,4 @@
-# DFN Gap Analyzer Service Plan
+# DFN Discovery Service Plan
 
 ## Product Wedge
 
@@ -138,7 +138,7 @@ That sequence gets to a real user outcome fastest. It also keeps the architectur
 
 ## Integration Decision
 
-DFN Gap Analyzer, though a core product in the lineup of Digital Fabrication Network, is being implemented as a standalone application, due to its open-source nature.
+DFN Discovery, though a core product in the lineup of Digital Fabrication Network, is being implemented as a standalone application, due to its open-source nature.
 
 It should integrate with the main DFN repository only through explicit contracts:
 

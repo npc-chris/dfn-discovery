@@ -1,6 +1,6 @@
 # Backend
 
-Express.js API server for DFN Gap Analyzer.
+Express.js API server for DFN Discovery.
 
 Implements the service boundaries defined in the HLD: Job Intake, Core Intelligence, AI Analysis Workers, and context services.
 

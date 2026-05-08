@@ -1,4 +1,4 @@
-# DFN Gap Analyzer - Design Freeze Checkpoint
+# DFN Discovery - Design Freeze Checkpoint
 **Date: May 8, 2026**
 **Status: Scaffolding Complete - Ready for Full Service Implementation**
 
@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-This document captures the scaffolded architectural freeze for the DFN Gap Analyzer system as of the scaffolding phase. All service boundaries, API contracts, database schemas, and implementation specifications are frozen. The codebase has complete type definitions, interface contracts, route stubs, and TODO markers for implementation.
+This document captures the scaffolded architectural freeze for the DFN Discovery system as of the scaffolding phase. All service boundaries, API contracts, database schemas, and implementation specifications are frozen. The codebase has complete type definitions, interface contracts, route stubs, and TODO markers for implementation.
 
 **What's Frozen:**
 - ✅ 7 service boundaries and responsibilities

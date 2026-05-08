@@ -1,4 +1,4 @@
-# DFN Gap Analyzer Development
+# DFN Discovery Development
 
 Development utilities and workspace configuration.
 

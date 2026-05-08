@@ -37,6 +37,6 @@ app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`DFN Gap Analyzer Backend listening on port ${PORT}`);
+  console.log(`DFN Discovery Backend listening on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

@@ -1,10 +1,10 @@
-# DFN Gap Analyzer
+# DFN Discovery
 
 AI-powered manufacturing job routing and analysis for Nigerian factories.
 
 ## What Is This?
 
-DFN Gap Analyzer helps product companies decide whether a manufacturing job can be routed to a Nigerian factory with acceptable cost, lead time, capability fit, and operational risk.
+DFN Discovery helps product companies decide whether a manufacturing job can be routed to a Nigerian factory with acceptable cost, lead time, capability fit, and operational risk.
 
 This is not a general chat product. The system ingests structured inputs, computes scores, and returns decision-ready outputs.
 

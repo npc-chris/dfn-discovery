@@ -1,4 +1,4 @@
-// Shared types and constants for DFN Gap Analyzer
+// Shared types and constants for DFN Discovery
 // Re-export all types and utilities from submodules
 
 export * from './types/job';

@@ -1,6 +1,6 @@
 # Shared Types and Utilities
 
-This package contains all shared types, constants, and utilities used across the DFN Gap Analyzer application.
+This package contains all shared types, constants, and utilities used across the DFN Discovery application.
 
 ## Structure
 

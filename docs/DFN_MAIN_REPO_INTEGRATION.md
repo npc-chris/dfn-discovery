@@ -2,7 +2,7 @@
 
 ## Decision
 
-DFN Gap Analyzer is a standalone product boundary.
+DFN Discovery is a standalone product boundary.
 
 It can integrate with the main DFN repository, but only through versioned contracts, identity, and explicit APIs or events. It should not import or share the main repo's runtime state, database tables, or internal application modules.
 
@@ -22,7 +22,7 @@ It can integrate with the main DFN repository, but only through versioned contra
 
 ## Recommended Integration Pattern
 
-1. Keep Gap Analyzer's backend, frontend, and database independent.
+1. Keep Discovery's backend, frontend, and database independent.
 2. Publish reusable contracts from a dedicated shared package or generated client artifact.
 3. Use authenticated API calls for synchronous reads and writes.
 4. Use webhooks or events for asynchronous sync between repos.
@@ -62,6 +62,6 @@ The first shared contracts should be:
 
 ## Ownership Summary
 
-Gap Analyzer owns its own data plane and business logic.
+Discovery owns its own data plane and business logic.
 
-The main DFN repo can provide identity, upstream content, and shared contracts, but it does not own Gap Analyzer's runtime behavior.
+The main DFN repo can provide identity, upstream content, and shared contracts, but it does not own Discovery's runtime behavior.

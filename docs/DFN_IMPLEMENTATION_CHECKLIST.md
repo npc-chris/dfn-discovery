@@ -1,4 +1,4 @@
-# DFN Gap Analyzer - Implementation Checklist
+# DFN Discovery - Implementation Checklist
 
 **Status:** Ready for Phase 1 - Full Service Implementation  
 **Created:** May 8, 2026  

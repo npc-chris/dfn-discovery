@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document freezes the high-level shape of DFN Gap Analyzer for product companies.
+This document freezes the high-level shape of DFN Discovery for product companies.
 
 The product answers one question: can this manufacturing job be routed to a Nigerian factory with acceptable fit, cost, lead time, and risk?
 

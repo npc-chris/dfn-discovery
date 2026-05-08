@@ -1,4 +1,4 @@
-# DFN Gap Analyzer - Implementation Validation Report
+# DFN Discovery - Implementation Validation Report
 
 **Date:** May 8, 2026  
 **Phase:** Design Freeze Scaffolding Validation  
@@ -373,9 +373,9 @@ RECOMMENDATION_GATE_RULES {
 **Reference:** DFN_MAIN_REPO_INTEGRATION.md
 
 **Correctly Separated:**
-✅ DFN Gap Analyzer has its own database (PostgreSQL)
-✅ DFN Gap Analyzer has its own queue (Redis)
-✅ DFN Gap Analyzer has its own session storage
+✅ DFN Discovery has its own database (PostgreSQL)
+✅ DFN Discovery has its own queue (Redis)
+✅ DFN Discovery has its own session storage
 ✅ No direct imports from main DFN repo
 ✅ No shared live application state
 

@@ -1,4 +1,4 @@
-// Drizzle schema for DFN Gap Analyzer
+// Drizzle schema for DFN Discovery
 // Matches the canonical entities defined in DFN_LLD.md
 
 import { pgTable, text, integer, boolean, timestamp, uuid, jsonb } from 'drizzle-orm/pg-core';

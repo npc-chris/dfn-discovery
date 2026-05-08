@@ -1,6 +1,6 @@
 # Frontend
 
-Next.js web application for DFN Gap Analyzer.
+Next.js web application for DFN Discovery.
 
 Product companies submit manufacturing jobs and receive scoring and recommendation briefs.
 
