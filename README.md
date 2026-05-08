@@ -19,6 +19,12 @@ The architecture is frozen in the planning docs:
 - [Main Repo Integration](docs/DFN_MAIN_REPO_INTEGRATION.md) — Standalone boundary, shared contracts, and auth integration
 - [Sequence Diagrams](docs/DFN_SEQUENCE_DIAGRAMS.md) — Core flows and worker patterns
 
+**Implementation Phase:**
+PHASE 1: SCAFFOLDING (1 day) — Build the skeleton codebase with empty services, routes, and data models based on the frozen design docs. No real logic yet, just the structure.
+- [Design Freeze Checkpoint](docs/DFN_DESIGN_FREEZE-08-05-2026-T15-11.md) — Complete scaffolded specification (services, routes, queue, schema)
+- [Implementation Validation](docs/DFN_IMPLEMENTATION_VALIDATION.md) — Validation of scaffolded code against frozen docs (✅ PASSED)
+- [Implementation Checklist](docs/DFN_IMPLEMENTATION_CHECKLIST.md) — Detailed task list for full service implementation (7 phases, 4 weeks)
+
 Start with the Service Plan if this is your first time.
 
 ## Folder Structure
@@ -32,7 +38,7 @@ dfn-gap-analyzer/
   .github/            # GitHub workflows and templates
 ```
 
-## Setup
+## Local Setup
 
 ### Requirements
 

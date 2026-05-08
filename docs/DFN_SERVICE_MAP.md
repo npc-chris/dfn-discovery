@@ -129,7 +129,7 @@ Owns:
 - confidence scoring
 - recommendation ranking
 
-Should be mostly deterministic, with AI assisting only where the input or explanation needs structure.
+Should be explicitly deterministic, with AI assisting only where the input or explanation needs structure.
 
 ### 3. AI Analysis Workers
 
@@ -174,7 +174,7 @@ Owns:
 - site briefs
 - facility fit analysis
 - access context
-- rent and infrastructure notes where data is available
+- rent/lease and infrastructure notes where data is available
 
 This should be a distinct module because site selection is a different buying question from factory matching.
 
