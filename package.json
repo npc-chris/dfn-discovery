@@ -1,0 +1,24 @@
+{
+  "name": "dfn-gap-analyzer",
+  "version": "0.1.0",
+  "description": "AI-powered manufacturing job routing and analysis for Nigerian factories",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w frontend\" \"npm run dev -w backend\"",
+    "build": "npm run build -w shared && npm run build -w backend && npm run build -w frontend",
+    "test": "npm run test -w frontend && npm run test -w backend && npm run test -w shared",
+    "lint": "npm run lint -w frontend && npm run lint -w backend && npm run lint -w shared",
+    "type-check": "npm run type-check -w frontend && npm run type-check -w backend && npm run type-check -w shared"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

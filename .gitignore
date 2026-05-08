@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+*.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+.turbo/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Postgres/Database
+*.sql
+dump_*
+
+# Cache
+.eslintcache
+.stylelintcache
+
+# Misc
+.cache/
+.turbopack

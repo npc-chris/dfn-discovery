@@ -1,0 +1,15 @@
+// TypeScript configuration for backend workspace
+
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "module": "ESNext"
+  },
+  "include": ["src"],
+  "ts-node": {
+    "esm": true,
+    "experimentalEsm": true
+  }
+}

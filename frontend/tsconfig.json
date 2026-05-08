@@ -1,0 +1,13 @@
+// TypeScript configuration for frontend workspace
+
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./.next",
+    "rootDir": "./src",
+    "jsx": "preserve",
+    "incremental": true
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
+}
