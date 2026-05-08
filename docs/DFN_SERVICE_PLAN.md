@@ -179,6 +179,25 @@ If the current plan includes any of these, cut them:
 
 That sequence gets to a real user outcome fastest. It also keeps the architecture honest.
 
+## Integration Decision
+
+DFN Gap Analyzer should be implemented as a standalone application boundary.
+
+It should integrate with the main DFN repository only through explicit contracts:
+
+- shared authentication identity and role claims
+- versioned API clients and type definitions
+- webhook or event payloads for async updates
+- optional shared UI tokens or primitives if they are packaged separately
+
+It should not depend on the main repo's live database, session store, or internal application modules.
+
+Implementation rule:
+
+- if code must be reused across both repos, publish it as a versioned shared package
+- if data must cross the boundary, use an authenticated API or event contract
+- if a feature requires direct imports from the main repo, it belongs in the shared package or should be refactored into a contract first
+
 ## Decision Rule
 
 Keep a service only if it improves one of these outcomes:
@@ -195,4 +214,4 @@ If it does not move one of those, it is probably scope creep.
 1. Who is the first user: product company, factory owner, investor, or platform operator?
 2. Which data do we already have, and which data is still manual?
 3. Is the first launch centered on matching, logistics, or facility selection?
-4. Do we want this as one product with modules, or as multiple products sharing a core engine?
+4. Resolved: this is one standalone product that can share contracts and identity with the main DFN repo, but not runtime state.

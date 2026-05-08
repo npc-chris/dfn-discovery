@@ -16,6 +16,7 @@ The architecture is frozen in the planning docs:
 - [Service Map](docs/DFN_SERVICE_MAP.md) — System shape and service boundaries
 - [High-Level Design](docs/DFN_HLD.md) — Architectural decisions and principles
 - [Low-Level Design](docs/DFN_LLD.md) — Schemas, APIs, and state machines
+- [Main Repo Integration](docs/DFN_MAIN_REPO_INTEGRATION.md) — Standalone boundary, shared contracts, and auth integration
 - [Sequence Diagrams](docs/DFN_SEQUENCE_DIAGRAMS.md) — Core flows and worker patterns
 
 Start with the Service Plan if this is your first time.

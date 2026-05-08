@@ -10,6 +10,31 @@ This is not a general chat product. The system should ingest structured and semi
 
 The product should be built as a small set of cooperating services with one thin presentation layer.
 
+## Main Repo Integration Boundary
+
+DFN Gap Analyzer should remain a standalone runtime and data boundary.
+
+It may integrate with the main DFN repo through versioned contracts and identity, but it should not share live application state, local databases, or unversioned internal modules.
+
+Shared between repos:
+
+- authentication identity and role claims through a common identity provider
+- versioned API contracts and client types
+- optional shared design tokens or UI primitives when they are published as a package
+
+Not shared between repos:
+
+- database tables or migrations
+- session storage or local user state
+- direct runtime imports from the main repo application code
+- queue state or worker state
+
+Integration should happen through explicit interfaces:
+
+- authenticated API calls from one app to the other
+- webhook or event payloads for asynchronous updates
+- a versioned shared package for types, constants, and client helpers
+
 ## Mermaid Views
 
 ### Service Architecture
@@ -165,6 +190,22 @@ Owns:
 
 This layer should be thin. It should render and orchestrate, not decide.
 
+### 8. Main Repo Integration Layer
+
+This is not a separate business service. It is the boundary that keeps DFN Gap Analyzer decoupled while still allowing it to consume upstream identity, contracts, and optional shared UI assets from the main DFN repository.
+
+Owns:
+
+- contract validation for inbound and outbound integration payloads
+- adapter code for shared identity and upstream data fetches
+- version checks for shared package compatibility
+
+Does not own:
+
+- persistent business data
+- user-facing decision logic
+- schema definitions for the main repo
+
 ## Primary Data Flow
 
 1. Product company submits a manufacturing job.
@@ -175,6 +216,8 @@ This layer should be thin. It should render and orchestrate, not decide.
 6. Market Intelligence adds demand and market context.
 7. Site and Real Estate Intelligence adds location suitability.
 8. Presentation Layer combines the outputs into a decision brief.
+
+If the main DFN repo needs to participate, it should do so before or after these steps through the integration boundary above, not by embedding its logic inside the Gap Analyzer service stack.
 
 The user should see a recommendation, supporting evidence, and confidence level.
 
