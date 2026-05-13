@@ -1,9 +1,9 @@
 // Job Intake Service
 // Validates, normalizes, and versions job submissions
 
-import { db } from '../db/client';
-import { jobs } from '../db/schema';
-import { Job, JobInput, JobStatus } from '@dfn/shared';
+import { db } from '../db/client.ts';
+import { jobs } from '../db/schema.ts';
+import type { Job, JobInput, JobStatus } from '@dfn/shared';
 import { eq } from 'drizzle-orm';
 
 // Validate job input fields

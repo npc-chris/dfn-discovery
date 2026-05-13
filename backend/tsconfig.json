@@ -5,7 +5,10 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "module": "ESNext"
+    "module": "ESNext",
+    "allowImportingTsExtensions": true,
+    "moduleResolution": "node",
+    "preserveSymlinks": false
   },
   "include": ["src"],
   "ts-node": {

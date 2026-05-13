@@ -21,6 +21,7 @@ The architecture is frozen in the planning docs:
 
 **Implementation Phase:**
 PHASE 1: SCAFFOLDING (1 day) — Build the skeleton codebase with empty services, routes, and data models based on the frozen design docs. No real logic yet, just the structure.
+
 - [Design Freeze Checkpoint](docs/DFN_DESIGN_FREEZE-08-05-2026-T15-11.md) — Complete scaffolded specification (services, routes, queue, schema)
 - [Implementation Validation](docs/DFN_IMPLEMENTATION_VALIDATION.md) — Validation of scaffolded code against frozen docs (✅ PASSED)
 - [Implementation Checklist](docs/DFN_IMPLEMENTATION_CHECKLIST.md) — Detailed task list for full service implementation (7 phases, 4 weeks)

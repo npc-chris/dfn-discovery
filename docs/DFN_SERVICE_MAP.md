@@ -41,47 +41,47 @@ Integration should happen through explicit interfaces:
 
 ```mermaid
 flowchart LR
-	U[Product Company]
+ U[Product Company]
 
-	subgraph P[Presentation Layer]
-		UI[Dashboards / Reports / Exports]
-	end
+ subgraph P[Presentation Layer]
+  UI[Dashboards / Reports / Exports]
+ end
 
-	subgraph I[Ingestion And Analysis]
-		JI[Job Intake]
-		AI[AI Analysis Workers]
-		CI[Core Intelligence]
-	end
+ subgraph I[Ingestion And Analysis]
+  JI[Job Intake]
+  AI[AI Analysis Workers]
+  CI[Core Intelligence]
+ end
 
-	subgraph D[Decision Support]
-		GL[Geo and Logistics]
-		MI[Market Intelligence]
-		SR[Site and Real Estate Intelligence]
-	end
+ subgraph D[Decision Support]
+  GL[Geo and Logistics]
+  MI[Market Intelligence]
+  SR[Site and Real Estate Intelligence]
+ end
 
-	U --> UI
-	UI --> JI
-	JI --> AI
-	JI --> CI
-	AI --> CI
-	CI --> GL
-	CI --> MI
-	CI --> SR
-	GL --> UI
-	MI --> UI
-	SR --> UI
+ U --> UI
+ UI --> JI
+ JI --> AI
+ JI --> CI
+ AI --> CI
+ CI --> GL
+ CI --> MI
+ CI --> SR
+ GL --> UI
+ MI --> UI
+ SR --> UI
 ```
 
 ### Request Flow
 
 ```mermaid
 flowchart TB
-	A[Submit job] --> B[Validate and normalize]
-	B --> C[Extract structured fields with AI]
-	C --> D[Score capability and fit]
-	D --> E[Add logistics, market, and site context]
-	E --> F[Generate recommendation brief]
-	F --> G[User reviews evidence and confidence]
+ A[Submit job] --> B[Validate and normalize]
+ B --> C[Extract structured fields with AI]
+ C --> D[Score capability and fit]
+ D --> E[Add logistics, market, and site context]
+ E --> F[Generate recommendation brief]
+ F --> G[User reviews evidence and confidence]
 ```
 
 ### Core Services

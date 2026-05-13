@@ -26,6 +26,7 @@ Comprehensive validation of the scaffolded implementation against frozen plannin
 ## 1. Service Boundary Validation
 
 ### Service Map Check
+
 **Reference:** DFN_SERVICE_MAP.md Section "Core Services"
 
 | Service | Expected Scope | Implementation | ✅ Status |
@@ -45,9 +46,11 @@ Comprehensive validation of the scaffolded implementation against frozen plannin
 ## 2. Database Schema Validation
 
 ### Canonical Entities Check
+
 **Reference:** DFN_LLD.md Section "Canonical Entities"
 
 #### Job Table ✅
+
 | Field | LLD Spec | Implementation | Match |
 |---|---|---|---|
 | id | string (UUID) | uuid('id').primaryKey() | ✅ |
@@ -64,6 +67,7 @@ Comprehensive validation of the scaffolded implementation against frozen plannin
 | updated_at | timestamp | timestamp('updated_at').defaultNow() | ✅ |
 
 #### Factory Profile Table ✅
+
 | Field | LLD Spec | Implementation | Match |
 |---|---|---|---|
 | id | string (UUID) | uuid('id').primaryKey() | ✅ |
@@ -77,6 +81,7 @@ Comprehensive validation of the scaffolded implementation against frozen plannin
 | active | boolean | boolean('active').default(true) | ✅ |
 
 #### Recommendation Table ✅
+
 | Field | LLD Spec | Implementation | Match |
 |---|---|---|---|
 | id | string (UUID) | uuid('id').primaryKey() | ✅ |
@@ -92,7 +97,9 @@ Comprehensive validation of the scaffolded implementation against frozen plannin
 | version | number | integer('version').default(1) | ✅ |
 
 #### Evidence Item ✅
+
 Stored as jsonb array in recommendations.evidence with structure matching LLD spec:
+
 - id: string (UUID)
 - source_type: string
 - source_ref: string
@@ -100,6 +107,7 @@ Stored as jsonb array in recommendations.evidence with structure matching LLD sp
 - confidence: number
 
 #### Additional Tables ✅
+
 - **attachments**: Matches job intake ownership of file ingestion
 - **job_queue**: Supports asynchronous worker processing per HLD design
 
@@ -110,9 +118,11 @@ Stored as jsonb array in recommendations.evidence with structure matching LLD sp
 ## 3. State Machine Validation
 
 ### Job Lifecycle States Check
+
 **Reference:** DFN_LLD.md Section "State Machine"
 
 **Implemented States in schema.status:**
+
 ```typescript
 Primary states:
 - draft ✅ (initial state after creation)
@@ -132,6 +142,7 @@ Failure states:
 ```
 
 **State Transitions Documented:**
+
 - Job Intake service enforces draft → submitted transition with validation
 - Job Intake TODO comment flags need for `validateStateTransition()` method
 - Queue workers track state progression
@@ -144,6 +155,7 @@ Failure states:
 ## 4. API Route Surface Validation
 
 ### LLD Public API Check
+
 **Reference:** DFN_LLD.md Section "API Surface" → "Public APIs"
 
 | LLD Spec | Route | Implementation | Status |
@@ -183,9 +195,11 @@ Failure states:
 ## 5. Queue Job Types Validation
 
 ### Job Flow Check
+
 **Reference:** DFN_LLD.md Section "Queue Jobs" and DFN_SERVICE_MAP.md request flow
 
 **Queue Job Types Defined:**
+
 ```typescript
 enum QueueJobType {
   CLASSIFY_JOB = 'classify-job',           // ✅ Job normalization
@@ -199,6 +213,7 @@ enum QueueJobType {
 ```
 
 **Processing Flow:**
+
 ```
 1. submit-job
    ↓
@@ -220,6 +235,7 @@ enum QueueJobType {
 
 **Configuration Constants:**
 ✅ QUEUE_CONFIG defines:
+
 - DEFAULT_MAX_RETRIES: 3
 - Job timeouts appropriate to each type (30s-2min)
 - Concurrency limits per type (2-4 workers)
@@ -233,6 +249,7 @@ enum QueueJobType {
 ## 6. AI Role Constraint Validation
 
 ### AI Design Principles Check
+
 **Reference:** DFN_HLD.md Section "AI Role"
 
 | Constraint | Expected | Implementation | Status |
@@ -254,16 +271,21 @@ enum QueueJobType {
 ## 7. Sync vs. Async Boundary Validation
 
 ### Request Path Design Check
+
 **Reference:** DFN_HLD.md Section "Sync Versus Async"
 
 #### Synchronous Path ✅
+
 **Job Intake (immediate, blocking):**
+
 - `POST /jobs` → createJob() → Returns Job {id, status='draft'} immediately
 - `POST /jobs/:id/submit` → submitJob() → Validates, transitions to 'submitted', enqueues first async job
 - Response times: < 100ms (database only, no external calls)
 
 #### Asynchronous Path ✅
+
 **Worker Queue (background processing):**
+
 - CLASSIFY_JOB (30s timeout) → Normalize and tag job
 - EXTRACT_EVIDENCE (2min timeout) → AI extracts from files
 - SCORE_FIT (1min timeout) → Score against factories
@@ -273,6 +295,7 @@ enum QueueJobType {
 - Client polls: `GET /queue/job/:jobId` for progress
 
 #### Long-Polling Option ✅
+
 - `GET /queue/job/:jobId/progress` → Returns percentComplete and currentStage
 - Supports client-side polling without blocking
 
@@ -283,26 +306,32 @@ enum QueueJobType {
 ## 8. Scoring Contract Validation
 
 ### Scoring Design Check
+
 **Reference:** DFN_HLD.md Section "Primary Decisions" and DFN_LLD.md Section "Scoring Contract"
 
 #### Primary Score ✅
+
 - **Fit Score** is primary output (0-100)
 - Recommendation headline
 - Weighted sum of components
 
 #### Supporting Score ✅
+
 - **Feasibility Score** (0-100) provides context
 - Can lower/raise confidence but doesn't replace Fit Score
 - Computed from logistics + capacity
 
 #### Confidence Score ✅
+
 - Metadata on result quality
 - Draft stage: ≥30
 - Final stage: ≥60
 - Applied as penalty for missing data
 
 #### Scoring Components ✅
+
 **Implemented weights in constants:**
+
 ```typescript
 SCORING_WEIGHTS: {
   ProcessMatch: 0.25,           // ✅ Specified in LLD
@@ -317,6 +346,7 @@ CONFIDENCE_PENALTY_FACTOR: 0.15  // ✅ 15% per missing component
 ```
 
 #### Recommendation Gate Rules ✅
+
 ```typescript
 RECOMMENDATION_GATE_RULES {
   // At least 1 factory in results
@@ -332,6 +362,7 @@ RECOMMENDATION_GATE_RULES {
 ## 9. Error Handling Strategy Validation
 
 ### Error Handling Check
+
 **Reference:** DFN_LLD.md Section "Error Handling"
 
 | Error Type | Expected Behavior | Implementation | Status |
@@ -349,9 +380,11 @@ RECOMMENDATION_GATE_RULES {
 ## 10. Type System Freeze Validation
 
 ### Shared Types Check
+
 **Reference:** DFN_LLD.md canonical entities
 
 **Shared Package Types:**
+
 - ✅ `Job` interface matches schema
 - ✅ `Factory` interface matches schema
 - ✅ `Recommendation` interface matches schema
@@ -370,6 +403,7 @@ RECOMMENDATION_GATE_RULES {
 ## 11. Integration Boundary Validation
 
 ### Main Repo Integration Check
+
 **Reference:** DFN_MAIN_REPO_INTEGRATION.md
 
 **Correctly Separated:**
@@ -396,9 +430,11 @@ RECOMMENDATION_GATE_RULES {
 ## 12. Observability & Monitoring Validation
 
 ### Logging & Metrics Check
+
 **Reference:** DFN_LLD.md Section "Observability"
 
 **Documented Log Points:**
+
 - ✅ Job creation with ID
 - ✅ Job status transitions with timestamp
 - ✅ Queue job events (enqueue, process, complete, fail)
@@ -407,6 +443,7 @@ RECOMMENDATION_GATE_RULES {
 - ✅ Queue statistics endpoint for health monitoring
 
 **Metrics Ready:**
+
 - ✅ Queue stats endpoint: GET /queue/stats
 - ✅ Queue job progress: GET /queue/job/:jobId/progress
 - ✅ Job trace: GET /queue/job/:jobId with full job history
@@ -418,36 +455,42 @@ RECOMMENDATION_GATE_RULES {
 ## Summary Checklist
 
 ### Architecture
+
 - ✅ 7 services with clear boundaries, no overlap
 - ✅ 1 presentation layer with no business logic
 - ✅ 5 supporting tables with proper relationships
 - ✅ AI worker role clearly defined and constrained
 
 ### Data Model
+
 - ✅ 5 database tables match LLD canonical entities
 - ✅ 12 job states match state machine
 - ✅ All required fields present with correct types
 - ✅ Foreign keys establish proper relationships
 
 ### API Contract
+
 - ✅ All LLD public routes implemented
 - ✅ 26 total routes organized by service domain
 - ✅ Request/response types defined
 - ✅ Error handling middleware in place
 
 ### Asynchronous Processing
+
 - ✅ 7 queue job types defined
 - ✅ Processing flow matches request diagram
 - ✅ Retry logic and concurrency configured
 - ✅ State transitions properly managed
 
 ### Constraints & Guardrails
+
 - ✅ AI role limited to worker functions
 - ✅ Deterministic scoring not replaced by AI
 - ✅ Gate rules prevent low-confidence recommendations
 - ✅ External failures handled gracefully
 
 ### Implementation Status
+
 - ✅ **Job Intake:** Fully implemented (validation, normalization, database ops)
 - ✅ **AI Provider Abstraction:** Types and factory pattern, methods stubbed
 - ✅ **Core Intelligence:** Interface and formula defined, methods stubbed

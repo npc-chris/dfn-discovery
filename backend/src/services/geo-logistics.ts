@@ -13,7 +13,7 @@
  * - Track routing costs for feasibility assessment
  */
 
-import { Job, Factory } from '@dfn/shared/types';
+import type { Job, Factory } from '@dfn/shared/types';
 
 export interface LogisticsAssessment {
   distance_km: number;

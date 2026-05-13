@@ -1,6 +1,6 @@
 // Factory domain types matching DFN_LLD.md canonical schema
 
-export interface Location {
+export interface FactoryLocation {
   latitude: number;
   longitude: number;
   address?: string;
@@ -32,7 +32,7 @@ export interface FactoryProfile {
   capabilities: FactoryCapability[];
   materials: string[];
   capacity_band: string;
-  locations: Location[];
+  locations: FactoryLocation[];
   certifications: Certification[];
   verified_sources: VerifiedSource[];
   active: boolean;
@@ -45,6 +45,6 @@ export interface FactoryInput {
   capabilities: FactoryCapability[];
   materials: string[];
   capacity_band: string;
-  locations: Location[];
+  locations: FactoryLocation[];
   certifications?: Certification[];
 }

@@ -1,9 +1,24 @@
 {
   "name": "@dfn/shared",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./constants/scoring": {
+      "import": "./dist/constants/scoring.js",
+      "types": "./dist/constants/scoring.d.ts"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit"

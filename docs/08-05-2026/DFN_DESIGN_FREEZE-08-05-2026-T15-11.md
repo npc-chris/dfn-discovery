@@ -1,4 +1,5 @@
 # DFN Discovery - Design Freeze Checkpoint
+
 **Date: May 8, 2026**
 **Status: Scaffolding Complete - Ready for Full Service Implementation**
 
@@ -9,6 +10,7 @@
 This document captures the scaffolded architectural freeze for the DFN Discovery system as of the scaffolding phase. All service boundaries, API contracts, database schemas, and implementation specifications are frozen. The codebase has complete type definitions, interface contracts, route stubs, and TODO markers for implementation.
 
 **What's Frozen:**
+
 - ✅ 7 service boundaries and responsibilities
 - ✅ 5 database tables and Drizzle ORM schema
 - ✅ AI provider abstraction with 3 implementations (OpenAI, Anthropic, Google)
@@ -18,6 +20,7 @@ This document captures the scaffolded architectural freeze for the DFN Discovery
 - ✅ All service class definitions with method signatures
 
 **What's Next (Full Implementation):**
+
 - 🔄 Implement all service methods (currently throwing "Not implemented")
 - 🔄 Implement all API route handlers
 - 🔄 Implement queue worker handlers
@@ -52,11 +55,13 @@ Service Layers:
 ## Service Boundaries & Implementations
 
 ### 1. **Job Intake Service** ✅ FULLY IMPLEMENTED
+
 **File:** `backend/src/services/job-intake.ts`
 
 **Status:** Scaffolded with validation, normalization, and database operations
 
 **Methods:**
+
 - `validateJobInput(input)` - Validates required fields (company_name, product_name, location)
 - `normalizeJobInput(input)` - Trims strings, prepares for database
 - `createJob(input)` - Inserts to jobs table, returns Job with UUID, status='draft'
@@ -67,6 +72,7 @@ Service Layers:
 **Database:** Uses Drizzle ORM with jobs table
 
 **API Route:** [backend/src/routes/jobs.ts](backend/src/routes/jobs.ts)
+
 - `POST /jobs` - Create job
 - `GET /jobs/:jobId` - Get job
 - `POST /jobs/:jobId/submit` - Submit job
@@ -77,11 +83,13 @@ Service Layers:
 ---
 
 ### 2. **AI Analysis Workers Service** 🔄 SCAFFOLDED
+
 **File:** `backend/src/services/ai-analysis-workers.ts`
 
 **Status:** Interface defined, 3 adapter classes stubbed, methods need implementation
 
 **Methods:**
+
 - `extractJobData(request)` - Extract structured data from attachments, confidence scoring
 - `summarizeEvidence(request)` - Summarize findings, respect max length
 - `explainRecommendation(request)` - Generate detailed explanations with key points
@@ -89,17 +97,20 @@ Service Layers:
 - `getUsageMetrics()` - Return token usage and cost data
 
 **AI Provider Adapters:** [backend/src/services/ai-providers/adapter.ts](backend/src/services/ai-providers/adapter.ts)
+
 - `OpenAIAdapter` - Calls gpt-4o/gpt-4-turbo/gpt-3.5-turbo
 - `AnthropicAdapter` - Calls claude-3-5-sonnet/claude-3-opus/claude-3-sonnet/claude-3-haiku
 - `GoogleAdapter` - Calls gemini-2.0-flash/gemini-1.5-pro/gemini-1.5-flash
 
 **Model Registry:** [backend/src/services/ai-providers/model-registry.ts](backend/src/services/ai-providers/model-registry.ts)
+
 - 9 models with metadata (context window, pricing, release date)
 - `getModelsByProvider(provider)` - Filter by provider
 - `getModelById(id)` - Lookup single model
 - `getDefaultModelForProvider(provider)` - Recommended model per provider
 
 **Model Discovery API:** [backend/src/routes/models.ts](backend/src/routes/models.ts)
+
 - `GET /providers` - List all providers
 - `GET /models` - List all models or filter by provider
 - `GET /models/:modelId` - Get specific model details
@@ -107,6 +118,7 @@ Service Layers:
 - `POST /models/filter` - Advanced filtering (context window, cost, deprecated)
 
 **Implementation TODOs:**
+
 1. Install SDK packages: `openai`, `@anthropic-ai/sdk`, `@google/generativeai`
 2. Implement `extract()` - Prompt engineering for consistent JSON output
 3. Implement `summarize()` - Respect max length constraints
@@ -116,6 +128,7 @@ Service Layers:
 7. Add token tracking for cost optimization
 
 **API Route:** [backend/src/routes/extraction.ts](backend/src/routes/extraction.ts)
+
 - `POST /extraction/extract-job-data` - Extract from job
 - `POST /extraction/summarize-evidence` - Summarize findings
 - `POST /extraction/explain-recommendation` - Generate explanation
@@ -124,11 +137,13 @@ Service Layers:
 ---
 
 ### 3. **Core Intelligence Service** 🔄 SCAFFOLDED
+
 **File:** `backend/src/services/core-intelligence.ts`
 
 **Status:** Class interface defined, methods stubbed
 
 **Methods:**
+
 - `scoreJob(input)` - Compute fit/feasibility scores with component breakdown
 - `rankRecommendations(results)` - Sort by fit, apply gate rules
 - `computeComponentScore(component, job, factory, evidence)` - Individual component scoring
@@ -136,6 +151,7 @@ Service Layers:
 - `checkGateRules(result, stage)` - Validate against gate rules
 
 **Scoring Formula:**
+
 ```
 Fit Score = Weighted sum of components (0-100)
   ProcessMatch: 0.25
@@ -150,11 +166,13 @@ Feasibility Score: CapacityMatch + GeographyAndLogistics
 ```
 
 **Gate Rules:**
+
 - Draft stage: confidence ≥ 30
 - Final stage: confidence ≥ 60
 - Always: ≥ 1 factory, ≥ 1 evidence item per factory
 
 **Output Types:**
+
 ```typescript
 ScoringResult {
   recommendationId: string;
@@ -173,6 +191,7 @@ ScoringResult {
 ```
 
 **Implementation TODOs:**
+
 1. Implement component scoring deterministic logic
 2. Implement confidence penalty calculation
 3. Implement gate rule checking
@@ -182,6 +201,7 @@ ScoringResult {
 7. Cache component scores for debugging
 
 **API Route:** [backend/src/routes/scoring.ts](backend/src/routes/scoring.ts)
+
 - `POST /scoring/score-job` - Score against all or specified factories
 - `POST /scoring/rank-recommendations` - Rank and filter results
 - `GET /scoring/job-score/:jobId` - Get current scores
@@ -190,16 +210,19 @@ ScoringResult {
 ---
 
 ### 4. **Geo & Logistics Service** 🔄 SCAFFOLDED
+
 **File:** `backend/src/services/geo-logistics.ts`
 
 **Status:** Interface defined, methods stubbed
 
 **Methods:**
+
 - `assessLogistics(job, factory)` - Calculate distance, lead time, transport mode, cost
 - `computeLogisticsFeasibilityScore(job, assessment)` - Score 0-100
 - `estimateLeadTime(assessment)` - Return business days
 
 **Output Types:**
+
 ```typescript
 LogisticsAssessment {
   distance_km: number;
@@ -215,6 +238,7 @@ LogisticsAssessment {
 ```
 
 **Implementation TODOs:**
+
 1. Implement distance calculation (Google Maps API or deterministic formula based on lat/long)
 2. Determine transport mode based on distance and volume
 3. Calculate lead time: distance/mode_speed + customs_processing + factory_time
@@ -225,6 +249,7 @@ LogisticsAssessment {
 8. Integrate with external mapping provider (optional)
 
 **Feasibility Score Formula:**
+
 ```
 Base: 100 - (distance_km / 1000) * 10
 Penalty for lead time > 14 days: -15 points
@@ -234,21 +259,25 @@ Normalize to 0-100
 ```
 
 **API Route:** [backend/src/routes/enrichment.ts](backend/src/routes/enrichment.ts)
+
 - `POST /enrichment/logistics-assessment` - Assess logistics
 
 ---
 
 ### 5. **Market Intelligence Service** 🔄 SCAFFOLDED
+
 **File:** `backend/src/services/market-intelligence.ts`
 
 **Status:** Interface defined, methods stubbed
 
 **Methods:**
+
 - `getMarketSignals(factory, productType)` - Demand, pricing, reputation, order frequency
 - `computeMarketAccessScore(signals)` - Score 0-100
 - `getMarketOutlook(productType)` - Trend narrative and confidence
 
 **Output Types:**
+
 ```typescript
 MarketSignals {
   product_demand_trend: 'increasing' | 'stable' | 'decreasing';
@@ -263,6 +292,7 @@ MarketSignals {
 ```
 
 **Implementation TODOs:**
+
 1. Query market database or API for product demand
 2. Retrieve factory historical order frequency
 3. Calculate factory market share (orders / market total)
@@ -273,6 +303,7 @@ MarketSignals {
 8. Handle missing data gracefully (defaults)
 
 **Market Access Score Formula:**
+
 ```
 Base: 50 + demand_trend * 20
 Bonus for high frequency (>5/month): +15 points
@@ -283,23 +314,27 @@ Normalize to 0-100
 ```
 
 **API Route:** [backend/src/routes/enrichment.ts](backend/src/routes/enrichment.ts)
+
 - `GET /enrichment/market-signals/:factoryId` - Get market signals
 - `GET /enrichment/market-outlook` - Get product outlook
 
 ---
 
 ### 6. **Site & Real Estate Service** 🔄 SCAFFOLDED
+
 **File:** `backend/src/services/site-realestate.ts`
 
 **Status:** Interface defined, methods stubbed
 
 **Methods:**
+
 - `generateSiteBrief(factory)` - Comprehensive facility brief
 - `assessFacilityCondition(brief)` - Condition score and risk level
 - `getSiteVisitReport(factory)` - Most recent visit summary
 - `checkFacilityAvailability(factory, requiredCapacity, requiredLead)` - Availability assessment
 
 **Output Types:**
+
 ```typescript
 SiteBrief {
   facility_id: string;
@@ -321,6 +356,7 @@ SiteBrief {
 ```
 
 **Implementation TODOs:**
+
 1. Query facility database for specifications
 2. Get certification status from compliance tracking
 3. Retrieve most recent site visit report
@@ -331,6 +367,7 @@ SiteBrief {
 8. Handle missing data (use last-known or placeholder)
 
 **Facility Condition Score Formula:**
+
 ```
 Base: 50 + condition_score * 10
 Bonus for modern equipment (age < 5 years): +15 points
@@ -342,6 +379,7 @@ Normalize to 0-100
 ```
 
 **API Route:** [backend/src/routes/enrichment.ts](backend/src/routes/enrichment.ts)
+
 - `GET /enrichment/site-brief/:factoryId` - Get facility brief
 - `GET /enrichment/site-visit-report/:factoryId` - Get visit report
 - `POST /enrichment/check-availability` - Check availability
@@ -349,11 +387,13 @@ Normalize to 0-100
 ---
 
 ### 7. **Presentation Layer Service** 🔄 SCAFFOLDED
+
 **File:** `backend/src/services/presentation-layer.ts`
 
 **Status:** Interface defined, methods stubbed
 
 **Methods:**
+
 - `formatRecommendation(scoringResult, job)` - Format for UI display
 - `formatRecommendationSummary(job, recommendations)` - Dashboard summary
 - `generateExplanation(result, job, style)` - Natural language explanation
@@ -362,6 +402,7 @@ Normalize to 0-100
 - `mapFitDescription(score)` - Map to fit level description
 
 **Output Types:**
+
 ```typescript
 RecommendationPresentation {
   recommendationId: string;
@@ -383,6 +424,7 @@ RecommendationPresentation {
 ```
 
 **Implementation TODOs:**
+
 1. Map fit scores to descriptions (0-40: poor, 40-60: fair, 60-80: good, 80-100: excellent)
 2. Map confidence scores to levels (0-30: low, 30-60: medium, 60-100: high)
 3. Generate strengths narrative from high component scores
@@ -398,6 +440,7 @@ RecommendationPresentation {
 13. Generate HTML reports ready for PDF conversion
 
 **API Route:** [backend/src/routes/recommendations.ts](backend/src/routes/recommendations.ts)
+
 - `GET /recommendations/:jobId` - Get formatted recommendations
 - `GET /recommendations/:jobId/top` - Get top recommendation
 - `GET /recommendations/:jobId/:factoryId/explanation` - Get detailed explanation
@@ -413,6 +456,7 @@ RecommendationPresentation {
 **Status:** Types defined, queue constants configured, worker service scaffolded
 
 **Job Types (7 Total):**
+
 1. `classify-job` - Classify and normalize job data
 2. `extract-evidence` - Extract structured data from attachments
 3. `score-fit` - Score job against factories
@@ -422,6 +466,7 @@ RecommendationPresentation {
 7. `generate-recommendation-brief` - Format recommendations
 
 **Processing Flow:**
+
 ```
 submit-job
   ↓
@@ -439,6 +484,7 @@ job status = 'recommended'
 ```
 
 **Queue Configuration:**
+
 ```typescript
 QUEUE_CONFIG {
   DEFAULT_MAX_RETRIES: 3
@@ -469,6 +515,7 @@ QUEUE_CONFIG {
 ```
 
 **Queue Worker Methods:**
+
 - `enqueueJob(type, jobId, payload, version)` - Idempotent enqueue with versioning
 - `processQueueJob(queueJobId)` - Dispatch to handler
 - `markQueueJobComplete(queueJobId, result)` - Mark done, enqueue next
@@ -478,6 +525,7 @@ QUEUE_CONFIG {
 - `replayQueueJob(queueJobId, resetPayload)` - Manual replay
 
 **Worker Handlers (Stubs):**
+
 - `classifyJobWorker(payload)`
 - `extractEvidenceWorker(payload)`
 - `scoreFitWorker(payload)`
@@ -487,6 +535,7 @@ QUEUE_CONFIG {
 - `generateRecommendationBriefWorker(payload)`
 
 **API Route:** [backend/src/routes/queue.ts](backend/src/routes/queue.ts)
+
 - `GET /queue/job/:jobId` - Get all queue jobs for job
 - `GET /queue/job/:jobId/progress` - Get overall progress
 - `GET /queue/:queueJobId` - Get specific queue job status
@@ -502,6 +551,7 @@ QUEUE_CONFIG {
 **Tables:**
 
 ### `jobs` Table
+
 ```typescript
 {
   id: uuid, primary key
@@ -520,6 +570,7 @@ QUEUE_CONFIG {
 ```
 
 ### `factories` Table
+
 ```typescript
 {
   id: uuid, primary key
@@ -535,6 +586,7 @@ QUEUE_CONFIG {
 ```
 
 ### `recommendations` Table
+
 ```typescript
 {
   id: uuid, primary key
@@ -553,6 +605,7 @@ QUEUE_CONFIG {
 ```
 
 ### `attachments` Table
+
 ```typescript
 {
   id: uuid, primary key
@@ -567,6 +620,7 @@ QUEUE_CONFIG {
 ```
 
 ### `job_queue` Table
+
 ```typescript
 {
   id: uuid, primary key
@@ -591,12 +645,14 @@ QUEUE_CONFIG {
 ## API Route Map (Complete)
 
 ### Job Management (`/jobs`)
+
 - `POST /jobs` - Create job
 - `GET /jobs/:jobId` - Get job
 - `POST /jobs/:jobId/submit` - Submit job
 - `GET /jobs/:jobId/recommendation` - Get recommendations
 
 ### Model Discovery (`/models`)
+
 - `GET /models/providers` - List providers
 - `GET /models` - List all models
 - `GET /models/:modelId` - Get model details
@@ -604,18 +660,21 @@ QUEUE_CONFIG {
 - `POST /models/filter` - Advanced filtering
 
 ### AI Extraction (`/extraction`)
+
 - `POST /extraction/extract-job-data` - Extract structured data
 - `POST /extraction/summarize-evidence` - Summarize findings
 - `POST /extraction/explain-recommendation` - Generate explanation
 - `GET /extraction/validate-api-key` - Validate credentials
 
 ### Scoring (`/scoring`)
+
 - `POST /scoring/score-job` - Score job against factories
 - `POST /scoring/rank-recommendations` - Rank results
 - `GET /scoring/job-score/:jobId` - Get current scores
 - `GET /scoring/component-analysis/:jobId/:factoryId` - Debug component breakdown
 
 ### Enrichment (`/enrichment`)
+
 - `POST /enrichment/logistics-assessment` - Assess logistics
 - `GET /enrichment/market-signals/:factoryId` - Get market data
 - `GET /enrichment/market-outlook` - Get product outlook
@@ -624,6 +683,7 @@ QUEUE_CONFIG {
 - `POST /enrichment/check-availability` - Check capacity/lead time
 
 ### Recommendations (`/recommendations`)
+
 - `GET /recommendations/:jobId` - Get all recommendations
 - `GET /recommendations/:jobId/top` - Get top recommendation
 - `GET /recommendations/:jobId/:factoryId/explanation` - Get explanation
@@ -631,6 +691,7 @@ QUEUE_CONFIG {
 - `GET /recommendations/:jobId/comparison` - Compare factories
 
 ### Queue Management (`/queue`)
+
 - `GET /queue/job/:jobId` - Get all queue jobs for job
 - `GET /queue/job/:jobId/progress` - Get progress
 - `GET /queue/:queueJobId` - Get queue job status
@@ -642,26 +703,30 @@ QUEUE_CONFIG {
 ## Implementation Priority
 
 ### Phase 1 (Critical Path)
+
 1. ✅ Job Intake - COMPLETE
 2. 🔄 AI Provider Adapters - Extract, summarize, explain methods
 3. 🔄 Core Intelligence - Scoring and ranking
 4. 🔄 Queue Worker - Job dispatch and retry logic
 
 ### Phase 2 (Enrichment Services)
+
 5. 🔄 Geo & Logistics - Distance and routing
-6. 🔄 Market Intelligence - Demand and pricing
-7. 🔄 Site & Real Estate - Facility data
+2. 🔄 Market Intelligence - Demand and pricing
+3. 🔄 Site & Real Estate - Facility data
 
 ### Phase 3 (Presentation & Polish)
+
 8. 🔄 Presentation Layer - Format and reports
-9. 🔄 Frontend UI - Job submission, recommendations display
-10. 🔄 Testing & Integration - E2E tests, deployment pipeline
+2. 🔄 Frontend UI - Job submission, recommendations display
+3. 🔄 Testing & Integration - E2E tests, deployment pipeline
 
 ---
 
 ## Known Gaps & Future Enhancements
 
 **Out of Scope (Phase 1):**
+
 - [ ] Authentication & authorization middleware
 - [ ] API rate limiting and DDoS protection
 - [ ] Database backup and disaster recovery
@@ -672,6 +737,7 @@ QUEUE_CONFIG {
 - [ ] Mobile app support
 
 **External Integrations (TBD):**
+
 - [ ] Google Maps API for distance calculation
 - [ ] Market data feeds (optional, can use deterministic data)
 - [ ] Satellite imagery for facility verification (optional)

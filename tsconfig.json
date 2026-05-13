@@ -4,6 +4,7 @@
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
+    "moduleResolution": "node",
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -23,6 +24,8 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
+      "@dfn/shared": ["shared/src/index.ts"],
+      "@dfn/shared/*": ["shared/src/*"],
       "@shared/*": ["shared/src/*"],
       "@backend/*": ["backend/src/*"],
       "@frontend/*": ["frontend/src/*"]

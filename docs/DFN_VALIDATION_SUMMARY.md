@@ -1,41 +1,51 @@
-# DFN Discovery - Validation Summary & Wrap-Up
+# DFN Discovery - Implementation Status & Archive
 
-**Date:** May 8, 2026  
-**Phase:** Design Freeze Scaffolding - Validation Complete  
-**Status:** ✅ APPROVED - Ready for Full Implementation
-
----
-
-## What Was Validated
-
-This document summarizes the comprehensive validation of the DFN Discovery scaffolded implementation against all frozen planning documents.
-
-### Planning Documents Checked
-
-1. **DFN_SERVICE_PLAN.md** - Product strategy and AI approach ✅
-2. **DFN_SERVICE_MAP.md** - Service boundaries and responsibilities ✅
-3. **DFN_HLD.md** - High-level architectural decisions ✅
-4. **DFN_LLD.md** - Schemas, APIs, state machines ✅
-5. **DFN_MAIN_REPO_INTEGRATION.md** - Integration boundary and contracts ✅
-6. **DFN_SEQUENCE_DIAGRAMS.md** - Request flows and worker patterns ✅
-
-### Implementation Artifacts Validated
-
-1. **Database Schema** (5 tables, 30+ fields) ✅
-2. **Service Definitions** (7 services, 45+ methods) ✅
-3. **API Routes** (26 endpoints across 7 domains) ✅
-4. **Queue System** (7 job types, 4 phases of processing) ✅
-5. **Type System** (50+ TypeScript interfaces) ✅
-6. **AI Provider Abstraction** (3 adapters, factory pattern) ✅
-7. **Error Handling** (AppError class, middleware) ✅
+**Last Updated:** May 12, 2026  
+**Current Phase:** Phase 2 Complete — Core Intelligence Scoring ✅  
+**Next Phase:** Phase 3 — Queue Worker Implementation  
+**Status:** 🟢 All Phase 2 acceptance criteria met. Ready for Phase 3.
 
 ---
 
-## Validation Results
+## Implementation Progress
 
-### Service Boundary Alignment ✅
+### Phase 0: Scaffolding — ✅ COMPLETE (May 8, 2026)
 
-All 7 services correctly scoped with zero boundary overlap:
+Database, services, routes, and type system frozen. See `docs/08-05-2026/` design freeze.
+
+**Status:** 100% — All scaffolding artifacts in place.
+
+### Phase 1: AI Provider Adapters — ✅ COMPLETE (May 10, 2026)
+
+OpenAI, Anthropic, and Google Gemini adapters implemented with token counting and error handling.
+
+**Status:** 100% — All 3 providers operational. See `docs/10-05-2026/` design freeze.
+
+### Phase 2: Core Intelligence Scoring — ✅ COMPLETE (May 12, 2026)
+
+6-component deterministic scoring, ranking, gate rules, caching, and persistence fully implemented.
+
+**Status:** 100% — All routes tested. See `docs/12-05-2026/` design freeze.
+
+**Key Deliverables:**
+- `backend/src/services/core-intelligence.ts` — Scoring engine with caching
+- `backend/src/services/redis-client.ts` — Shared Redis connection helper
+- `backend/src/routes/scoring.ts` — 4 HTTP routes (score-job, rank-recommendations, job-score, component-analysis)
+- `backend/src/db/queries.ts` — Database persistence helpers
+- Comprehensive unit tests: adapters, core intelligence, routing
+- All tests passing: `npm run test:adapters`, `npm run test:core`, `npm run test:scoring`
+
+### Phase 3: Queue Worker — 🔄 NOT STARTED
+
+Async job processing with retry logic and state management.
+
+**Status:** 0% — Planned for next session. See checklist for task breakdown.
+
+---
+
+## Validation Results by Phase
+
+### Phase 0: Scaffolding Alignment ✅
 
 | Service | Scope Match | Method Count | Implementation |
 |---------|---|---|---|
@@ -56,21 +66,25 @@ All 7 services correctly scoped with zero boundary overlap:
 All 5 tables match LLD canonical entities:
 
 **Jobs Table:**
+
 - ✅ 12/12 fields present (id, company_name, product_name, process_type, material_type, volume_band, location, status, version, metadata, created_at, updated_at)
 - ✅ All 12 job states defined (draft, submitted, normalized, analyzing, scored, recommended, published, archived, validation_failed, analysis_failed, scoring_failed, stale_data)
-- ✅ UUID primary key ✅ 
+- ✅ UUID primary key ✅
 - ✅ Timestamps for audit
 
 **Factories Table:**
+
 - ✅ 9/9 fields present (id, factory_name, capabilities, materials, capacity_band, locations, certifications, verified_sources, active)
 - ✅ Proper array types for collections
 
 **Recommendations Table:**
+
 - ✅ 12/12 fields present (id, job_id, factory_id, fit_score, feasibility_score, confidence_score, rank, evidence, caveats, generated_at, version)
 - ✅ Foreign keys to jobs and factories
 - ✅ Evidence items stored as JSONB array
 
 **Attachments & Queue Tables:**
+
 - ✅ Supporting tables present with proper relationships
 - ✅ Queue job versioning for idempotency
 
@@ -83,12 +97,14 @@ All 5 tables match LLD canonical entities:
 All LLD public routes implemented:
 
 **Job Management (4 endpoints):** ✅
+
 - POST /jobs (create)
 - GET /jobs/:id (fetch)
 - POST /jobs/:id/submit (submit)
 - GET /jobs/:id/recommendation (get recommendation)
 
 **Extended Implementation Routes (22 additional endpoints):** ✅
+
 - Model Discovery (5 endpoints)
 - AI Extraction (4 endpoints)
 - Scoring (4 endpoints)
@@ -113,6 +129,7 @@ All 7 job types defined and configured:
 7. **generate-recommendation-brief** (1min) - Presentation ✅
 
 **Processing Flow:**
+
 ```
 submit-job
   ↓
@@ -130,6 +147,7 @@ job status = 'recommended'
 ```
 
 **Configuration:**
+
 - ✅ Timeouts: 30s-2min based on job type
 - ✅ Concurrency: 2-4 workers per type
 - ✅ Priorities: 10 (highest) to 2 (lowest)
@@ -190,12 +208,14 @@ Gate Rules:
 HLD sync/async design correctly implemented:
 
 **Synchronous Path (Job Intake):**
+
 - POST /jobs → createJob() → Returns immediately
 - POST /jobs/:id/submit → validateJob() → submitJob() → Returns immediately
 - Database-only, no external calls
 - Response time: <100ms
 
 **Asynchronous Path (Worker Queue):**
+
 - Each job enqueued and processed by workers
 - Timeouts 30s-2min per job type
 - Retry logic with exponential backoff
@@ -226,12 +246,14 @@ LLD error handling approach fully implemented:
 All canonical entities have corresponding TypeScript interfaces:
 
 **Core Types:**
+
 - ✅ Job interface (12 fields)
 - ✅ Factory interface (9 fields)
 - ✅ Recommendation interface (12 fields)
 - ✅ EvidenceItem interface (5 fields)
 
 **Service-Specific Types:**
+
 - ✅ AIModel, AIExtractionRequest/Response
 - ✅ ScoringInput, ScoringResult
 - ✅ LogisticsAssessment, MarketSignals, SiteBrief
@@ -239,6 +261,7 @@ All canonical entities have corresponding TypeScript interfaces:
 - ✅ QueueJob, job type enums
 
 **Enums:**
+
 - ✅ JobStatus (12 states)
 - ✅ QueueJobType (7 types)
 - ✅ AIProvider (3 providers)
@@ -252,6 +275,7 @@ All canonical entities have corresponding TypeScript interfaces:
 DFN_MAIN_REPO_INTEGRATION.md constraints respected:
 
 **Correctly Separated:**
+
 - ✅ Own database (PostgreSQL)
 - ✅ Own queue (Redis)
 - ✅ Own session storage
@@ -259,6 +283,7 @@ DFN_MAIN_REPO_INTEGRATION.md constraints respected:
 - ✅ No shared live state
 
 **Shared Via Contracts:**
+
 - ✅ AUTH_ISSUER_URL for identity
 - ✅ MAIN_REPO_API_URL for integration calls
 - ✅ Versioned API contracts documented
@@ -279,6 +304,7 @@ All implementations perfectly align with frozen design documents. No scope creep
 ## Validation Checklist Results
 
 ### Architecture (12/12) ✅
+
 - [x] 7 services with clear boundaries
 - [x] No service overlap
 - [x] 1 presentation layer
@@ -293,6 +319,7 @@ All implementations perfectly align with frozen design documents. No scope creep
 - [x] Observability approach documented
 
 ### Data Model (8/8) ✅
+
 - [x] 5 tables match LLD entities
 - [x] 12 job states defined
 - [x] All required fields present
@@ -303,6 +330,7 @@ All implementations perfectly align with frozen design documents. No scope creep
 - [x] Schema normalized and efficient
 
 ### API Contract (7/7) ✅
+
 - [x] All LLD public routes present
 - [x] 26 total routes organized by domain
 - [x] Request/response types defined
@@ -312,6 +340,7 @@ All implementations perfectly align with frozen design documents. No scope creep
 - [x] All endpoints have clear purpose
 
 ### Asynchronous Processing (5/5) ✅
+
 - [x] 7 queue job types defined
 - [x] Processing flow documented
 - [x] Retry logic configured (3 max)
@@ -322,6 +351,7 @@ All implementations perfectly align with frozen design documents. No scope creep
 - [x] Idempotency via versioning
 
 ### Constraints & Guardrails (6/6) ✅
+
 - [x] AI limited to worker functions
 - [x] Deterministic scoring not replaced
 - [x] Gate rules prevent low-confidence recommendations
@@ -330,6 +360,7 @@ All implementations perfectly align with frozen design documents. No scope creep
 - [x] No facts invention
 
 ### Implementation Status (7/7) ✅
+
 - [x] Job Intake: Fully implemented
 - [x] AI Provider Abstraction: Scaffolded with factory pattern
 - [x] Core Intelligence: Scaffolded with formula
@@ -351,6 +382,7 @@ Based on validation, implementation can proceed with confidence. The scaffolded 
 5. **TODO comments** - Implementation guidance at every step
 
 **Recommended Sequence:**
+
 1. **Phase 1 (Week 1):** Implement AI Provider Adapters
 2. **Phase 2 (Week 2):** Implement Core Intelligence scoring
 3. **Phase 3 (Week 2):** Implement Queue Worker dispatch
@@ -392,6 +424,7 @@ Based on validation, implementation can proceed with confidence. The scaffolded 
 ## Key Artifacts by Phase
 
 ### Phase 0: Scaffolding (Complete) ✅
+
 - [x] Job Intake service (fully implemented)
 - [x] AI Provider abstraction (types, factory, adapters)
 - [x] 6 remaining services (interfaces, TODOs)
@@ -402,6 +435,7 @@ Based on validation, implementation can proceed with confidence. The scaffolded 
 - [x] Error handling (middleware, AppError class)
 
 ### Phase 1-7: Full Implementation (Starting Phase 1)
+
 See DFN_IMPLEMENTATION_CHECKLIST.md for detailed task breakdown
 
 ---
@@ -409,12 +443,14 @@ See DFN_IMPLEMENTATION_CHECKLIST.md for detailed task breakdown
 ## Quality Metrics
 
 **Validation Coverage:** 100%
+
 - All planning documents reviewed
 - All implementation artifacts verified
 - All constraints checked
 - All deviations identified (0)
 
 **Alignment Score:** 100%
+
 - Service boundaries: Perfect alignment
 - Database schema: Perfect alignment
 - API routes: Perfect alignment
@@ -423,6 +459,7 @@ See DFN_IMPLEMENTATION_CHECKLIST.md for detailed task breakdown
 - Error handling: Perfect alignment
 
 **Implementation Readiness:** 100%
+
 - All interfaces defined
 - All specifications frozen
 - All dependencies identified
