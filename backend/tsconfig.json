@@ -4,10 +4,13 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "..",
     "module": "ESNext",
     "allowImportingTsExtensions": true,
     "moduleResolution": "node",
+    "rewriteRelativeImportExtensions": true,
+    "forceConsistentCasingInFileNames": true,
+    "ignoreDeprecations": "5.0",
     "preserveSymlinks": false
   },
   "include": ["src"],

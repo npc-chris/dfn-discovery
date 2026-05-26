@@ -8,11 +8,16 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:core": "ts-node src/services/core-intelligence.test.ts",
     "test:adapters": "ts-node src/services/ai-providers/adapter.test.ts",
     "test:scoring": "ts-node src/routes/scoring.test.ts",
     "test:core:run": "npm run build && node dist/services/core-intelligence.test.js",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "db:push": "drizzle-kit push:pg",
+    "db:generate": "drizzle-kit generate:pg",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",
@@ -28,8 +33,11 @@
   },
   "devDependencies": {
     "@types/express": "^4.17.0",
-    "@types/node": "^20.0.0",
+    "@types/node": "^20.19.41",
+    "@types/pg": "^8.20.0",
+    "drizzle-kit": "^0.20.0",
     "ts-node": "^10.9.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.6"
   }
 }

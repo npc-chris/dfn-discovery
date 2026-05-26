@@ -67,6 +67,7 @@ export const job_queue = pgTable('job_queue', {
   queue_type: text('queue_type').notNull(), // classify-job, extract-evidence, etc.
   payload: jsonb('payload').notNull(),
   status: text('status').notNull().default('pending'),
+  result: jsonb('result'),
   attempts: integer('attempts').notNull().default(0),
   error: text('error'),
   created_at: timestamp('created_at').notNull().defaultNow(),

@@ -3,6 +3,8 @@
 
 import express from 'express';
 import * as jobIntake from '../services/job-intake';
+import { enqueueJob } from '../workers/queue';
+import { QueueJobType } from '../types/queue';
 import { AppError } from '../middleware/error';
 
 const router = express.Router();
@@ -34,8 +36,13 @@ router.get('/:jobId', async (req, res, next) => {
 router.post('/:jobId/submit', async (req, res, next) => {
   try {
     const job = await jobIntake.submitJob(req.params.jobId);
-    // TODO: Enqueue extraction and scoring jobs
-    res.json(job);
+    const queueJobId = await enqueueJob(QueueJobType.CLASSIFY_JOB, job.id, { jobId: job.id });
+
+    res.json({
+      ...job,
+      queueJobId,
+      queueStage: QueueJobType.CLASSIFY_JOB,
+    });
   } catch (error) {
     next(error);
   }
