@@ -102,6 +102,16 @@ Asynchronous path:
 - market feed refresh
 - site brief refresh
 - logistics enrichment when external providers are slow
+- integration state syncing (UpKeep and SafetyCulture webhooks via the job queue)
+
+### 5. Multi-Tenant SaaS Integration (Proxy Architecture)
+
+External third-party SaaS tools (e.g., UpKeep and SafetyCulture) will NOT be given independent tenant accounts per third-party user, as this violates our financial and data-isolation constraints. Instead:
+
+- **Headless Proxy:** DFN Discovery serves as the single gatekeeper and authentication layer for all third-party interactions.
+- **Provider Account Structure:** We maintain a single master corporate/admin seat on providers like UpKeep and SafetyCulture.
+- **Data Isolation:** All inbound and outbound payloads are strictly tagged with our internal `external_factory_id`. Users only see data securely filtered by our backend; they never log in to native vendor tools directly.
+- **Abstraction Layer:** Due to API tier limitations (e.g., UpKeep Enterprise tiers), all external CMMS or field-auditing SaaS integration will sit behind an abstraction layer (e.g., `AssetManagerInterface`). If SaaS pricing makes API calls prohibitive, the adapter can be hot-swapped to an open-source or Airtable-backed database without rewriting core business logic.
 
 ## Data Ownership
 

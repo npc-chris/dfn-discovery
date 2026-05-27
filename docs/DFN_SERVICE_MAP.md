@@ -42,6 +42,7 @@ Integration should happen through explicit interfaces:
 ```mermaid
 flowchart LR
  U[Product Company]
+ IF[Third-Party Inspector/Factory]
 
  subgraph P[Presentation Layer]
   UI[Dashboards / Reports / Exports]
@@ -59,6 +60,12 @@ flowchart LR
   SR[Site and Real Estate Intelligence]
  end
 
+ subgraph E[External SaaS Proxies]
+  UK[UpKeep CMMS]
+  SC[SafetyCulture]
+  API[SaaS Webhook API / Abstraction Interface]
+ end
+
  U --> UI
  UI --> JI
  JI --> AI
@@ -70,6 +77,11 @@ flowchart LR
  GL --> UI
  MI --> UI
  SR --> UI
+ 
+ IF -- Submit Field Audit --> SC
+ SC -- Webhook --> API
+ API -- Sync Queue --> SR
+ SR -- Write Work Orders --> UK
 ```
 
 ### Request Flow
@@ -82,6 +94,14 @@ flowchart TB
  D --> E[Add logistics, market, and site context]
  E --> F[Generate recommendation brief]
  F --> G[User reviews evidence and confidence]
+ 
+ H[Third-party Submits SafetyCulture Audit] --> I[Webhook hits Integration API]
+ I --> J[Validate standardized capacity metrics]
+ J --> K[Enqueue async task]
+ K --> L[Update Database & map to Site Brief]
+ L --> M{Did Audit Fail?}
+ M -- Yes --> N[Open UpKeep Work Order]
+ M -- No --> O[Audit Logged]
 ```
 
 ### Core Services
@@ -91,9 +111,9 @@ flowchart TB
 | Job Intake | New job submissions, validation, normalization | Product requirements, files, form inputs, survey data | Canonical job record, validation errors |
 | Core Intelligence | Process taxonomy, capability scoring, fit analysis | Canonical job record, factory profiles, market signals | Fit score, constraints, recommendation candidates |
 | AI Analysis Workers | Extraction, summarization, explanation, anomaly flagging | Sanitized structured payloads | Structured fields, briefs, evidence summaries |
-| Geo and Logistics | Travel distance, route costs, accessibility context | Job location, factory location, logistics constraints | Route options, travel time, cost estimates |
-| Market Intelligence | Demand signals, pricing signals, capacity signals | Research feeds, survey data, partner data | Market score, trend signals, risk notes |
-| Site and Real Estate Intelligence | Facility briefs, location suitability, access context | Candidate sites, proximity data, property data | Site briefs, site scores, notes |
+| Geo and Logistics | Travel distance, route costs, accessibility context | Job location, factory location, logistics constraints | Route options, travel time, cost estimates (via HERE API) |
+| Market Intelligence | Demand signals, pricing signals, capacity signals | Research feeds, survey data, partner data | Market score, trend signals, risk notes (via UN Comtrade/World Bank) |
+| Site and Real Estate Intelligence | Facility briefs, location suitability, access context | Candidate sites, proximity data, property data | Site briefs, site scores, notes (via UpKeep & SafetyCulture) |
 | Presentation Layer | Dashboards, reports, exports, filters | All upstream service outputs | User-facing views, downloadable reports |
 
 ## Service Boundaries

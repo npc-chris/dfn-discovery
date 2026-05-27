@@ -651,10 +651,11 @@
 
 **Goal:** Implement Geo/Logistics, Market Intelligence, and Site/Real Estate services
 
-### Task 4.1: Geo & Logistics Implementation
+### Task 4.1: Geo & Logistics Implementation (HERE / Geoapify)
 
 - [ ] Implement assessLogistics()
-  - [ ] Calculate distance (API or deterministic formula)
+  - [ ] Intergate HERE Routing & Geocoding API (preferred)
+  - [ ] Implement Geoapify fallback
   - [ ] Determine primary transport mode
   - [ ] Estimate lead time
   - [ ] Calculate routing cost
@@ -670,7 +671,8 @@
   - [ ] Add factory processing time
   - [ ] Return business days
 - [ ] Add caching
-  - [ ] Cache assessments with location-based TTL
+  - [ ] Cache route matrices with 1-hour TTL via Redis
+  - [ ] Cache geocoding with 24-hour TTL
   - [ ] Invalidate on factory data changes
 
 **Files:** backend/src/services/geo-logistics.ts
@@ -678,17 +680,18 @@
 **Acceptance Criteria:**
 
 - All methods implemented
-- Distance calculation working
+- HERE/Geoapify integration working
 - Transport mode selection logical
 - Lead time estimates reasonable
 - Caching functional
 
 ---
 
-### Task 4.2: Market Intelligence Implementation
+### Task 4.2: Market Intelligence Implementation (UN Comtrade / World Bank)
 
 - [ ] Implement getMarketSignals()
-  - [ ] Query market database or API for demand
+  - [ ] Query UN Comtrade & World Bank APIs for demand/macro datasets
+  - [ ] Add optional SerpApi/GDELT high-frequency ingest
   - [ ] Retrieve factory order frequency
   - [ ] Calculate market share
   - [ ] Get pricing data
@@ -702,43 +705,55 @@
   - [ ] Return natural language outlook
   - [ ] Include confidence
 - [ ] Add caching
-  - [ ] Cache market signals with 24-hour TTL
-  - [ ] Invalidate on market data changes
+  - [ ] Cache market signals with 24-hour to 7-day TTL
 
 **Files:** backend/src/services/market-intelligence.ts
 
 **Acceptance Criteria:**
 
 - All methods implemented
-- Market data accessible
+- UN Comtrade & World Bank data accessible
 - Trend analysis working
 - Caching with appropriate TTL
 
 ---
 
-### Task 4.3: Site & Real Estate Implementation
+### Task 4.3: Site & Real Estate Implementation (UpKeep + SafetyCulture)
 
+- [ ] Define shared integration schema
+  - [ ] Implement `AssetManagerInterface` to abstract CMMS providers (UpKeep/Airtable/etc.)
+  - [ ] Define strictly typed enums/numbers for capacity (no open-ended text fields)
 - [ ] Implement generateSiteBrief()
-  - [ ] Query facility database
+  - [ ] Query UpKeep CMMS for asset and work-order history (via abstraction)
+  - [ ] Query SafetyCulture for inspections, checklists, pass/fail reports
   - [ ] Get certification status
   - [ ] Retrieve site visit report
   - [ ] Calculate equipment age
   - [ ] Assess capacity utilization
   - [ ] Check planned expansions
   - [ ] Return SiteBrief
+- [ ] Implement webhook receiver for SafetyCulture
+  - [ ] Map SafetyCulture inspections to site briefs
+  - [ ] Strictly validate type units (e.g., metric tons, runtime hours)
+  - [ ] Enqueue `sync-audit-webhook` job into the async worker queue
+  - [ ] Create UpKeep work order on failed inspections
 - [ ] Implement assessFacilityCondition()
   - [ ] Apply facility scoring formula
   - [ ] Return score and risk level
 - [ ] Implement getSiteVisitReport()
-  - [ ] Fetch most recent visit
+  - [ ] Download latest SafetyCulture findings/red flags
   - [ ] Calculate days since visit
-  - [ ] Return findings and red flags
+  - [ ] Return findings
 - [ ] Implement checkFacilityAvailability()
   - [ ] Check current capacity
   - [ ] Verify lead time availability
   - [ ] Return availability assessment
 
-**Files:** backend/src/services/site-realestate.ts
+**Files:**
+
+- backend/src/services/site-realestate.ts
+- backend/src/services/integrations/upkeep.ts
+- backend/src/services/integrations/safetyculture.ts
 
 **Acceptance Criteria:**
 

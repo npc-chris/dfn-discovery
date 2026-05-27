@@ -78,6 +78,7 @@ Owns:
 - route optimization
 - travel time and distance estimates
 - facility proximity analysis
+- API Integrations: HERE Technologies (preferred), Geoapify (fallback)
 
 This should be separable because it will evolve on different data and different performance needs.
 
@@ -89,6 +90,7 @@ Owns:
 - pricing signals
 - capacity signals
 - access-to-market scoring
+- API Integrations: UN Comtrade & World Bank (preferred), SerpApi/GDELT (fallback)
 
 This can feed the core engine and the user-facing briefs.
 
@@ -100,6 +102,7 @@ Owns:
 - facility fit analysis
 - rent/lease and access context
 - zoning or power proximity notes if available
+- Field Auditing Integrations: UpKeep CMMS & SafetyCulture (preferred)
 
 This is a distinct buyer conversation from product matching.
 

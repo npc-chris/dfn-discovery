@@ -104,6 +104,7 @@ Rules:
 | GET | /jobs/:id/recommendation | Fetch the recommendation bundle |
 | GET | /factories/:id | Fetch a factory profile |
 | POST | /factories | Create or import a factory profile |
+| POST | /webhooks/safetyculture | Receive site audit webhook (enqueues processing) |
 
 ### Internal Worker APIs
 
@@ -122,6 +123,7 @@ Rules:
 5. refresh-market-signals
 6. refresh-site-brief
 7. generate-recommendation-brief
+8. sync-audit-webhook (handles inbound SafetyCulture/UpKeep state mutations)
 
 Rules:
 
@@ -129,6 +131,7 @@ Rules:
 - retries must preserve the same job version
 - queue messages must carry source provenance
 - failed jobs must be visible in the job state
+- heavily rely on the queue to handle webhook deliveries. If UpKeep/SafetyCulture APIs go down or rate-limit us, rely on the queue's exponential backoff instead of dropping the site survey.
 
 ## Scoring Contract
 
