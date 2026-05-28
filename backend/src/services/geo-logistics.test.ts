@@ -1,0 +1,191 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getGeoLogistics, GeoLogistics, LogisticsAssessment } from './geo-logistics';
+import type { Job, Factory } from '@dfn/shared/types';
+import { getRedisClient } from './redis-client';
+
+vi.mock('./redis-client', () => ({
+  getRedisClient: vi.fn(),
+}));
+
+describe('GeoLogistics Service', () => {
+  let service: GeoLogistics;
+
+  beforeEach(() => {
+    service = new GeoLogistics();
+    vi.clearAllMocks();
+    
+    // Mock redis client
+    (getRedisClient as any).mockReturnValue({
+      get: vi.fn().mockResolvedValue(null),
+      setEx: vi.fn().mockResolvedValue('OK'),
+      isOpen: true,
+    });
+  });
+
+  describe('estimateLeadTime', () => {
+    it('calculates correct short lead time for domestic road', () => {
+      const assessment: LogisticsAssessment = {
+        distance_km: 100, // 100 / 10 = 10 days
+        estimated_lead_days: 0,
+        transport_modes: ['road'],
+        primary_mode: 'road',
+        routing_cost_estimate_ngn: 50000,
+        border_crossings: 0,
+        regulatory_constraints: [],
+        feasible: true,
+        feasibility_confidence: 90,
+      };
+
+      // 100 distance / 10km/day = 10 days
+      // Factory processing = +5 days
+      // Total = 15 days
+      const leadTime = service.estimateLeadTime(assessment);
+      expect(leadTime).toBe(15);
+    });
+
+    it('adds customs processing for border crossings', () => {
+      const assessment: LogisticsAssessment = {
+        distance_km: 200, // 200 / 20 = 10 days
+        estimated_lead_days: 0,
+        transport_modes: ['rail'],
+        primary_mode: 'rail',
+        routing_cost_estimate_ngn: 50000,
+        border_crossings: 1, // +3 days
+        regulatory_constraints: [],
+        feasible: true,
+        feasibility_confidence: 90,
+      };
+
+      // 10 days travel + 3 days customs + 5 days factory = 18 days
+      const leadTime = service.estimateLeadTime(assessment);
+      expect(leadTime).toBe(18);
+    });
+
+    it('returns fast delivery for air transport', () => {
+      const assessment: LogisticsAssessment = {
+        distance_km: 1500,
+        estimated_lead_days: 0,
+        transport_modes: ['air'],
+        primary_mode: 'air',
+        routing_cost_estimate_ngn: 500000,
+        border_crossings: 0,
+        regulatory_constraints: [],
+        feasible: true,
+        feasibility_confidence: 90,
+      };
+
+      // 1 day travel + 0 days customs + 5 days factory = 6 days
+      const leadTime = service.estimateLeadTime(assessment);
+      expect(leadTime).toBe(6);
+    });
+    
+    it('returns long delivery for sea transport', () => {
+      const assessment: LogisticsAssessment = {
+        distance_km: 5000,
+        estimated_lead_days: 0,
+        transport_modes: ['sea'],
+        primary_mode: 'sea',
+        routing_cost_estimate_ngn: 150000,
+        border_crossings: 1, // +3 days
+        regulatory_constraints: [],
+        feasible: true,
+        feasibility_confidence: 90,
+      };
+
+      // 21 days travel (midpoint between 14-28) + 3 days customs + 5 days processing = 29 days
+      const leadTime = service.estimateLeadTime(assessment);
+      expect(leadTime).toBe(29);
+    });
+  });
+
+  describe('computeLogisticsFeasibilityScore', () => {
+    it('calculates perfect score for close direct logistics', () => {
+      const mockJob = {} as Job;
+      const assessment: LogisticsAssessment = {
+        distance_km: 50,
+        estimated_lead_days: 10,
+        transport_modes: ['road'],
+        primary_mode: 'road',
+        routing_cost_estimate_ngn: 10000,
+        border_crossings: 0,
+        regulatory_constraints: [],
+        feasible: true,
+        feasibility_confidence: 90,
+      };
+
+      const score = service.computeLogisticsFeasibilityScore(mockJob, assessment);
+      // Base: 100 - (50/1000)*10 = 99.5
+      // No penalties
+      // Bonus: +5 (direct, no border crossing)
+      // Clamped to 100
+      expect(score).toBe(100);
+    });
+
+    it('applies penalties for long lead times and border crossings', () => {
+      const mockJob = {} as Job;
+      const assessment: LogisticsAssessment = {
+        distance_km: 2000,
+        estimated_lead_days: 25, // > 14 days
+        transport_modes: ['road'],
+        primary_mode: 'road',
+        routing_cost_estimate_ngn: 10000,
+        border_crossings: 2, // No bonus
+        regulatory_constraints: [],
+        feasible: true,
+        feasibility_confidence: 90,
+      };
+
+      const score = service.computeLogisticsFeasibilityScore(mockJob, assessment);
+      // Base: 100 - (2000/1000)*10 = 80
+      // Penalty: lead > 14 days => -15
+      // Total: 65
+      expect(score).toBe(65);
+    });
+
+    it('applies penalties for very high cost', () => {
+      // In shared/types/job.ts, the budget field is target_price_max, not maximum_budget_ngn
+      const mockJob = { target_price_max: 1000000 } as unknown as Job;
+      const assessment: LogisticsAssessment = {
+        distance_km: 100, // -1 base
+        estimated_lead_days: 10, // ok
+        transport_modes: ['road'],
+        primary_mode: 'road',
+        routing_cost_estimate_ngn: 200000, // 20% of budget (>15%)
+        border_crossings: 0, // +5 bonus
+        regulatory_constraints: [],
+        feasible: true,
+        feasibility_confidence: 90,
+      };
+
+      const score = service.computeLogisticsFeasibilityScore(mockJob, assessment);
+      // Base: 100 - 1 = 99
+      // Direct bonus: +5
+      // Cost penalty: -10
+      // Total: 94
+      expect(score).toBe(94);
+    });
+  });
+
+  describe('assessLogistics', () => {
+    it('uses mocked location data to compute realistic assessment', async () => {
+      const mockJob = {
+        id: 'job-1',
+        title: 'Test Job',
+        delivery_location: { coordinates: { lat: 6.5244, lng: 3.3792 }, state: 'Lagos' }
+      } as unknown as Job;
+
+      const mockFactory = {
+        id: 'fac-1',
+        name: 'Test Factory',
+        location: { coordinates: { lat: 8.9839, lng: 7.5562 }, state: 'Abuja' }
+      } as unknown as Factory;
+
+      const assessment = await service.assessLogistics(mockJob, mockFactory);
+
+      expect(assessment.distance_km).toBeGreaterThan(0);
+      expect(assessment.primary_mode).toBeDefined();
+      expect(assessment.estimated_lead_days).toBeGreaterThan(0);
+      expect(assessment.routing_cost_estimate_ngn).toBeGreaterThan(0);
+    });
+  });
+});

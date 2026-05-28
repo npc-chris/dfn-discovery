@@ -6,6 +6,15 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
     fileParallelism: false,
-    exclude: ['dist/**', 'src/services/core-intelligence.test.ts', 'src/services/ai-providers/adapter.test.ts', 'src/routes/scoring.test.ts'],
+    exclude: [
+      'dist/**', 
+      'src/services/core-intelligence.test.ts', 
+      'src/services/ai-providers/adapter.test.ts', 
+      'src/routes/scoring.test.ts',
+      '../.agents/**',
+      '../.claude/**',
+      '../agents/**',
+      '../claude/**'
+    ],
   },
 });

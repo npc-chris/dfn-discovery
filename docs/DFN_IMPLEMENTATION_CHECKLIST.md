@@ -1,6 +1,6 @@
 # DFN Discovery - Implementation Checklist
 
-**Status:** Phase 3 Complete ✅ - Ready for Phase 4 Enrichment Services  
+**Status:** Phase 4 Complete ✅ - Ready for Phase 5 Frontend App  
 **Last Updated:** May 24, 2026  
 **Scaffolding Validation:** ✅ PASSED (see DFN_IMPLEMENTATION_VALIDATION.md)  
 **Phase 3 Acceptance:** ✅ PASSED - Backend tests completed, replay/stats endpoints implemented
@@ -653,27 +653,27 @@
 
 ### Task 4.1: Geo & Logistics Implementation (HERE / Geoapify)
 
-- [ ] Implement assessLogistics()
-  - [ ] Intergate HERE Routing & Geocoding API (preferred)
-  - [ ] Implement Geoapify fallback
-  - [ ] Determine primary transport mode
-  - [ ] Estimate lead time
-  - [ ] Calculate routing cost
-  - [ ] Identify border crossings
-  - [ ] Flag regulatory constraints
-  - [ ] Return LogisticsAssessment
-- [ ] Implement computeLogisticsFeasibilityScore()
-  - [ ] Apply scoring formula from frozen design
-  - [ ] Return 0-100
-- [ ] Implement estimateLeadTime()
-  - [ ] Calculate based on transport mode
-  - [ ] Add customs processing time if border crossing
-  - [ ] Add factory processing time
-  - [ ] Return business days
-- [ ] Add caching
-  - [ ] Cache route matrices with 1-hour TTL via Redis
-  - [ ] Cache geocoding with 24-hour TTL
-  - [ ] Invalidate on factory data changes
+- [x] Implement assessLogistics()
+  - [x] Intergate HERE Routing & Geocoding API (preferred)
+  - [x] Implement Geoapify fallback
+  - [x] Determine primary transport mode
+  - [x] Estimate lead time
+  - [x] Calculate routing cost
+  - [x] Identify border crossings
+  - [x] Flag regulatory constraints
+  - [x] Return LogisticsAssessment
+- [x] Implement computeLogisticsFeasibilityScore()
+  - [x] Apply scoring formula from frozen design
+  - [x] Return 0-100
+- [x] Implement estimateLeadTime()
+  - [x] Calculate based on transport mode
+  - [x] Add customs processing time if border crossing
+  - [x] Add factory processing time
+  - [x] Return business days
+- [x] Add caching
+  - [x] Cache route matrices with 1-hour TTL via Redis
+  - [x] Cache geocoding with 24-hour TTL
+  - [x] Invalidate on factory data changes
 
 **Files:** backend/src/services/geo-logistics.ts
 
@@ -689,23 +689,23 @@
 
 ### Task 4.2: Market Intelligence Implementation (UN Comtrade / World Bank)
 
-- [ ] Implement getMarketSignals()
-  - [ ] Query UN Comtrade & World Bank APIs for demand/macro datasets
-  - [ ] Add optional SerpApi/GDELT high-frequency ingest
-  - [ ] Retrieve factory order frequency
-  - [ ] Calculate market share
-  - [ ] Get pricing data
-  - [ ] Assess reputation
-  - [ ] Return MarketSignals
-- [ ] Implement computeMarketAccessScore()
-  - [ ] Apply scoring formula from frozen design
-  - [ ] Return 0-100
-- [ ] Implement getMarketOutlook()
-  - [ ] Trend analysis over time
-  - [ ] Return natural language outlook
-  - [ ] Include confidence
-- [ ] Add caching
-  - [ ] Cache market signals with 24-hour to 7-day TTL
+- [x] Implement getMarketSignals()
+  - [x] Query UN Comtrade & World Bank APIs for demand/macro datasets
+  - [x] Add optional SerpApi/GDELT high-frequency ingest
+  - [x] Retrieve factory order frequency
+  - [x] Calculate market share
+  - [x] Get pricing data
+  - [x] Assess reputation
+  - [x] Return MarketSignals
+- [x] Implement computeMarketAccessScore()
+  - [x] Apply scoring formula from frozen design
+  - [x] Return 0-100
+- [x] Implement getMarketOutlook()
+  - [x] Trend analysis over time
+  - [x] Return natural language outlook
+  - [x] Include confidence
+- [x] Add caching
+  - [x] Cache market signals with 24-hour to 7-day TTL
 
 **Files:** backend/src/services/market-intelligence.ts
 
@@ -720,34 +720,34 @@
 
 ### Task 4.3: Site & Real Estate Implementation (UpKeep + SafetyCulture)
 
-- [ ] Define shared integration schema
-  - [ ] Implement `AssetManagerInterface` to abstract CMMS providers (UpKeep/Airtable/etc.)
-  - [ ] Define strictly typed enums/numbers for capacity (no open-ended text fields)
-- [ ] Implement generateSiteBrief()
-  - [ ] Query UpKeep CMMS for asset and work-order history (via abstraction)
-  - [ ] Query SafetyCulture for inspections, checklists, pass/fail reports
-  - [ ] Get certification status
-  - [ ] Retrieve site visit report
-  - [ ] Calculate equipment age
-  - [ ] Assess capacity utilization
-  - [ ] Check planned expansions
-  - [ ] Return SiteBrief
-- [ ] Implement webhook receiver for SafetyCulture
-  - [ ] Map SafetyCulture inspections to site briefs
-  - [ ] Strictly validate type units (e.g., metric tons, runtime hours)
-  - [ ] Enqueue `sync-audit-webhook` job into the async worker queue
-  - [ ] Create UpKeep work order on failed inspections
-- [ ] Implement assessFacilityCondition()
-  - [ ] Apply facility scoring formula
-  - [ ] Return score and risk level
-- [ ] Implement getSiteVisitReport()
-  - [ ] Download latest SafetyCulture findings/red flags
-  - [ ] Calculate days since visit
-  - [ ] Return findings
-- [ ] Implement checkFacilityAvailability()
-  - [ ] Check current capacity
-  - [ ] Verify lead time availability
-  - [ ] Return availability assessment
+- [x] Define shared integration schema
+  - [x] Implement `AssetManagerInterface` to abstract CMMS providers (UpKeep/Airtable/etc.)
+  - [x] Define strictly typed enums/numbers for capacity (no open-ended text fields)
+- [x] Implement generateSiteBrief()
+  - [x] Query UpKeep CMMS for asset and work-order history (via abstraction)
+  - [x] Query SafetyCulture for inspections, checklists, pass/fail reports
+  - [x] Get certification status
+  - [x] Retrieve site visit report
+  - [x] Calculate equipment age
+  - [x] Assess capacity utilization
+  - [x] Check planned expansions
+  - [x] Return SiteBrief
+- [x] Implement webhook receiver for SafetyCulture
+  - [x] Map SafetyCulture inspections to site briefs
+  - [x] Strictly validate type units (e.g., metric tons, runtime hours)
+  - [x] Enqueue `sync-audit-webhook` job into the async worker queue
+  - [x] Create UpKeep work order on failed inspections
+- [x] Implement assessFacilityCondition()
+  - [x] Apply facility scoring formula
+  - [x] Return score and risk level
+- [x] Implement getSiteVisitReport()
+  - [x] Download latest SafetyCulture findings/red flags
+  - [x] Calculate days since visit
+  - [x] Return findings
+- [x] Implement checkFacilityAvailability()
+  - [x] Check current capacity
+  - [x] Verify lead time availability
+  - [x] Return availability assessment
 
 **Files:**
 
@@ -785,16 +785,18 @@
 
 ### Phase 4 Validation
 
-- [ ] Geo/Logistics implemented and tested
-- [ ] Market Intelligence implemented and tested
-- [ ] Site/Real Estate implemented and tested
-- [ ] All enrichment routes working
-- [ ] Caching functional with appropriate TTLs
-- [ ] External API failures handled gracefully
-- [ ] Fallback data available for failures
-- [ ] Zero unimplemented methods
+- [x] Geo/Logistics implemented and tested
+- [x] Market Intelligence implemented and tested
+- [x] Site/Real Estate implemented and tested
+- [x] All enrichment routes working
+- [x] Caching functional with appropriate TTLs
+- [x] External API failures handled gracefully
+- [x] Fallback data available for failures
+- [x] Zero unimplemented methods
 
 **Acceptance:** Can fetch logistics, market, and site context for factories and integrate into scoring
+
+**Phase 4 Status:** COMPLETE - All Phase 4 features backed by actual production endpoints, fallbacks built, and integrated into queue queue handlers.
 
 ---
 
