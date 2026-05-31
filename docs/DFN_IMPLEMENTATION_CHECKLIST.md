@@ -653,29 +653,29 @@
 
 ### Task 4.1: Geo Provider Adapters & Logistics Policy (HERE)
 
-- [x] Implement assessLogistics()
-  - [x] Integrate HERE Routing API v8
-  - [x] Integrate HERE Matrix Routing API v8 for multi-origin comparisons
-  - [x] Integrate HERE Geocoding & Search API v7
-  - [x] Integrate HERE Isoline Routing API v8 for reachability and service areas
-  - [x] Determine primary transport mode through logistics policy
-  - [x] Estimate lead time through logistics policy
-  - [x] Calculate routing cost from provider outputs
-  - [x] Identify border crossings through policy rules
-  - [x] Flag regulatory constraints through policy rules
-  - [x] Return LogisticsAssessment
-- [x] Implement computeLogisticsFeasibilityScore()
-  - [x] Apply scoring formula from frozen design
-  - [x] Return 0-100
-- [x] Implement estimateLeadTime()
-  - [x] Calculate based on transport mode
-  - [x] Add customs processing time if border crossing
-  - [x] Add factory processing time
-  - [x] Return business days
-- [x] Add caching
-  - [x] Cache route matrices with 1-hour TTL via Redis
-  - [x] Cache geocoding with 24-hour TTL
-  - [x] Invalidate on factory data changes
+- [ ] Implement assessLogistics()
+  - [ ] Integrate HERE Routing API v8
+  - [ ] Integrate HERE Matrix Routing API v8 for multi-origin comparisons
+  - [ ] Integrate HERE Geocoding & Search API v7
+  - [ ] Integrate HERE Isoline Routing API v8 for reachability and service areas
+  - [ ] Determine primary transport mode through logistics policy
+  - [ ] Estimate lead time through logistics policy
+  - [ ] Calculate routing cost from provider outputs
+  - [ ] Identify border crossings through policy rules
+  - [ ] Flag regulatory constraints through policy rules
+  - [ ] Return LogisticsAssessment
+- [ ] Implement computeLogisticsFeasibilityScore()
+  - [ ] Apply scoring formula from frozen design
+  - [ ] Return 0-100
+- [ ] Implement estimateLeadTime()
+  - [ ] Calculate based on transport mode
+  - [ ] Add customs processing time if border crossing
+  - [ ] Add factory processing time
+  - [ ] Return business days
+- [ ] Add caching
+  - [ ] Cache route matrices with 1-hour TTL via Redis
+  - [ ] Cache geocoding with 24-hour TTL
+  - [ ] Invalidate on factory data changes
 
 **Files:** backend/src/services/geo-logistics.ts
 

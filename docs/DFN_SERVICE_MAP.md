@@ -54,11 +54,15 @@ flowchart LR
   CI[Core Intelligence]
  end
 
- subgraph D[Decision Support]
-  GL[Geo and Logistics]
+ subgraph D[Decision Support] <!-- This is needs to be broken down further -->
   MI[Market Intelligence]
   SR[Site and Real Estate Intelligence]
  end
+
+    subgraph H[Geo Adapters]
+        HR[HERE Adapters: Routing/Matrix/Geocode/Isoline]
+        PR[Optional PrismReport Input]
+    end
 
  subgraph E[External SaaS Proxies]
   UK[UpKeep CMMS]
@@ -71,6 +75,8 @@ flowchart LR
  JI --> AI
  JI --> CI
  AI --> CI
+CI --> HR
+PR --> CI
  CI --> GL
  CI --> MI
  CI --> SR
@@ -112,6 +118,7 @@ flowchart TB
 | Core Intelligence | Process taxonomy, capability scoring, fit analysis | Canonical job record, factory profiles, market signals | Fit score, constraints, recommendation candidates |
 | AI Analysis Workers | Extraction, summarization, explanation, anomaly flagging | Sanitized structured payloads | Structured fields, briefs, evidence summaries |
 | Geo and Logistics | Travel distance, route costs, reachability, accessibility context | Job location, factory location, logistics constraints | Route options, travel time, isolines, geocoded locations, cost estimates (via HERE Routing/Matrix/Geocoding/Isoline adapters) |
+| Geo Adapters | Thin HTTP adapters and cache layer for HERE services | Coordinates, profile opts, cached keys | Normalized route/matrix/geocode/isoline shapes; cache-aware responses |
 | Market Intelligence | Demand signals, pricing signals, capacity signals | Research feeds, survey data, partner data | Market score, trend signals, risk notes (via UN Comtrade/World Bank) |
 | Site and Real Estate Intelligence | Facility briefs, location suitability, access context | Candidate sites, proximity data, property data | Site briefs, site scores, notes (via UpKeep & SafetyCulture) |
 | Presentation Layer | Dashboards, reports, exports, filters | All upstream service outputs | User-facing views, downloadable reports |
@@ -167,9 +174,9 @@ Use cases:
 
 ### 4. Geo and Logistics Service
 
-Owns:
+-Owns:
 
-- provider adapters for HERE Routing, Matrix Routing, Geocoding & Search, and Isoline APIs
+- provider adapters for HERE Routing, Matrix Routing, Geocoding & Search, and Isoline APIs (implemented under `backend/src/services/integrations/here/`)
 - route estimation
 - proximity analysis
 - travel time and cost estimation

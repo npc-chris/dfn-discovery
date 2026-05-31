@@ -106,6 +106,15 @@ Rules:
 | POST | /factories | Create or import a factory profile |
 | POST | /webhooks/safetyculture | Receive site audit webhook (enqueues processing) |
 
+### Enrichment API contract (recommended)
+
+- `POST /enrichment/logistics-assessment` — Accepts `{ jobId?, factoryId?, prismReport? }`. If `jobId`/`factoryId` are provided the service will resolve canonical records; if not, callers may POST full `job` and `factory` shapes. Optional `prismReport` (JSON) is accepted and passed to the logistics policy for transport/profile selection. Returns `LogisticsAssessment`.
+
+Enrich-logistics handler specifics:
+
+- The `enrich-logistics` job should call the Geo/Logistics service which in turn invokes the HERE adapters (matrix -> routing -> isoline as needed). The handler may accept an optional `prismReport` payload; when present it must be forwarded to the logistics policy to influence transportMode, packaging assumptions, and customs flags.
+- Adapter calls must be idempotent and cache-aware: matrix results cached (1h), route results cached shorter (15–60m), geocoding cached longer (24h).
+
 ### Internal Worker APIs
 
 | Method | Route | Purpose |
@@ -132,6 +141,7 @@ Rules:
 - queue messages must carry source provenance
 - failed jobs must be visible in the job state
 - heavily rely on the queue to handle webhook deliveries. If UpKeep/SafetyCulture APIs go down or rate-limit us, rely on the queue's exponential backoff instead of dropping the site survey.
+
 
 ## Scoring Contract
 

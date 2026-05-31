@@ -142,6 +142,24 @@ External third-party SaaS tools (e.g., UpKeep and SafetyCulture) will NOT be giv
 - market signals
 - site context
 
+### Geo And Logistics Service Own
+
+- provider adapters for HERE Routing, Matrix Routing, Geocoding & Search, and Isoline APIs
+- map layers and route overlays for the presentation layer
+- route optimization inputs and outputs
+- travel time and distance estimates
+- reachability and service-area analysis
+- facility proximity analysis
+- logistics policy that translates provider outputs into DFN Discovery scoring context
+
+### Market Intelligence Service Own
+
+- demand metrics
+- pricing signals
+- capacity signals
+- access-to-market scoring
+- API Integrations: UN Comtrade & World Bank (preferred), SerpApi/GDELT (fallback)
+
 ### Presentation Layer Owns
 
 - user views

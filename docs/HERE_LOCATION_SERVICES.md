@@ -278,6 +278,48 @@ Potential later additions, only if the product needs them:
 - Intermodal Routing API v8 for multi-mode city routing
 - Public Transit API v8 for transit-specific access analysis
 
+## Implementation: Call patterns & Discovery readiness
+
+Summary: The backend should call HERE from a provider-adapter layer. Adapters expose simple async methods and accept coordinates plus a lightweight options object; the DFN logistics policy picks transport profile and additional constraints.
+
+Recommended Adapter Signatures:
+
+- `hereRoutingAdapter.getRoute(origin: {lat:number,lng:number}, destination: {lat:number,lng:number}, opts?: {transportMode?:string, departureTime?:string}) -> RouteResult`
+- `hereMatrixAdapter.getMatrix(origins: Array<{lat:number,lng:number}>, destinations: Array<{lat:number,lng:number}>, opts?: {transportMode?:string}) -> MatrixResult`
+- `hereGeocodeAdapter.search(query:string, opts?:{country?:string,limit?:number}) -> GeocodeCandidates`
+- `hereIsolineAdapter.getIsoline(origin:{lat:number,lng:number}, opts:{range:number,rangeType:'time'|'distance',transportMode?:string}) -> IsolinePolygon`
+
+Example Routing request (HTTP form shown for clarity):
+
+GET https://router.hereapi.com/v8/routes?transportMode=truck&origin={lat},{lng}&destination={lat},{lng}&return=summary,polyline&apikey={HERE_API_KEY}
+
+Matrix example:
+
+POST https://matrix.router.hereapi.com/v8/matrix?apikey={HERE_API_KEY}
+Body: { origins:[{lat,lng}], destinations:[{lat,lng}], transportMode:'car' }
+
+Auth: prefer API key for server-side calls (`apikey` query param) or OAuth2 bearer tokens for higher security; never embed keys in frontend code.
+
+Inputs and readiness:
+
+- Discovery-ready inputs (already present in DFN): job.location / job.delivery_location, factory.location(s), `target_price_max` (budget) and `requirements` in job metadata. The existing `GeoLogistics.assessLogistics()` already consumes these.
+- Inputs to derive in policy layer (recommended, not yet implemented): transport profile selection (truck/van/air/sea), containerization/volume-to-weight conversion, and customs rules. These should be computed by DFN policy using job metadata, factory `capabilities`, and possibly a `PrismReport`.
+- Prism: DFN can accept a `PrismReport` JSON (Bill-of-Process). When available, Prism should feed process-level details (e.g., packaging size, hazardous classification, finished-goods dimensions, preferred transport), which the logistics policy uses to choose transportMode and estimate cost/lead-time. Prism reports are optional; adapters must tolerate missing Prism data and fall back to defaults.
+
+Behaviour on failures and caching:
+
+- Retry transient HERE errors with exponential backoff (3 attempts). Surface cached stale results when appropriate and label them as `stale=true` in responses.
+- Cache matrix & route responses server-side (Redis). TTL recommendations: geocoding 24h, matrix 1h, route 15–60 min depending on traffic-sensitivity.
+
+Next steps (implementation roadmap):
+
+1. Extract current inline calls in `backend/src/services/geo-logistics.ts` into provider adapters under `backend/src/services/integrations/here/*`.
+2. Implement adapter tests that mock HTTP and verify response shapes.
+3. Update the logistics policy to accept an optional `PrismReport` and use it when provided to select transport profiles.
+4. Implement enrichment routes (`POST /enrichment/logistics-assessment`) to accept optional `prismReport` payload and return `LogisticsAssessment`.
+5. Implement caching in the adapters with Redis, following the recommended keys and TTLs.
+6. Update the recommendation generation flow to call the new enrichment route and include logistics assessments in the recommendation payload.
+
 ## References In The Repo
 
 - [DFN HLD](DFN_HLD.md)

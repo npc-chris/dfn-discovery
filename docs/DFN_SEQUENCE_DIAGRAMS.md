@@ -11,20 +11,30 @@ sequenceDiagram
     participant Intake as Job Intake
     participant Queue as Job Queue
     participant Core as Core Intelligence
-    participant Context as Context Services (Geo, Market, Site)
+    participant Geo as Geo and Logistics
+    participant Market as Market Intelligence
+    participant Site as Site and Real Estate
+    actor Prism as Prism (optional Bill-of-Process)
     participant DB as Data Store
 
     Company->>UI: Submit manufacturing job & attachments
     UI->>Intake: Send job payload
     Intake->>DB: Save canonical job & attachments
     Intake->>Queue: Enqueue 'extract-evidence' & 'classify-job'
-    Intake->>Core: Request initial scoring
+    Note over Intake, Prism: Optional: upload `PrismReport` (Bill-of-Process)
+    Prism-->>Intake: POST PrismReport.json (optional)
+    Intake->>Core: Request initial scoring (includes optional PrismReport)
     Core->>DB: Load factory profiles & baseline evidence
-    Core->>Context: Request enriched context (Geo, Market, Site)
+    Core->>Geo: Request logistics enrichment (may include Prism-informed options)
+    Core->>Market: Request market outlook
+    Core->>Site: Request site briefs
     Note over Context, DB: Site service loads 'site_assessments' (Phase 4 proxy data)
-    Context->>DB: Query historical assessments & metrics
-    DB-->>Context: Return capacity limits & inspection rules
-    Context-->>Core: Return aggregated site brief & suitability notes
+    Site->>DB: Query historical assessments & metrics
+    DB-->>Site: Return capacity limits & inspection rules
+    Site-->>Core: Return aggregated site brief & suitability notes
+    Geo->>DB: Query cached routes/matrices
+    DB-->>Geo: Return cached results when present
+    Geo-->>Core: Return logistics assessment
     Core->>DB: Save recommendations list
     Core-->>UI: Return recommendation payload
     UI-->>Company: Show recommendation brief
@@ -52,7 +62,38 @@ sequenceDiagram
     DB-->>Core: Updated recommendations
 ```
 
-## 3. SaaS Proxy & Webhook Data Sync Flow (UpKeep / SafetyCulture)
+## 3. Geo / Logistics Adapter Call Sequence
+
+This diagram shows the recommended call ordering inside the `Geo and Logistics` service when enriching a recommendation. Matrix lookups are preferred for many-origin comparisons; routing is preferred for detailed shapes and ETA for top candidates; isoline is optional for service-area checks.
+
+```mermaid
+sequenceDiagram
+    participant Core as Core Intelligence
+    participant Geo as Geo and Logistics
+    participant Cache as Redis Cache
+    participant Mx as hereMatrixAdapter
+    participant Rt as hereRoutingAdapter
+    participant Iso as hereIsolineAdapter
+    participant DB as Data Store
+
+    Core->>Geo: Enrich(job, factoryList, prismReport?)
+    Geo->>Cache: Check matrix cache key
+    Cache-->>Geo: (hit|miss)
+    alt cache miss
+        Geo->>Mx: POST /v8/matrix {origins[], destinations[], transportMode}
+        Mx-->>Geo: matrix results
+        Geo->>Cache: store matrix (1h)
+    end
+    Geo->>Geo: Rank candidates from matrix
+    Geo->>Rt: GET /v8/routes?origin=..&destination=..&transportMode=.. (top candidates)
+    Rt-->>Geo: route summary + polyline
+    Geo->>Iso: POST /v8/isolines (optional for service-area)
+    Iso-->>Geo: isoline polygon
+    Geo->>DB: persist assessment + cache keys
+    Geo-->>Core: LogisticsAssessment
+```
+
+## 4. SaaS Proxy & Webhook Data Sync Flow (UpKeep / SafetyCulture)
 
 This captures the Phase 4 proxy architecture showing how third-party field auditors supply the `site_assessments` that the Core Intelligence engine relies on above.
 

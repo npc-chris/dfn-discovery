@@ -82,6 +82,11 @@ Owns:
 - facility proximity analysis
 - logistics policy that translates provider outputs into DFN scoring context
 
+Notes on adapters and Prism:
+
+- Implement provider adapters for HERE services under `backend/src/services/integrations/here/` (Routing v8, Matrix v8, Geocoding v7, Isoline v8). Keep adapters thin and focused on normalizing external shapes to DFN types.
+- Logistics policy (in `Geo And Logistics`) accepts optional `PrismReport` JSON to refine transport profile selection and packaging/weight assumptions. The Prism report is optional and the policy must fall back to heuristics when it is absent.
+
 This should be separable because it will evolve on different data and different performance needs.
 
 See [HERE Location Services Usage Contract](HERE_LOCATION_SERVICES.md) for service-by-service usage guidance.
