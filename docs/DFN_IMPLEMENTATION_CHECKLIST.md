@@ -651,16 +651,18 @@
 
 **Goal:** Implement Geo/Logistics, Market Intelligence, and Site/Real Estate services
 
-### Task 4.1: Geo & Logistics Implementation (HERE / Geoapify)
+### Task 4.1: Geo Provider Adapters & Logistics Policy (HERE)
 
 - [x] Implement assessLogistics()
-  - [x] Intergate HERE Routing & Geocoding API (preferred)
-  - [x] Implement Geoapify fallback
-  - [x] Determine primary transport mode
-  - [x] Estimate lead time
-  - [x] Calculate routing cost
-  - [x] Identify border crossings
-  - [x] Flag regulatory constraints
+  - [x] Integrate HERE Routing API v8
+  - [x] Integrate HERE Matrix Routing API v8 for multi-origin comparisons
+  - [x] Integrate HERE Geocoding & Search API v7
+  - [x] Integrate HERE Isoline Routing API v8 for reachability and service areas
+  - [x] Determine primary transport mode through logistics policy
+  - [x] Estimate lead time through logistics policy
+  - [x] Calculate routing cost from provider outputs
+  - [x] Identify border crossings through policy rules
+  - [x] Flag regulatory constraints through policy rules
   - [x] Return LogisticsAssessment
 - [x] Implement computeLogisticsFeasibilityScore()
   - [x] Apply scoring formula from frozen design
@@ -680,7 +682,7 @@
 **Acceptance Criteria:**
 
 - All methods implemented
-- HERE/Geoapify integration working
+- HERE provider adapters and policy layer working
 - Transport mode selection logical
 - Lead time estimates reasonable
 - Caching functional

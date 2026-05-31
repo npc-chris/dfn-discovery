@@ -42,7 +42,7 @@ The system is made of a small set of services that cooperate through explicit co
 | Job Intake | Validate, normalize, version job submissions | Mostly synchronous |
 | Core Intelligence | Compute fit, feasibility, and recommendation ranking | Mostly synchronous |
 | AI Analysis Workers | Extract structure, summarize, explain, flag anomalies | Asynchronous jobs |
-| Geo and Logistics | Produce distance, routing, and access context | Mixed, depends on provider |
+| Geo and Logistics | Produce provider-backed distance, routing, reachability, and access context | Mixed, provider-adapter driven |
 | Market Intelligence | Produce demand, pricing, and capacity signals | Mostly asynchronous ingestion |
 | Site and Real Estate Intelligence | Produce site briefs and fit context | Mixed |
 | Presentation Layer | Render dashboards, exports, and reports | Synchronous read path |
@@ -102,6 +102,7 @@ Asynchronous path:
 - market feed refresh
 - site brief refresh
 - logistics enrichment when external providers are slow
+- provider adapter calls for routing, matrix, geocoding, and isoline lookups
 - integration state syncing (UpKeep and SafetyCulture webhooks via the job queue)
 
 ### 5. Multi-Tenant SaaS Integration (Proxy Architecture)

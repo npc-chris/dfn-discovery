@@ -111,7 +111,7 @@ flowchart TB
 | Job Intake | New job submissions, validation, normalization | Product requirements, files, form inputs, survey data | Canonical job record, validation errors |
 | Core Intelligence | Process taxonomy, capability scoring, fit analysis | Canonical job record, factory profiles, market signals | Fit score, constraints, recommendation candidates |
 | AI Analysis Workers | Extraction, summarization, explanation, anomaly flagging | Sanitized structured payloads | Structured fields, briefs, evidence summaries |
-| Geo and Logistics | Travel distance, route costs, accessibility context | Job location, factory location, logistics constraints | Route options, travel time, cost estimates (via HERE API) |
+| Geo and Logistics | Travel distance, route costs, reachability, accessibility context | Job location, factory location, logistics constraints | Route options, travel time, isolines, geocoded locations, cost estimates (via HERE Routing/Matrix/Geocoding/Isoline adapters) |
 | Market Intelligence | Demand signals, pricing signals, capacity signals | Research feeds, survey data, partner data | Market score, trend signals, risk notes (via UN Comtrade/World Bank) |
 | Site and Real Estate Intelligence | Facility briefs, location suitability, access context | Candidate sites, proximity data, property data | Site briefs, site scores, notes (via UpKeep & SafetyCulture) |
 | Presentation Layer | Dashboards, reports, exports, filters | All upstream service outputs | User-facing views, downloadable reports |
@@ -169,12 +169,17 @@ Use cases:
 
 Owns:
 
+- provider adapters for HERE Routing, Matrix Routing, Geocoding & Search, and Isoline APIs
 - route estimation
 - proximity analysis
 - travel time and cost estimation
+- reachability and service-area analysis
+- DFN logistics policy that converts provider outputs into logistics_context
 - map overlays
 
 This service should stay separate because it will evolve on different data, performance needs, and vendor dependencies.
+
+See [HERE Location Services Usage Contract](HERE_LOCATION_SERVICES.md) for the call patterns, inputs, outputs, and DFN usage rules.
 
 ### 5. Market Intelligence Service
 
@@ -232,7 +237,7 @@ Does not own:
 2. Job Intake validates and normalizes the request.
 3. AI Analysis Workers extract structure from messy text and attachments.
 4. Core Intelligence scores fit against factory and process data.
-5. Geo and Logistics adds route and access context.
+5. Geo and Logistics adds route and access context through HERE-backed provider adapters and DFN logistics policy.
 6. Market Intelligence adds demand and market context.
 7. Site and Real Estate Intelligence adds location suitability.
 8. Presentation Layer combines the outputs into a decision brief.
@@ -284,9 +289,10 @@ These are the first low-level design slices to define.
 
 - route request schema
 - location normalization
-- provider abstraction
+- provider abstraction for HERE Routing, Matrix Routing, Geocoding & Search, and Isoline APIs
 - caching rules
-- fallback when map data is partial
+- logistics policy for lead time, cost, and reachability
+- fallback behavior when provider data is partial
 
 ### Market Intelligence
 

@@ -74,13 +74,17 @@ This keeps messy input out of the core logic.
 
 Owns:
 
-- map layers
-- route optimization
+- provider adapters for HERE Routing, Matrix Routing, Geocoding & Search, and Isoline APIs
+- map layers and route overlays for the presentation layer
+- route optimization inputs and outputs
 - travel time and distance estimates
+- reachability and service-area analysis
 - facility proximity analysis
-- API Integrations: HERE Technologies (preferred), Geoapify (fallback)
+- logistics policy that translates provider outputs into DFN scoring context
 
 This should be separable because it will evolve on different data and different performance needs.
+
+See [HERE Location Services Usage Contract](HERE_LOCATION_SERVICES.md) for service-by-service usage guidance.
 
 ### 4. Market Intelligence Service
 
