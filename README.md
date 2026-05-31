@@ -52,7 +52,7 @@ dfn-gap-analyzer/
 
 ```bash
 cd frontend
-npm install
+pnpm install
 npm run dev
 ```
 
@@ -62,7 +62,7 @@ Frontend runs on `http://localhost:3000`.
 
 ```bash
 cd backend
-npm install
+pnpm install
 npm run dev
 ```
 

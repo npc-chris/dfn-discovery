@@ -7,7 +7,7 @@ Product companies submit manufacturing jobs and receive scoring and recommendati
 ## Getting Started
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Frontend runs on `http://localhost:3000`.
@@ -21,12 +21,10 @@ Frontend runs on `http://localhost:3000`.
 ## Building
 
 ```bash
-npm run build
-npm start
+pnpm run build
+pnpm run start
 ```
 
 ## Testing
 
-```bash
-npm test
-```
+No dedicated test script is defined yet.

@@ -1,16 +1,16 @@
 import assert from 'assert';
-import { createAIProviderAdapter } from './adapter.ts';
+import { createAIProviderAdapter } from './adapter';
 import type {
   AIExtractionResponse,
   AIExplanationResponse,
   AISummarizationResponse,
-  AIProviderAdapter,
-} from './types.ts';
+} from './types';
+import type { AIProviderAdapter } from './adapter';
 
 const originalSetTimeout = globalThis.setTimeout;
 
 function useImmediateTimeout() {
-  globalThis.setTimeout = ((handler: TimerHandler, timeout?: number, ...args: any[]) => {
+  globalThis.setTimeout = ((handler: TimerHandler, _timeout?: number, ...args: any[]) => {
     if (typeof handler === 'function') {
       handler(...args);
     } else {

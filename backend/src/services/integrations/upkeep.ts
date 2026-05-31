@@ -8,15 +8,15 @@ export class UpKeepIntegration implements AssetManagerInterface {
   private baseUrl = 'https://api.onupkeep.com/api/v2';
 
   constructor() {
-    this.apiKey = process.env.UPKEEP_API_KEY || '';
+    const apiKey = process.env.UPKEEP_API_KEY;
+    if (!apiKey) {
+      throw new Error('UPKEEP_API_KEY is required');
+    }
+
+    this.apiKey = apiKey;
   }
 
   private async fetchUpKeep(endpoint: string, options: RequestInit = {}) {
-    if (!this.apiKey) {
-      console.warn('UPKEEP_API_KEY not configured, using mock data for CMMS integration.');
-      return null;
-    }
-
     const res = await fetch(`${this.baseUrl}${endpoint}`, {
       ...options,
       headers: {
@@ -35,8 +35,7 @@ export class UpKeepIntegration implements AssetManagerInterface {
 
   async getAssets(locationId: string): Promise<Asset[]> {
     const data = await this.fetchUpKeep(`/assets?location=${locationId}`);
-    if (!data) return this.mockAssets();
-    
+
     return data.results.map((a: any) => ({
       id: a.id,
       name: a.name,
@@ -50,7 +49,6 @@ export class UpKeepIntegration implements AssetManagerInterface {
 
   async getWorkOrders(locationId: string): Promise<WorkOrder[]> {
     const data = await this.fetchUpKeep(`/work-orders?location=${locationId}`);
-    if (!data) return this.mockWorkOrders();
 
     return data.results.map((wo: any) => ({
       id: wo.id,
@@ -74,8 +72,6 @@ export class UpKeepIntegration implements AssetManagerInterface {
       })
     });
 
-    if (!data) return this.mockWorkOrders()[0]; // Simulated
-
     return {
       id: data.id,
       title: data.title,
@@ -84,18 +80,5 @@ export class UpKeepIntegration implements AssetManagerInterface {
       createdAt: data.createdAt,
       updatedAt: data.updatedAt
     };
-  }
-
-  private mockAssets(): Asset[] {
-    return [
-      { id: 'a1', name: 'CNC Machine 1', category: 'Machining', locationId: 'l1', createdAt: '2020-01-01', updatedAt: '2023-01-01', status: 'operational' },
-      { id: 'a2', name: 'Injection Molder', category: 'Plastics', locationId: 'l1', createdAt: '2015-05-01', updatedAt: '2024-02-01', status: 'maintenance' }
-    ];
-  }
-
-  private mockWorkOrders(): WorkOrder[] {
-    return [
-      { id: 'wo1', title: 'Monthly Maintenance', status: 'complete', priority: 'medium', createdAt: '2024-01-01', updatedAt: '2024-01-05' }
-    ];
   }
 }

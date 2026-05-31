@@ -21,6 +21,7 @@ export interface Location {
   address?: string;
   country: string;
   region?: string;
+  state?: string;
 }
 
 export interface Attachment {
@@ -40,6 +41,9 @@ export interface Job {
   material_type: string;
   volume_band: string;
   location: Location;
+  delivery_location?: Location;
+  target_price_max?: number;
+  requirements?: Record<string, unknown>;
   attachments: Attachment[];
   status: JobStatus;
   version: number;

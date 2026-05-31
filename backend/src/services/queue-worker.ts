@@ -14,7 +14,7 @@
  * - Support job cancellation and manual replay
  */
 
-import { QueueJob, QueueJobType, ClassifyJobPayload, ExtractEvidencePayload, ScoreFitPayload, EnrichLogisticsPayload, RefreshMarketSignalsPayload, RefreshSiteBriefPayload, GenerateRecommendationBriefPayload, getJobTimeout, getJobConcurrency, getJobPriority } from '../types/queue';
+import { QueueJob, QueueJobType, ClassifyJobPayload, ExtractEvidencePayload, ScoreFitPayload, EnrichLogisticsPayload, RefreshMarketSignalsPayload, RefreshSiteBriefPayload, GenerateRecommendationBriefPayload } from '../types/queue';
 
 export interface WorkerResult {
   success: boolean;
@@ -42,7 +42,7 @@ export class QueueWorker {
    * TODO: Trigger worker dispatch (poll or pubsub)
    * TODO: Return queue job ID for tracking
    */
-  async enqueueJob(type: QueueJobType, jobId: string, payload: Record<string, unknown>, version?: number): Promise<string> {
+  async enqueueJob(_type: QueueJobType, _jobId: string, _payload: Record<string, unknown>, _version?: number): Promise<string> {
     throw new Error('Not implemented: enqueueJob');
   }
 
@@ -70,7 +70,7 @@ export class QueueWorker {
    * TODO: Support concurrency limits (max workers per type)
    * TODO: Implement exponential backoff for retries
    */
-  async processQueueJob(queueJobId: string): Promise<WorkerResult> {
+  async processQueueJob(_queueJobId: string): Promise<WorkerResult> {
     throw new Error('Not implemented: processQueueJob');
   }
 
@@ -87,7 +87,7 @@ export class QueueWorker {
    *   - Set retries to 0 (won't retry if replayed)
    *   - Enqueue next job(s) if dependent
    */
-  async markQueueJobComplete(queueJobId: string, result: Record<string, unknown>): Promise<void> {
+  async markQueueJobComplete(_queueJobId: string, _result: Record<string, unknown>): Promise<void> {
     throw new Error('Not implemented: markQueueJobComplete');
   }
 
@@ -111,7 +111,7 @@ export class QueueWorker {
    *     - Update job status to 'analysis_failed'
    *     - Store error in job metadata
    */
-  async markQueueJobFailed(queueJobId: string, error: string): Promise<void> {
+  async markQueueJobFailed(_queueJobId: string, _error: string): Promise<void> {
     throw new Error('Not implemented: markQueueJobFailed');
   }
 
@@ -124,7 +124,7 @@ export class QueueWorker {
    *
    * TODO: Fetch from database and return full QueueJob object
    */
-  async getQueueJobStatus(queueJobId: string): Promise<QueueJob> {
+  async getQueueJobStatus(_queueJobId: string): Promise<QueueJob> {
     throw new Error('Not implemented: getQueueJobStatus');
   }
 
@@ -139,7 +139,7 @@ export class QueueWorker {
    * TODO: Return in order of creation
    * TODO: Include status and results for each
    */
-  async getJobQueueStatus(jobId: string): Promise<QueueJob[]> {
+  async getJobQueueStatus(_jobId: string): Promise<QueueJob[]> {
     throw new Error('Not implemented: getJobQueueStatus');
   }
 
@@ -157,7 +157,7 @@ export class QueueWorker {
    * TODO: Set retries=0 and status=queued
    * TODO: Return new queue job ID
    */
-  async replayQueueJob(queueJobId: string, resetPayload?: Record<string, unknown>): Promise<string> {
+  async replayQueueJob(_queueJobId: string, _resetPayload?: Record<string, unknown>): Promise<string> {
     throw new Error('Not implemented: replayQueueJob');
   }
 }
@@ -179,30 +179,30 @@ export function getQueueWorker(): QueueWorker {
  * Each handler implements business logic for a specific job type
  */
 
-export async function classifyJobWorker(payload: ClassifyJobPayload): Promise<WorkerResult> {
+export async function classifyJobWorker(_payload: ClassifyJobPayload): Promise<WorkerResult> {
   throw new Error('Not implemented: classifyJobWorker');
 }
 
-export async function extractEvidenceWorker(payload: ExtractEvidencePayload): Promise<WorkerResult> {
+export async function extractEvidenceWorker(_payload: ExtractEvidencePayload): Promise<WorkerResult> {
   throw new Error('Not implemented: extractEvidenceWorker');
 }
 
-export async function scoreFitWorker(payload: ScoreFitPayload): Promise<WorkerResult> {
+export async function scoreFitWorker(_payload: ScoreFitPayload): Promise<WorkerResult> {
   throw new Error('Not implemented: scoreFitWorker');
 }
 
-export async function enrichLogisticsWorker(payload: EnrichLogisticsPayload): Promise<WorkerResult> {
+export async function enrichLogisticsWorker(_payload: EnrichLogisticsPayload): Promise<WorkerResult> {
   throw new Error('Not implemented: enrichLogisticsWorker');
 }
 
-export async function refreshMarketSignalsWorker(payload: RefreshMarketSignalsPayload): Promise<WorkerResult> {
+export async function refreshMarketSignalsWorker(_payload: RefreshMarketSignalsPayload): Promise<WorkerResult> {
   throw new Error('Not implemented: refreshMarketSignalsWorker');
 }
 
-export async function refreshSiteBriefWorker(payload: RefreshSiteBriefPayload): Promise<WorkerResult> {
+export async function refreshSiteBriefWorker(_payload: RefreshSiteBriefPayload): Promise<WorkerResult> {
   throw new Error('Not implemented: refreshSiteBriefWorker');
 }
 
-export async function generateRecommendationBriefWorker(payload: GenerateRecommendationBriefPayload): Promise<WorkerResult> {
+export async function generateRecommendationBriefWorker(_payload: GenerateRecommendationBriefPayload): Promise<WorkerResult> {
   throw new Error('Not implemented: generateRecommendationBriefWorker');
 }

@@ -9,11 +9,11 @@
     "shared"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev -w frontend\" \"npm run dev -w backend\"",
-    "build": "npm run build -w shared && npm run build -w backend && npm run build -w frontend",
-    "test": "npm run test -w frontend && npm run test -w backend && npm run test -w shared",
-    "lint": "npm run lint -w frontend && npm run lint -w backend && npm run lint -w shared",
-    "type-check": "npm run type-check -w frontend && npm run type-check -w backend && npm run type-check -w shared"
+    "dev": "concurrently \"corepack pnpm --filter @dfn/frontend dev\" \"corepack pnpm --filter @dfn/backend dev\"",
+    "build": "corepack pnpm --filter @dfn/shared build && corepack pnpm --filter @dfn/backend build && corepack pnpm --filter @dfn/frontend build",
+    "test": "corepack pnpm -r --if-present test",
+    "lint": "corepack pnpm -r --if-present lint",
+    "type-check": "corepack pnpm -r --if-present type-check"
   },
   "devDependencies": {
     "concurrently": "^8.2.0"

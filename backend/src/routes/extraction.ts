@@ -9,10 +9,28 @@ import { AppError } from '../middleware/error';
 
 const router = Router();
 
-// Get configured provider from environment or default to OpenAI
-const AI_PROVIDER = (process.env.AI_PROVIDER as 'openai' | 'anthropic' | 'google') || 'openai';
-const AI_API_KEY = process.env[`${AI_PROVIDER.toUpperCase()}_API_KEY`];
+const AI_PROVIDER = process.env.AI_PROVIDER as 'openai' | 'anthropic' | 'google' | undefined;
 const AI_MODEL = process.env.AI_MODEL;
+
+function resolveProvider(provider?: string): 'openai' | 'anthropic' | 'google' {
+  const resolvedProvider = (provider as 'openai' | 'anthropic' | 'google' | undefined) ?? AI_PROVIDER;
+
+  if (!resolvedProvider) {
+    throw new AppError(500, 'AI_PROVIDER is required');
+  }
+
+  return resolvedProvider;
+}
+
+function resolveApiKey(provider: 'openai' | 'anthropic' | 'google'): string {
+  const apiKey = process.env[`${provider.toUpperCase()}_API_KEY`];
+
+  if (!apiKey) {
+    throw new AppError(500, `API key not configured for provider: ${provider}`);
+  }
+
+  return apiKey;
+}
 
 /**
  * POST /extraction/extract-job-data
@@ -31,17 +49,14 @@ const AI_MODEL = process.env.AI_MODEL;
  */
 router.post('/extract-job-data', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { jobId, jobData, instructions, provider = AI_PROVIDER, model = AI_MODEL } = req.body;
+    const { jobId, jobData, instructions, provider, model } = req.body;
+    const resolvedProvider = resolveProvider(provider);
 
     if (!jobId || !jobData) {
       throw new AppError(400, 'jobId and jobData are required');
     }
 
-    if (!AI_API_KEY && provider === AI_PROVIDER) {
-      throw new AppError(500, `API key not configured for provider: ${provider}`);
-    }
-
-    const workers = createAIAnalysisWorkers(provider, AI_API_KEY, model);
+    const workers = createAIAnalysisWorkers(resolvedProvider, resolveApiKey(resolvedProvider), model ?? AI_MODEL);
     const response = await workers.extractJobData({
       jobId,
       jobData,
@@ -71,13 +86,14 @@ router.post('/extract-job-data', async (req: Request, res: Response, next: NextF
  */
 router.post('/summarize-evidence', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { content, maxLength, instructions, provider = AI_PROVIDER, model = AI_MODEL } = req.body;
+    const { content, maxLength, instructions, provider, model } = req.body;
+    const resolvedProvider = resolveProvider(provider);
 
     if (!content) {
       throw new AppError(400, 'content is required');
     }
 
-    const workers = createAIAnalysisWorkers(provider, AI_API_KEY, model);
+    const workers = createAIAnalysisWorkers(resolvedProvider, resolveApiKey(resolvedProvider), model ?? AI_MODEL);
     const response = await workers.summarizeEvidence({
       content,
       maxLength,
@@ -107,13 +123,14 @@ router.post('/summarize-evidence', async (req: Request, res: Response, next: Nex
  */
 router.post('/explain-recommendation', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { scenario, context, instructions, provider = AI_PROVIDER, model = AI_MODEL } = req.body;
+    const { scenario, context, instructions, provider, model } = req.body;
+    const resolvedProvider = resolveProvider(provider);
 
     if (!scenario || !context) {
       throw new AppError(400, 'scenario and context are required');
     }
 
-    const workers = createAIAnalysisWorkers(provider, AI_API_KEY, model);
+    const workers = createAIAnalysisWorkers(resolvedProvider, resolveApiKey(resolvedProvider), model ?? AI_MODEL);
     const response = await workers.explainRecommendation({
       scenario,
       context,
@@ -137,17 +154,8 @@ router.post('/explain-recommendation', async (req: Request, res: Response, next:
  */
 router.get('/validate-api-key', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const provider = ((req.query.provider as string) || AI_PROVIDER) as 'openai' | 'anthropic' | 'google';
-
-    if (!AI_API_KEY) {
-      return res.status(500).json({
-        valid: false,
-        provider,
-        error: `API key not configured for provider: ${provider}`,
-      });
-    }
-
-    const workers = createAIAnalysisWorkers(provider, AI_API_KEY, AI_MODEL);
+    const provider = resolveProvider(req.query.provider as string | undefined);
+    const workers = createAIAnalysisWorkers(provider, resolveApiKey(provider), AI_MODEL);
     const valid = await workers.validateApiKey();
 
     res.json({
@@ -167,13 +175,15 @@ router.get('/validate-api-key', async (req: Request, res: Response, next: NextFu
  *
  * Response: { provider, model, totalInputTokens, totalOutputTokens, estimatedCost, ... }
  */
-router.get('/usage-metrics', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/usage-metrics', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!AI_API_KEY) {
-      throw new AppError(500, `API key not configured for provider: ${AI_PROVIDER}`);
+    const provider = resolveProvider(AI_PROVIDER);
+
+    if (!AI_MODEL) {
+      throw new AppError(500, 'AI_MODEL is required');
     }
 
-    const workers = createAIAnalysisWorkers(AI_PROVIDER, AI_API_KEY, AI_MODEL);
+    const workers = createAIAnalysisWorkers(provider, resolveApiKey(provider), AI_MODEL);
     const metrics = workers.getUsageMetrics();
 
     res.json(metrics);

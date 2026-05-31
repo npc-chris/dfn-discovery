@@ -29,10 +29,12 @@ export interface VerifiedSource {
 export interface FactoryProfile {
   id: string;
   factory_name: string;
+  name?: string;
   capabilities: FactoryCapability[];
   materials: string[];
   capacity_band: string;
   locations: FactoryLocation[];
+  location?: FactoryLocation;
   certifications: Certification[];
   verified_sources: VerifiedSource[];
   active: boolean;

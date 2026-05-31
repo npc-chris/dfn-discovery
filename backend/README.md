@@ -7,7 +7,7 @@ Implements the service boundaries defined in the HLD: Job Intake, Core Intellige
 ## Getting Started
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Backend runs on `http://localhost:5000`.
@@ -23,8 +23,8 @@ Backend runs on `http://localhost:5000`.
 ## Building
 
 ```bash
-npm run build
-npm start
+pnpm run build
+pnpm run start
 ```
 
 ## Database
@@ -32,17 +32,17 @@ npm start
 Migrations:
 
 ```bash
-npm run db:migrate
+pnpm run db:migrate
 ```
 
 Seed:
 
 ```bash
-npm run db:seed
+pnpm run db:seed
 ```
 
 ## Testing
 
 ```bash
-npm test
+pnpm test
 ```

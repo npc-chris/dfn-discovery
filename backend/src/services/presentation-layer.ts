@@ -13,7 +13,7 @@
  * - Support multiple output formats (JSON, HTML, PDF placeholder)
  */
 
-import { Job, Recommendation } from '@dfn/shared/types';
+import { Job } from '@dfn/shared/types';
 import { ScoringResult } from './core-intelligence';
 
 export interface RecommendationPresentation {
@@ -72,7 +72,7 @@ export class PresentationLayer {
    * TODO: Format for responsive UI (mobile and desktop)
    * TODO: Include actionable next steps (contact factory, request quote, schedule visit)
    */
-  async formatRecommendation(scoringResult: ScoringResult, job: Job): Promise<RecommendationPresentation> {
+  async formatRecommendation(_scoringResult: ScoringResult, _job: Job): Promise<RecommendationPresentation> {
     throw new Error('Not implemented: formatRecommendation');
   }
 
@@ -93,7 +93,7 @@ export class PresentationLayer {
    * TODO: Generate comparative analysis (factory A vs factory B)
    * TODO: Include risk summary
    */
-  formatRecommendationSummary(job: Job, recommendations: RecommendationPresentation[]): JobRecommendationSummary {
+  formatRecommendationSummary(_job: Job, _recommendations: RecommendationPresentation[]): JobRecommendationSummary {
     throw new Error('Not implemented: formatRecommendationSummary');
   }
 
@@ -114,7 +114,7 @@ export class PresentationLayer {
    * TODO: Support multiple explanation styles (executive, technical, detailed)
    * TODO: Call AI service to enhance narrative
    */
-  async generateExplanation(scoringResult: ScoringResult, job: Job, style: 'executive' | 'technical' | 'detailed'): Promise<string> {
+  async generateExplanation(_scoringResult: ScoringResult, _job: Job, _style: 'executive' | 'technical' | 'detailed'): Promise<string> {
     throw new Error('Not implemented: generateExplanation');
   }
 
@@ -138,8 +138,8 @@ export class PresentationLayer {
    * TODO: Make PDF-ready (responsive table layout, page breaks)
    */
   async generateDetailedReport(
-    summary: JobRecommendationSummary,
-    recommendations: RecommendationPresentation[]
+    _summary: JobRecommendationSummary,
+    _recommendations: RecommendationPresentation[]
   ): Promise<string> {
     throw new Error('Not implemented: generateDetailedReport');
   }
@@ -155,7 +155,7 @@ export class PresentationLayer {
    *   - 30-60: medium
    *   - 60-100: high
    */
-  private mapConfidenceLevel(confidenceScore: number): 'low' | 'medium' | 'high' {
+  private mapConfidenceLevel(_confidenceScore: number): 'low' | 'medium' | 'high' {
     throw new Error('Not implemented: mapConfidenceLevel');
   }
 
@@ -171,7 +171,7 @@ export class PresentationLayer {
    *   - 60-80: good fit
    *   - 80-100: excellent fit
    */
-  private mapFitDescription(fitScore: number): string {
+  private mapFitDescription(_fitScore: number): string {
     throw new Error('Not implemented: mapFitDescription');
   }
 }

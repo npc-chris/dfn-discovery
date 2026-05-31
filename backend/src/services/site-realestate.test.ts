@@ -10,16 +10,80 @@ vi.mock('./redis-client', () => ({
 describe('SiteRealEstate Service', () => {
   let service: SiteRealEstate;
   let mockFactory: Factory;
+  const mockFetch = vi.fn();
 
   beforeEach(() => {
     service = new SiteRealEstate();
     mockFactory = { id: 'factory-123', name: 'Test Factory' } as Factory;
     vi.clearAllMocks();
+    vi.stubGlobal('fetch', mockFetch);
     
     (getRedisClient as any).mockReturnValue({
       get: vi.fn().mockResolvedValue(null),
       setEx: vi.fn().mockResolvedValue('OK'),
       isOpen: true,
+    });
+
+    mockFetch.mockImplementation(async (url: string) => {
+      if (url.includes('/assets?')) {
+        return {
+          ok: true,
+          json: async () => ({
+            results: [
+              {
+                id: 'asset-1',
+                name: 'CNC Machine',
+                category: 'Machining',
+                location: { id: 'factory-123' },
+                createdAt: '2021-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-01T00:00:00.000Z',
+                status: 'operational',
+              },
+            ],
+          }),
+        } as Response;
+      }
+
+      if (url.includes('/work-orders?')) {
+        return {
+          ok: true,
+          json: async () => ({
+            results: [
+              {
+                id: 'wo-1',
+                title: 'Monthly check',
+                status: 'complete',
+                priority: 'medium',
+                createdAt: '2024-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-02T00:00:00.000Z',
+                asset: { id: 'asset-1' },
+              },
+            ],
+          }),
+        } as Response;
+      }
+
+      if (url.includes('/audits/search?')) {
+        return {
+          ok: true,
+          json: async () => ({
+            audits: [
+              {
+                audit_id: 'audit-1',
+                template_id: 'template-1',
+                name: 'Safety Audit',
+                score: 92,
+                total_score: 100,
+                modified_at: '2026-05-20T00:00:00.000Z',
+                created_at: '2026-05-20T00:00:00.000Z',
+                failed_responses_count: 1,
+              },
+            ],
+          }),
+        } as Response;
+      }
+
+      throw new Error(`Unexpected URL in fetch mock: ${url}`);
     });
   });
 

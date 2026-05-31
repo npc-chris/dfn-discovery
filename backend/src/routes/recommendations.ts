@@ -4,7 +4,6 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import { getPresentationLayer } from '../services/presentation-layer';
 
 const router = Router();
 
@@ -23,11 +22,11 @@ const router = Router();
  * TODO: Support different output formats
  * TODO: Return 404 if job not found or not analyzed
  */
-router.get('/:jobId', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:jobId', async (_req: Request, _res: Response, next: NextFunction) => {
   try {
     throw new Error('Not implemented: GET /recommendations/:jobId');
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -41,11 +40,11 @@ router.get('/:jobId', async (req: Request, res: Response, next: NextFunction) =>
  * TODO: Call presentation layer
  * TODO: Return formatted recommendation
  */
-router.get('/:jobId/top', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:jobId/top', async (_req: Request, _res: Response, next: NextFunction) => {
   try {
     throw new Error('Not implemented: GET /recommendations/:jobId/top');
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -63,11 +62,11 @@ router.get('/:jobId/top', async (req: Request, res: Response, next: NextFunction
  * TODO: Support different explanation styles
  * TODO: Include AI-generated narrative
  */
-router.get('/:jobId/:factoryId/explanation', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:jobId/:factoryId/explanation', async (_req: Request, _res: Response, next: NextFunction) => {
   try {
     throw new Error('Not implemented: GET /recommendations/:jobId/:factoryId/explanation');
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -85,11 +84,11 @@ router.get('/:jobId/:factoryId/explanation', async (req: Request, res: Response,
  * TODO: Support multiple output formats
  * TODO: Include methodology and evidence sections
  */
-router.get('/:jobId/report', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:jobId/report', async (_req: Request, _res: Response, next: NextFunction) => {
   try {
     throw new Error('Not implemented: GET /recommendations/:jobId/report');
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -106,11 +105,11 @@ router.get('/:jobId/report', async (req: Request, res: Response, next: NextFunct
  * TODO: Build comparison table data
  * TODO: Return formatted for UI display
  */
-router.get('/:jobId/comparison', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:jobId/comparison', async (_req: Request, _res: Response, next: NextFunction) => {
   try {
     throw new Error('Not implemented: GET /recommendations/:jobId/comparison');
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 

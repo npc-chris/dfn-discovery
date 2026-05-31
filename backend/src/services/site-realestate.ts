@@ -23,10 +23,10 @@ export interface SiteBrief {
   facility_name: string;
   facility_size_sqft: number;
   facility_age_years: number;
-  facility_condition: 'excellent' | 'good' | 'fair' | 'poor';
+  facility_condition: 'excellent' | 'good' | 'fair' | 'poor' | 'unknown';
   equipment_age_years: number;
   certifications: string[]; // ISO standards, environmental, safety
-  compliance_status: 'fully_compliant' | 'mostly_compliant' | 'non_compliant';
+  compliance_status: 'fully_compliant' | 'mostly_compliant' | 'non_compliant' | 'unknown';
   capacity_utilization_percent: number;
   expansion_planned: boolean;
   expansion_timeline_months?: number;
@@ -51,14 +51,14 @@ export class SiteRealEstate {
    *   - Calculate equipment depreciation (age)
    *   - Assess capacity utilization from production logs
    *   - Check for planned expansions from capital projects
-   * TODO: Handle missing data (use last-known or placeholder)
+  * TODO: Handle missing data using explicit unknown-state fields
    * TODO: Validate data freshness (warn if site visit >12 months old)
    */
   async generateSiteBrief(factory: Factory): Promise<SiteBrief> {
-    const redis = getRedisClient();
+    const redis = getRedisClient() as any;
     const cacheKey = `site:brief:${factory.id}`;
 
-    if (redis.isOpen) {
+    if (redis?.isOpen) {
       const cached = await redis.get(cacheKey);
       if (cached) {
         return JSON.parse(cached) as SiteBrief;
@@ -72,10 +72,10 @@ export class SiteRealEstate {
     const locationId = factory.id;
 
     // Fetch site data concurrently from systems
-    const [assets, workOrders, inspections] = await Promise.all([
-      upkeep.getAssets(locationId).catch(() => []),
-      upkeep.getWorkOrders(locationId).catch(() => []),
-      safetyCulture.getInspections(locationId).catch(() => [])
+    const [assets, inspections] = await Promise.all([
+      upkeep.getAssets(locationId),
+      upkeep.getWorkOrders(locationId),
+      safetyCulture.getInspections(locationId)
     ]);
 
     // Data Synthesization
@@ -92,12 +92,12 @@ export class SiteRealEstate {
             validAssets++;
         }
     });
-    const avgEquipmentAge = validAssets > 0 ? (totalAge / validAssets) : Math.floor(Math.random() * 10) + 1; // Fallback 1-10 years
+      const avgEquipmentAge = validAssets > 0 ? (totalAge / validAssets) : 0;
 
     // Inspection status
-    let complianceStatus: 'fully_compliant' | 'mostly_compliant' | 'non_compliant' = 'mostly_compliant';
-    let lastVisitDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(); // 2 months ago default
-    let siteVisitConfidence = 60;
+      let complianceStatus: 'fully_compliant' | 'mostly_compliant' | 'non_compliant' | 'unknown' = 'unknown';
+      let lastVisitDate = 'Unknown';
+      let siteVisitConfidence = 0;
 
     if (inspections.length > 0) {
         // Sort newest first
@@ -121,21 +121,21 @@ export class SiteRealEstate {
     const brief: SiteBrief = {
       facility_id: factory.id,
       facility_name: factory.name,
-      facility_size_sqft: 25000 + (Math.floor(Math.random() * 10) * 5000), // Approximate if unknown
-      facility_age_years: 15,
-      facility_condition: complianceStatus === 'fully_compliant' ? 'excellent' : (complianceStatus === 'non_compliant' ? 'poor' : 'good'),
+      facility_size_sqft: 0,
+      facility_age_years: Math.round(avgEquipmentAge),
+      facility_condition: complianceStatus === 'unknown' ? 'unknown' : (complianceStatus === 'fully_compliant' ? 'excellent' : (complianceStatus === 'non_compliant' ? 'poor' : 'good')),
       equipment_age_years: Math.round(avgEquipmentAge),
       certifications: complianceStatus === 'fully_compliant' ? ['ISO 9001:2015', 'ISO 14001'] : [],
       compliance_status: complianceStatus,
-      capacity_utilization_percent: 60 + Math.floor(Math.random() * 30), // Approx 60-90%
+      capacity_utilization_percent: 0,
       expansion_planned: false,
       last_site_visit_date: lastVisitDate,
       site_visit_confidence: siteVisitConfidence,
       environmental_permits: complianceStatus !== 'non_compliant',
-      labor_availability_assessment: 'medium',
+      labor_availability_assessment: complianceStatus === 'unknown' ? 'unknown' : 'medium',
     };
 
-    if (redis.isOpen) {
+    if (redis?.isOpen) {
       await redis.setEx(cacheKey, 43200, JSON.stringify(brief)); // 12 hour TTL
     }
 
@@ -211,7 +211,7 @@ export class SiteRealEstate {
     recommendations: string[];
   }> {
     const safetyCulture = new SafetyCultureIntegration();
-    const inspections = await safetyCulture.getInspections(factory.id).catch(() => []);
+    const inspections = await safetyCulture.getInspections(factory.id);
 
     if (inspections.length === 0) {
       return {
@@ -288,7 +288,6 @@ export class SiteRealEstate {
         return {
             available: false,
             reason: `Insufficient capacity. Required: ${requiredCapacityPercent}%, Available: ${availableCapacity}%`,
-            alternative_dates: [new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]] // Mock next month
         };
     }
 
@@ -296,7 +295,6 @@ export class SiteRealEstate {
         return {
             available: false,
             reason: 'Lead time too short for standard production scheduling (minimum 7 days).',
-            alternative_dates: [new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]
         };
     }
 

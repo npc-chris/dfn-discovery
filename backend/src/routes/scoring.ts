@@ -5,13 +5,13 @@
 
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
-import { getCoreIntelligence } from '../services/core-intelligence.ts';
-import { getJob } from '../services/job-intake.ts';
-import { db } from '../db/client.ts';
-import { factories, recommendations } from '../db/schema.ts';
+import { getCoreIntelligence } from '../services/core-intelligence';
+import { getJob } from '../services/job-intake';
+import { db } from '../db/client';
+import { factories, recommendations } from '../db/schema';
 import { desc, eq, inArray } from 'drizzle-orm';
 import type { EvidenceItem } from '@dfn/shared';
-import type { ScoringResult } from '../services/core-intelligence.ts';
+import type { ScoringResult } from '../services/core-intelligence';
 
 type DbClient = typeof db;
 
@@ -162,7 +162,7 @@ router.post('/score-job', async (req: Request, res: Response, next: NextFunction
 
     return res.json(results);
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -198,7 +198,7 @@ router.post('/rank-recommendations', async (req: Request, res: Response, next: N
 
     return res.json(ranked);
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -223,7 +223,7 @@ router.get('/job-score/:jobId', async (req: Request, res: Response, next: NextFu
 
     return res.json(rows);
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -243,7 +243,7 @@ router.get('/component-analysis/:jobId/:factoryId', async (req: Request, res: Re
     const analysis = await getComponentAnalysis(jobId, factoryId);
     return res.json(analysis);
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 

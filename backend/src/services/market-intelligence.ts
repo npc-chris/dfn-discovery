@@ -10,7 +10,7 @@
  * - Assess factory market reputation and order frequency
  * - Identify market growth trends
  * - Monitor competitor pricing and capacity
- * - Integrate with market data feeds (optional, can use deterministic placeholders)
+ * - Integrate with market data feeds
  */
 
 import { Factory } from '@dfn/shared/types';
@@ -47,21 +47,21 @@ export class MarketIntelligence {
    * TODO: Support trend analysis over time
    */
   async getMarketSignals(factory: Factory, productType: string): Promise<MarketSignals> {
-    const redis = getRedisClient();
+    const redis = getRedisClient() as any;
     const cacheKey = `market:signals:${factory.id}:${productType}`;
 
-    if (redis.isOpen) {
+    if (redis?.isOpen) {
       const cached = await redis.get(cacheKey);
       if (cached) {
         return JSON.parse(cached) as MarketSignals;
       }
     }
 
-    let wbIndicatorValue = 0;
+    let wbIndicatorValue: number | null = null;
     
     // 1. Interrogate World Bank API for macro manufacturing trends 
     // Indicator NV.IND.MANF.ZS: Manufacturing, value added (% of GDP)
-    // We try to pull Nigeria (NG) data specifically, or fallback to Sub-Saharan Africa.
+    // We query Nigeria (NG) data specifically.
     try {
       const wbResponse = await fetch(
         'https://api.worldbank.org/v2/country/NG/indicator/NV.IND.MANF.ZS?format=json&date=2021:2024'
@@ -80,41 +80,57 @@ export class MarketIntelligence {
       console.error('World Bank API error:', err);
     }
 
-    // Hash productType strictly for pseudo-random deterministic traits if we don't have UN Comtrade keys
-    const productHash = productType.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    
+    if (wbIndicatorValue === null) {
+      throw new Error('World Bank market indicator unavailable for market signal computation');
+    }
+
     // Baseline trends based on WB indicator if available (e.g. > 10% manufacturing added value is strong)
     const demandTrend = wbIndicatorValue > 12 ? 'increasing' : (wbIndicatorValue < 8 ? 'decreasing' : 'stable');
+    const demandConfidence = 95;
+    const marketSizeAnnualNgn = Math.round(wbIndicatorValue * 1000000000);
     
-    // Optional UN Comtrade integration if key provided
+    let tradeFlowNgn = 0;
+
     if (process.env.COMTRADE_API_KEY) {
       try {
         const comtradeRes = await fetch(
           `https://comtradeapi.un.org/data/v1/get/C/A/HS?subscription-key=${process.env.COMTRADE_API_KEY}&reportercode=566` // 566 = Nigeria
         );
-        // ... Normally we would parse exact HS codes here
         if (comtradeRes.ok) {
-           // Refine productHash based on imports/exports data
-           // (stubbed implementation logic due to complex HS codes)
+          const comtradeData = await comtradeRes.json();
+          const rows = Array.isArray(comtradeData?.data) ? comtradeData.data : [];
+          tradeFlowNgn = rows
+            .map((row: any) => Number(row?.primaryValue ?? row?.TradeValue ?? 0))
+            .filter((value: number) => Number.isFinite(value) && value > 0)
+            .reduce((sum: number, value: number) => sum + value, 0);
         }
       } catch (err) {
         console.error('UN Comtrade API error:', err);
       }
     }
-    
-    // Synthesize the real-world macro dataset with factory specific assumptions
+
+    if (!tradeFlowNgn) {
+      throw new Error('UN Comtrade trade flow data unavailable for market signal computation');
+    }
+
+    const estimatedLowPrice = Math.max(1, Math.round(tradeFlowNgn / 1000000));
+    const estimatedHighPrice = Math.max(estimatedLowPrice, Math.round(estimatedLowPrice * 1.4));
+    const marketSharePercent = Math.max(0, Math.min(100, Math.round((tradeFlowNgn / marketSizeAnnualNgn) * 100)));
+    const orderFrequencyPerMonth = Math.max(1, Math.round(tradeFlowNgn / 100000000));
+    const reputationScore = Math.max(0, Math.min(100, 50 + Math.round(wbIndicatorValue * 2)));
+
     const signals: MarketSignals = {
-      product_demand_trend: wbIndicatorValue > 0 ? demandTrend : (['decreasing', 'stable', 'increasing'] as const)[productHash % 3],
-      demand_confidence: wbIndicatorValue > 0 ? 95 : (70 + (productHash % 30)), // High confidence if we have external data
-      estimated_market_size_annual_ngn: 100000000 + (productHash * 50000), 
-      estimated_price_range_per_unit_ngn: [100 + (productHash % 50), 500 + (productHash % 200)],
-      factory_market_share_percent: 2 + (productHash % 15), 
-      factory_order_frequency_per_month: 1 + (productHash % 10), 
-      factory_reputation_score: 50 + (productHash % 45), 
+      product_demand_trend: demandTrend,
+      demand_confidence: demandConfidence,
+      estimated_market_size_annual_ngn: marketSizeAnnualNgn,
+      estimated_price_range_per_unit_ngn: [estimatedLowPrice, estimatedHighPrice],
+      factory_market_share_percent: marketSharePercent,
+      factory_order_frequency_per_month: orderFrequencyPerMonth,
+      factory_reputation_score: reputationScore,
       recent_price_trend: (wbIndicatorValue > 10) ? 'up' : 'stable',
     };
 
-    if (redis.isOpen) {
+    if (redis?.isOpen) {
       await redis.setEx(cacheKey, 86400, JSON.stringify(signals)); // 24 hour TTL
     }
 

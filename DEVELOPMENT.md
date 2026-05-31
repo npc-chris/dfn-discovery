@@ -5,19 +5,19 @@ Development utilities and workspace configuration.
 ## Quick Start
 
 1. Copy `.env.example` to `.env` and configure.
-2. Install dependencies: `npm install`
-3. Start dev servers: `npm run dev`
+2. Install dependencies: `pnpm install`
+3. Start dev servers: `pnpm run dev`
 
 Frontend: `http://localhost:3000`  
 Backend: `http://localhost:5000`
 
 ## Commands
 
-- `npm run dev` — Start frontend and backend in parallel
-- `npm run build` — Build all packages
-- `npm run test` — Run all tests
-- `npm run lint` — Lint all packages
-- `npm run type-check` — Type-check all packages
+- `pnpm run dev` — Start frontend and backend in parallel
+- `pnpm run build` — Build all packages
+- `pnpm run test` — Run all tests
+- `pnpm run lint` — Lint all packages
+- `pnpm run type-check` — Type-check all packages
 
 ## Database Setup
 
@@ -26,10 +26,10 @@ Backend: `http://localhost:5000`
 createdb dfn_gap_analyzer
 
 # Run migrations
-npm run db:migrate -w backend
+pnpm run db:migrate -C backend
 
 # Seed sample data
-npm run db:seed -w backend
+pnpm run db:seed -C backend
 ```
 
 ## Architecture

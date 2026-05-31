@@ -9,16 +9,31 @@ vi.mock('./redis-client', () => ({
 
 describe('GeoLogistics Service', () => {
   let service: GeoLogistics;
+  const mockFetch = vi.fn();
 
   beforeEach(() => {
     service = new GeoLogistics();
     vi.clearAllMocks();
+    vi.stubGlobal('fetch', mockFetch);
     
     // Mock redis client
     (getRedisClient as any).mockReturnValue({
       get: vi.fn().mockResolvedValue(null),
       setEx: vi.fn().mockResolvedValue('OK'),
       isOpen: true,
+    });
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        routes: [
+          {
+            sections: [
+              { summary: { length: 620000 } },
+            ],
+          },
+        ],
+      }),
     });
   });
 
@@ -171,13 +186,13 @@ describe('GeoLogistics Service', () => {
       const mockJob = {
         id: 'job-1',
         title: 'Test Job',
-        delivery_location: { coordinates: { lat: 6.5244, lng: 3.3792 }, state: 'Lagos' }
+        delivery_location: { latitude: 6.5244, longitude: 3.3792, state: 'Lagos', country: 'Nigeria' }
       } as unknown as Job;
 
       const mockFactory = {
         id: 'fac-1',
         name: 'Test Factory',
-        location: { coordinates: { lat: 8.9839, lng: 7.5562 }, state: 'Abuja' }
+        location: { latitude: 8.9839, longitude: 7.5562, state: 'Abuja', country: 'Nigeria' }
       } as unknown as Factory;
 
       const assessment = await service.assessLogistics(mockJob, mockFactory);

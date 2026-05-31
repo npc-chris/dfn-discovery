@@ -49,12 +49,12 @@ router.post('/:jobId/submit', async (req, res, next) => {
 });
 
 // Get recommendation for a job
-router.get('/:jobId/recommendation', async (req, res, next) => {
+router.get('/:jobId/recommendation', async (_req, res, next) => {
   try {
     // TODO: Fetch the latest recommendation
-    res.json({ message: 'Recommendation retrieved' });
+    return res.json({ message: 'Recommendation retrieved' });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 

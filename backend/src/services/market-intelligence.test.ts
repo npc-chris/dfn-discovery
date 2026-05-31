@@ -9,15 +9,32 @@ vi.mock('./redis-client', () => ({
 
 describe('MarketIntelligence Service', () => {
   let service: MarketIntelligence;
+  const mockFetch = vi.fn();
 
   beforeEach(() => {
     service = new MarketIntelligence();
     vi.clearAllMocks();
+    vi.stubGlobal('fetch', mockFetch);
     
     (getRedisClient as any).mockReturnValue({
       get: vi.fn().mockResolvedValue(null),
       setEx: vi.fn().mockResolvedValue('OK'),
       isOpen: true,
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ([{}, [{ value: 10.2 }]]),
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: [
+          { primaryValue: 1200000000 },
+          { primaryValue: 300000000 },
+        ],
+      }),
     });
   });
 

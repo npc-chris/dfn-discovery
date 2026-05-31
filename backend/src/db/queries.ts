@@ -1,8 +1,8 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { Factory } from '@dfn/shared';
-import type { ScoringResult } from '../services/core-intelligence.ts';
-import { db } from './client.ts';
-import { factories, recommendations } from './schema.ts';
+import type { ScoringResult } from '../services/core-intelligence';
+import { db } from './client';
+import { factories, recommendations } from './schema';
 
 export async function getFactoriesByIds(factoryIds?: string[]): Promise<Factory[]> {
   let query = db.select().from(factories);

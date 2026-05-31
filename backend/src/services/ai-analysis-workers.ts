@@ -6,7 +6,7 @@
  *
  * Responsibilities:
  * - Route work to appropriate AI provider adapters
- * - Manage AI model selection and fallback
+ * - Manage AI model selection
  * - Extract structured data from job attachments
  * - Summarize evidence and findings
  * - Generate explanations for recommendations
@@ -14,9 +14,8 @@
  * - Track token usage and costs
  */
 
-import { AIExtractionRequest, AIExtractionResponse, AISummarizationRequest, AISummarizationResponse, AIExplanationRequest, AIExplanationResponse, AIProvider, AIProviderConfig } from './ai-providers/types.ts';
-import { createAIProviderAdapter, AIProviderAdapter } from './ai-providers/adapter.ts';
-import { getDefaultModelForProvider } from './ai-providers/model-registry.ts';
+import { AIExtractionRequest, AIExtractionResponse, AISummarizationRequest, AISummarizationResponse, AIExplanationRequest, AIExplanationResponse, AIProvider, AIProviderConfig } from './ai-providers/types';
+import { createAIProviderAdapter, AIProviderAdapter } from './ai-providers/adapter';
 
 // Token usage tracking for cost optimization
 interface TokenUsage {
@@ -33,7 +32,12 @@ export class AIAnalysisWorkers {
 
   constructor(provider: AIProvider, apiKey: string, model?: string) {
     this.provider = provider;
-    const selectedModel = model || getDefaultModelForProvider(provider)?.id || 'gpt-4o';
+    const selectedModel = model;
+
+    if (!selectedModel) {
+      throw new Error(`No model configured for provider: ${provider}`);
+    }
+
     this.model = selectedModel;
 
     const config: AIProviderConfig = { provider, apiKey };
@@ -167,14 +171,12 @@ export class AIAnalysisWorkers {
  */
 export function createAIAnalysisWorkers(
   provider: AIProvider,
-  apiKey?: string,
+  apiKey: string,
   model?: string,
 ): AIAnalysisWorkers {
-  const finalApiKey = apiKey || process.env[`${provider.toUpperCase()}_API_KEY`] || '';
-
-  if (!finalApiKey) {
+  if (!apiKey) {
     throw new Error(`Missing API key for provider: ${provider}`);
   }
 
-  return new AIAnalysisWorkers(provider, finalApiKey, model);
+  return new AIAnalysisWorkers(provider, apiKey, model);
 }

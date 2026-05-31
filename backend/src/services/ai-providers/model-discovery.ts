@@ -32,18 +32,18 @@ export interface ModelFilterOptions {
   deprecated?: boolean;
 }
 
-export async function filterModels(options: ModelFilterOptions): Promise<AIModel[]> {
+export async function filterModels(options: ModelFilterOptions = {}): Promise<AIModel[]> {
   let filtered = availableModels;
 
   if (options.provider) {
     filtered = filtered.filter((m) => m.provider === options.provider);
   }
 
-  if (options.minContextWindow) {
+  if (options.minContextWindow != null) {
     filtered = filtered.filter((m) => (m.contextWindow || 0) >= options.minContextWindow);
   }
 
-  if (options.maxCostPer1kTokens) {
+  if (options.maxCostPer1kTokens != null) {
     filtered = filtered.filter(
       (m) => !m.costPer1kInputTokens || m.costPer1kInputTokens <= options.maxCostPer1kTokens,
     );

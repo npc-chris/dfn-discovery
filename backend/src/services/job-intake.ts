@@ -35,13 +35,13 @@ function validateJobInput(input: JobInput): { valid: boolean; errors: string[] }
 // Normalize job input data
 function normalizeJobInput(input: JobInput): Record<string, unknown> {
   return {
-    company_name: input.company_name?.trim() || '',
-    product_name: input.product_name?.trim() || '',
-    process_type: input.process_type?.trim() || null,
-    material_type: input.material_type?.trim() || null,
-    volume_band: input.volume_band?.trim() || null,
-    location: input.location || {},
-    metadata: input.metadata || {},
+    company_name: input.company_name.trim(),
+    product_name: input.product_name.trim(),
+    process_type: input.process_type?.trim() ?? null,
+    material_type: input.material_type?.trim() ?? null,
+    volume_band: input.volume_band?.trim() ?? null,
+    location: input.location,
+    metadata: input.metadata ?? {},
   };
 }
 
@@ -278,10 +278,18 @@ export async function getJobStateTransitionHistory(
   const metadata = (job.metadata as Record<string, unknown>) || {};
   const transitions = (metadata.state_transitions as Array<Record<string, unknown>>) || [];
 
-  return transitions.map((t) => ({
-    from: (t.from as string) || 'unknown',
-    to: (t.to as string) || 'unknown',
-    source: (t.source as string) || 'unknown',
-    timestamp: (t.timestamp as string) || new Date().toISOString(),
-  }));
+  return transitions
+    .filter(
+      (t) =>
+        typeof t.from === 'string' &&
+        typeof t.to === 'string' &&
+        typeof t.source === 'string' &&
+        typeof t.timestamp === 'string',
+    )
+    .map((t) => ({
+      from: t.from as string,
+      to: t.to as string,
+      source: t.source as string,
+      timestamp: t.timestamp as string,
+    }));
 }

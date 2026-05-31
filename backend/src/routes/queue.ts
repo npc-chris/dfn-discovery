@@ -7,12 +7,10 @@ import { Router, Request, Response, NextFunction } from 'express';
 import {
   getJobQueueStatus,
   getQueueJobStatus,
-  calculateBackoffDelay,
   QueueJobStatus,
   replayQueueJob,
   getQueueStats,
 } from '../workers/queue';
-import { getJob } from '../services/job-intake';
 
 const router = Router();
 
@@ -40,9 +38,9 @@ router.get('/job/:jobId', async (req: Request, res: Response, next: NextFunction
 
     const queueJobs = await getJobQueueStatus(jobId);
 
-    res.json(queueJobs);
+    return res.json(queueJobs);
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -150,11 +148,13 @@ router.get('/job/:jobId/progress', async (req: Request, res: Response, next: Nex
         }
       } catch (err) {
         clearInterval(pollInterval);
-        next(err);
+        return next(err);
       }
     }, 500);
+
+    return;
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -186,9 +186,9 @@ router.get('/:queueJobId', async (req: Request, res: Response, next: NextFunctio
       return res.status(404).json({ error: `Queue job not found: ${queueJobId}` });
     }
 
-    res.json(queueJob);
+    return res.json(queueJob);
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -230,7 +230,7 @@ router.post('/:queueJobId/replay', async (req: Request, res: Response, next: Nex
       return res.status(500).json({ error: err.message || String(err) });
     }
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -249,13 +249,13 @@ router.post('/:queueJobId/replay', async (req: Request, res: Response, next: Nex
  *   oldestPendingJobAgeSeconds: number | null
  * }
  */
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     // Use worker helper to compute stats
     const stats = await getQueueStats();
-    res.json(stats);
+    return res.json(stats);
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 

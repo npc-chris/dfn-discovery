@@ -40,9 +40,9 @@ router.get('/models/:modelId', async (req, res) => {
     if (!model) {
       return res.status(404).json({ error: 'Model not found' });
     }
-    res.json({ model });
+    return res.json({ model });
   } catch (error) {
-    res.status(500).json({ error: String(error) });
+    return res.status(500).json({ error: String(error) });
   }
 });
 
@@ -53,9 +53,9 @@ router.get('/providers/:provider/default-model', async (req, res) => {
     if (!model) {
       return res.status(404).json({ error: 'No default model for this provider' });
     }
-    res.json({ model });
+    return res.json({ model });
   } catch (error) {
-    res.status(500).json({ error: String(error) });
+    return res.status(500).json({ error: String(error) });
   }
 });
 
@@ -69,9 +69,9 @@ router.post('/models/filter', async (req, res) => {
       maxCostPer1kTokens,
       deprecated,
     });
-    res.json({ models, count: models.length });
+    return res.json({ models, count: models.length });
   } catch (error) {
-    res.status(500).json({ error: String(error) });
+    return res.status(500).json({ error: String(error) });
   }
 });
 

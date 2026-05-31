@@ -12,14 +12,24 @@ import recommendationsRouter from './routes/recommendations';
 import queueRouter from './routes/queue';
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const portValue = process.env.PORT;
+
+if (!portValue) {
+  throw new Error('PORT is required');
+}
+
+const PORT = Number(portValue);
+
+if (!Number.isFinite(PORT)) {
+  throw new Error(`PORT must be a valid number, got: ${portValue}`);
+}
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
@@ -38,5 +48,5 @@ app.use(errorHandler);
 // Start server
 app.listen(PORT, () => {
   console.log(`DFN Discovery Backend listening on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
 });

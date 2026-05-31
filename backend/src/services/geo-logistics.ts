@@ -9,7 +9,7 @@
  * - Assess logistics feasibility (routes, transport modes, costs)
  * - Compute delivery lead times
  * - Identify geographic constraints (border crossings, regulations)
- * - Integrate with mapping APIs (optional, can use deterministic placeholders)
+ * - Integrate with mapping APIs
  * - Track routing costs for feasibility assessment
  */
 
@@ -29,6 +29,32 @@ export interface LogisticsAssessment {
 }
 
 export class GeoLogistics {
+  private resolveJobCoordinates(job: Job): { latitude: number; longitude: number } {
+    const location = job.delivery_location ?? job.location;
+
+    if (location.latitude == null || location.longitude == null) {
+      throw new Error(`Missing job coordinates for ${job.id}`);
+    }
+
+    return {
+      latitude: location.latitude,
+      longitude: location.longitude,
+    };
+  }
+
+  private resolveFactoryCoordinates(factory: Factory): { latitude: number; longitude: number } {
+    const location = factory.location ?? factory.locations?.[0];
+
+    if (!location || location.latitude == null || location.longitude == null) {
+      throw new Error(`Missing factory coordinates for ${factory.id}`);
+    }
+
+    return {
+      latitude: location.latitude,
+      longitude: location.longitude,
+    };
+  }
+
   /**
    * Calculate distance and routing from job location to factory.
    * Used by Core Intelligence for GeographyAndLogistics component score.
@@ -47,6 +73,12 @@ export class GeoLogistics {
    */
   async assessLogistics(job: Job, factory: Factory): Promise<LogisticsAssessment> {
     const redis = getRedisClient();
+    const origin = this.resolveJobCoordinates(job);
+    const destination = this.resolveFactoryCoordinates(factory);
+
+    if (!process.env.HERE_API_KEY) {
+      throw new Error('HERE_API_KEY is required for logistics routing');
+    }
     
     // Create a stable cache key
     const cacheKey = `logistics:route:${job.id}:${factory.id}`;
@@ -57,71 +89,25 @@ export class GeoLogistics {
       }
     }
 
-    let distance_km = 0;
-    
-    // Attempt HERE Routing API
-    if (process.env.HERE_API_KEY && job.delivery_location?.coordinates && factory.location?.coordinates) {
-      try {
-        const { lat: oLat, lng: oLng } = job.delivery_location.coordinates;
-        const { lat: dLat, lng: dLng } = factory.location.coordinates;
-        
-        const hereResponse = await fetch(
-          `https://router.hereapi.com/v8/routes?transportMode=truck&origin=${oLat},${oLng}&destination=${dLat},${dLng}&return=summary&apikey=${process.env.HERE_API_KEY}`
-        );
-        
-        if (hereResponse.ok) {
-          const hereData = await hereResponse.json();
-          if (hereData.routes && hereData.routes[0] && hereData.routes[0].sections[0]) {
-            distance_km = hereData.routes[0].sections[0].summary.length / 1000;
-          }
-        }
-      } catch (err) {
-        console.error('HERE API error:', err);
-      }
+    const hereResponse = await fetch(
+      `https://router.hereapi.com/v8/routes?transportMode=truck&origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&return=summary&apikey=${process.env.HERE_API_KEY}`
+    );
+
+    if (!hereResponse.ok) {
+      throw new Error(`HERE routing request failed with status ${hereResponse.status}`);
     }
-    
-    // Fallback to Geoapify if HERE fails or isn't configured
-    if (!distance_km && process.env.GEOAPIFY_API_KEY && job.delivery_location?.coordinates && factory.location?.coordinates) {
-      try {
-        const { lat: oLat, lng: oLng } = job.delivery_location.coordinates;
-        const { lat: dLat, lng: dLng } = factory.location.coordinates;
-        
-        const geoResponse = await fetch(
-          `https://api.geoapify.com/v1/routing?waypoints=${oLat},${oLng}|${dLat},${dLng}&format=json&mode=truck&apiKey=${process.env.GEOAPIFY_API_KEY}`
-        );
-        
-        if (geoResponse.ok) {
-          const geoData = await geoResponse.json();
-          if (geoData.results && geoData.results[0]) {
-            distance_km = geoData.results[0].distance / 1000;
-          }
-        }
-      } catch (err) {
-        console.error('Geoapify API error:', err);
-      }
+
+    const hereData = await hereResponse.json();
+    const routeSummary = hereData?.routes?.[0]?.sections?.[0]?.summary;
+
+    if (!routeSummary || typeof routeSummary.length !== 'number') {
+      throw new Error('HERE routing response did not include a route length');
     }
-    
-    // Final fallback if both APIs fail or aren't configured
-    if (!distance_km) {
-      if (job.delivery_location?.coordinates && factory.location?.coordinates) {
-        // Use Haversine straight-line distance + 30% tortuosity factor
-        const { lat: oLat, lng: oLng } = job.delivery_location.coordinates;
-        const { lat: dLat, lng: dLng } = factory.location.coordinates;
-        
-        const R = 6371; // Earth's radius in km
-        const dLatRad = (dLat - oLat) * Math.PI / 180;
-        const dLonRad = (dLng - oLng) * Math.PI / 180;
-        const a = 
-          Math.sin(dLatRad/2) * Math.sin(dLatRad/2) +
-          Math.cos(oLat * Math.PI / 180) * Math.cos(dLat * Math.PI / 180) * 
-          Math.sin(dLonRad/2) * Math.sin(dLonRad/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        const straightLineKm = R * c;
-        
-        distance_km = straightLineKm * 1.3; // Append approximate road routing overhead
-      } else {
-        distance_km = 100; // Hard fallback if coordinates are missing
-      }
+
+    const distance_km = routeSummary.length / 1000;
+
+    if (distance_km <= 0) {
+      throw new Error('HERE routing returned a non-positive distance');
     }
 
     const transport_modes = distance_km > 500 ? ['road', 'air'] : ['road'];
@@ -139,7 +125,7 @@ export class GeoLogistics {
       border_crossings,
       regulatory_constraints: border_crossings > 0 ? ['inter-state duties', 'transit-permit'] : [],
       feasible: true,
-      feasibility_confidence: distance_km === 100 ? 50 : 80, // Lower confidence if we used fallback
+      feasibility_confidence: 90,
     };
 
     const assessment: LogisticsAssessment = {
@@ -181,10 +167,9 @@ export class GeoLogistics {
       score -= 15;
     }
 
-    // Cost penalty: > 15% of budget. 
-    // Fallback if max_budget not provided: assume 5,000,000 NGN
-    const budget = job.target_price_max ?? 5000000;
-    if (budget > 0 && assessment.routing_cost_estimate_ngn > (budget * 0.15)) {
+    // Cost penalty: > 15% of budget.
+    const budget = job.target_price_max;
+    if (typeof budget === 'number' && budget > 0 && assessment.routing_cost_estimate_ngn > (budget * 0.15)) {
       score -= 10;
     }
 

@@ -1,6 +1,6 @@
 import assert from 'assert';
-import { getCoreIntelligence } from '../services/core-intelligence.ts';
-import { factories, recommendations } from '../db/schema.ts';
+import { getCoreIntelligence } from '../services/core-intelligence';
+import { factories, recommendations } from '../db/schema';
 import {
   buildEvidenceMap,
   getComponentAnalysis,
@@ -8,7 +8,7 @@ import {
   loadFactories,
   persistRecommendations,
   scoreJobAgainstFactories,
-} from './scoring.ts';
+} from './scoring';
 
 const job = {
   id: 'job-1',

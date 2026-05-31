@@ -9,7 +9,7 @@
  * - Rank recommendations by fit and confidence
  * - Apply recommendation gate rules
  * - Compute component scores (process match, material match, etc.)
- * - Handle scoring errors and fallback logic
+ * - Handle scoring errors and recovery logic
  * - Track scoring provenance (why a factory was ranked)
  */
 

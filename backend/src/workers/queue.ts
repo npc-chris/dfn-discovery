@@ -18,9 +18,10 @@
  */
 
 import { db } from '../db/client';
-import { job_queue, jobs } from '../db/schema';
+import { job_queue, jobs, factories, recommendations } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
+import type { Factory as SharedFactory, Job } from '@dfn/shared/types';
 import { getGeoLogistics } from '../services/geo-logistics';
 import { getMarketIntelligence } from '../services/market-intelligence';
 import { getSiteRealEstate } from '../services/site-realestate';
@@ -76,6 +77,56 @@ const CONCURRENCY_LIMITS = {
   'refresh-site-brief': 10,
   'generate-recommendation-brief': 10,
 };
+
+type FactoryRow = typeof factories.$inferSelect;
+
+function toSharedFactory(factoryRow: FactoryRow): SharedFactory {
+  const locations = Array.isArray(factoryRow.locations) ? (factoryRow.locations as SharedFactory['locations']) : [];
+  const primaryLocation = locations[0];
+
+  return {
+    id: factoryRow.id,
+    factory_name: factoryRow.factory_name,
+    name: factoryRow.factory_name,
+    capabilities: Array.isArray(factoryRow.capabilities) ? factoryRow.capabilities : [],
+    materials: Array.isArray(factoryRow.materials) ? factoryRow.materials : [],
+    capacity_band: factoryRow.capacity_band,
+    locations,
+    location: primaryLocation,
+    certifications: Array.isArray(factoryRow.certifications) ? factoryRow.certifications : [],
+    verified_sources: Array.isArray(factoryRow.verified_sources) ? factoryRow.verified_sources : [],
+    active: factoryRow.active,
+    created_at: factoryRow.created_at,
+    updated_at: factoryRow.updated_at,
+  };
+}
+
+async function resolveFactoryForJob(jobId: string, payload: Record<string, unknown>): Promise<SharedFactory> {
+  const payloadFactoryId = typeof payload.factory_id === 'string' ? payload.factory_id : undefined;
+
+  let factoryId = payloadFactoryId;
+
+  if (!factoryId) {
+    const [recommendation] = await db
+      .select({ factoryId: recommendations.factory_id })
+      .from(recommendations)
+      .where(eq(recommendations.job_id, jobId))
+      .limit(1);
+
+    factoryId = recommendation?.factoryId;
+  }
+
+  if (!factoryId) {
+    throw new Error(`No factory_id available for job ${jobId}`);
+  }
+
+  const [factoryRow] = await db.select().from(factories).where(eq(factories.id, factoryId)).limit(1);
+  if (!factoryRow) {
+    throw new Error(`Factory not found: ${factoryId}`);
+  }
+
+  return toSharedFactory(factoryRow);
+}
 
 // ============================================================================
 // TASK 3.1: QUEUE DATABASE OPERATIONS
@@ -562,17 +613,18 @@ async function enrichLogisticsHandler(jobId: string, _payload: Record<string, un
     throw new Error(`Job ${jobId} not found`);
   }
   
-  // Format matching target job
+  const factory = await resolveFactoryForJob(jobId, _payload);
+  const metadata = (jobRecord.metadata ?? {}) as Record<string, unknown>;
+  const targetPriceMax = typeof metadata.target_price_max === 'number' ? metadata.target_price_max : undefined;
+
   const job = {
-    id: jobRecord.id, // For this stub, job typing matches the base
-    delivery_location: jobRecord.delivery_location as any
-  };
+    id: jobRecord.id,
+    location: jobRecord.location,
+    delivery_location: jobRecord.location,
+    target_price_max: targetPriceMax,
+  } as Job;
 
-  // Run the assessment. We aren't doing factory-by-factory routing here unless we fetch recommended factories.
-  // For the sake of the queue step, let's assume we do a baseline location sanity check.
-  const factoryMock = { id: 'generic-fac', location: { coordinates: { lat: 9.0820, lng: 8.6753 } } } as any;
-
-  const assessment = await geoLogistics.assessLogistics(job as any, factoryMock);
+  const assessment = await geoLogistics.assessLogistics(job, factory);
 
   return { logisticsEnriched: true, assessment };
 }
@@ -607,13 +659,11 @@ async function refreshMarketSignalsHandler(jobId: string, _payload: Record<strin
  * - Call Site/Real Estate service
  * - Update recommendations with site data
  */
-async function refreshSiteBriefHandler(jobId: string, _payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function refreshSiteBriefHandler(jobId: string, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
   const siteRealEstate = getSiteRealEstate();
-  
-  // Example dummy factory check setup.
-  // We'll generate a brief for a known dummy to ensure CMMS integration runs.
-  const factoryMock = { id: 'factory-123', name: 'Primary Factory' } as any;
-  const brief = await siteRealEstate.generateSiteBrief(factoryMock);
+
+  const factory = await resolveFactoryForJob(jobId, payload);
+  const brief = await siteRealEstate.generateSiteBrief(factory);
 
   return { siteBriefRefreshed: true, brief };
 }

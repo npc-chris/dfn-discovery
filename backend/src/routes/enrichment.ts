@@ -4,9 +4,6 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import { getGeoLogistics } from '../services/geo-logistics';
-import { getMarketIntelligence } from '../services/market-intelligence';
-import { getSiteRealEstate } from '../services/site-realestate';
 
 const router = Router();
 
@@ -30,11 +27,11 @@ const router = Router();
  * TODO: Call geo-logistics service
  * TODO: Return assessment
  */
-router.post('/logistics-assessment', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/logistics-assessment', async (_req: Request, _res: Response, next: NextFunction) => {
   try {
     throw new Error('Not implemented: POST /enrichment/logistics-assessment');
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -55,11 +52,11 @@ router.post('/logistics-assessment', async (req: Request, res: Response, next: N
  * TODO: Call market-intelligence service
  * TODO: Return market signals
  */
-router.get('/market-signals/:factoryId', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/market-signals/:factoryId', async (_req: Request, _res: Response, next: NextFunction) => {
   try {
     throw new Error('Not implemented: GET /enrichment/market-signals/:factoryId');
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -76,11 +73,11 @@ router.get('/market-signals/:factoryId', async (req: Request, res: Response, nex
  * TODO: Call market-intelligence service
  * TODO: Return outlook narrative
  */
-router.get('/market-outlook', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/market-outlook', async (_req: Request, _res: Response, next: NextFunction) => {
   try {
     throw new Error('Not implemented: GET /enrichment/market-outlook');
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -97,11 +94,11 @@ router.get('/market-outlook', async (req: Request, res: Response, next: NextFunc
  * TODO: Call site-realestate service
  * TODO: Return facility brief
  */
-router.get('/site-brief/:factoryId', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/site-brief/:factoryId', async (_req: Request, _res: Response, next: NextFunction) => {
   try {
     throw new Error('Not implemented: GET /enrichment/site-brief/:factoryId');
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -114,11 +111,11 @@ router.get('/site-brief/:factoryId', async (req: Request, res: Response, next: N
  * TODO: Call site-realestate service
  * TODO: Return visit report summary
  */
-router.get('/site-visit-report/:factoryId', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/site-visit-report/:factoryId', async (_req: Request, _res: Response, next: NextFunction) => {
   try {
     throw new Error('Not implemented: GET /enrichment/site-visit-report/:factoryId');
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -139,11 +136,11 @@ router.get('/site-visit-report/:factoryId', async (req: Request, res: Response, 
  * TODO: Call site-realestate service
  * TODO: Return availability assessment
  */
-router.post('/check-availability', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/check-availability', async (_req: Request, _res: Response, next: NextFunction) => {
   try {
     throw new Error('Not implemented: POST /enrichment/check-availability');
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 

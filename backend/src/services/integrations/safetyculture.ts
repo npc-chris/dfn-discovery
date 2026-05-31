@@ -16,15 +16,15 @@ export class SafetyCultureIntegration {
   private baseUrl = 'https://api.safetyculture.io';
 
   constructor() {
-    this.apiKey = process.env.SAFETYCULTURE_API_KEY || '';
+    const apiKey = process.env.SAFETYCULTURE_API_KEY;
+    if (!apiKey) {
+      throw new Error('SAFETYCULTURE_API_KEY is required');
+    }
+
+    this.apiKey = apiKey;
   }
 
   private async fetchSC(endpoint: string, options: RequestInit = {}) {
-    if (!this.apiKey) {
-      console.warn('SAFETYCULTURE_API_KEY not configured, using mock data.');
-      return null;
-    }
-
     const res = await fetch(`${this.baseUrl}${endpoint}`, {
       ...options,
       headers: {
@@ -44,8 +44,6 @@ export class SafetyCultureIntegration {
   async getInspections(siteId: string): Promise<Inspection[]> {
     // Note: safetyculture's API usually requires searching across inspections with a site tag or filter
     const data = await this.fetchSC(`/audits/search?site_id=${siteId}`);
-    
-    if (!data) return this.mockInspections();
 
     return data.audits.map((a: any) => ({
       id: a.audit_id,
@@ -56,12 +54,5 @@ export class SafetyCultureIntegration {
       conductedOn: a.modified_at || a.created_at,
       failedItems: a.failed_responses_count || 0
     }));
-  }
-
-  private mockInspections(): Inspection[] {
-    return [
-      { id: 'i1', templateId: 't1', name: 'Annual ISO Audit', score: 95, maxScore: 100, conductedOn: new Date().toISOString(), failedItems: 0 },
-      { id: 'i2', templateId: 't2', name: 'Safety Walkthrough', score: 80, maxScore: 100, conductedOn: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), failedItems: 2 }
-    ];
   }
 }
