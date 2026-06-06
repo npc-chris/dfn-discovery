@@ -15,6 +15,8 @@
 
 import type { Job, Factory } from '@dfn/shared/types';
 import { getRedisClient } from './redis-client';
+import { routing as hereRouting } from './integrations/here';
+import type { LatLng } from './integrations/here/here.types';
 
 export interface LogisticsAssessment {
   distance_km: number;
@@ -29,7 +31,7 @@ export interface LogisticsAssessment {
 }
 
 export class GeoLogistics {
-  private resolveJobCoordinates(job: Job): { latitude: number; longitude: number } {
+  private resolveJobCoordinates(job: Job): LatLng {
     const location = job.delivery_location ?? job.location;
 
     if (location.latitude == null || location.longitude == null) {
@@ -42,7 +44,7 @@ export class GeoLogistics {
     };
   }
 
-  private resolveFactoryCoordinates(factory: Factory): { latitude: number; longitude: number } {
+  private resolveFactoryCoordinates(factory: Factory): LatLng {
     const location = factory.location ?? factory.locations?.[0];
 
     if (!location || location.latitude == null || location.longitude == null) {
@@ -89,32 +91,15 @@ export class GeoLogistics {
       }
     }
 
-    const hereResponse = await fetch(
-      `https://router.hereapi.com/v8/routes?transportMode=truck&origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&return=summary&apikey=${process.env.HERE_API_KEY}`
-    );
+    // Use the HERE routing adapter to get a normalized route result
+    const route = await hereRouting.getRoute({ lat: origin.latitude, lng: origin.longitude }, { lat: destination.latitude, lng: destination.longitude }, { transportMode: 'truck' });
 
-    if (!hereResponse.ok) {
-      throw new Error(`HERE routing request failed with status ${hereResponse.status}`);
-    }
-
-    const hereData = await hereResponse.json();
-    const routeSummary = hereData?.routes?.[0]?.sections?.[0]?.summary;
-
-    if (!routeSummary || typeof routeSummary.length !== 'number') {
-      throw new Error('HERE routing response did not include a route length');
-    }
-
-    const distance_km = routeSummary.length / 1000;
-
-    if (distance_km <= 0) {
-      throw new Error('HERE routing returned a non-positive distance');
-    }
+    const distance_km = (route.distanceMeters || 0) / 1000;
+    if (distance_km <= 0) throw new Error('HERE routing returned a non-positive distance');
 
     const transport_modes = distance_km > 500 ? ['road', 'air'] : ['road'];
     const primary_mode = distance_km > 700 ? 'air' : 'road';
-    
     const border_crossings = distance_km > 600 ? 1 : 0;
-    
     const routing_cost_estimate_ngn = distance_km * 1500;
 
     const partialAssessment: Omit<LogisticsAssessment, 'estimated_lead_days'> = {

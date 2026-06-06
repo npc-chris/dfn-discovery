@@ -14,6 +14,7 @@ describe('GeoLogistics Service', () => {
   beforeEach(() => {
     service = new GeoLogistics();
     vi.clearAllMocks();
+    process.env.HERE_API_KEY = 'test-here-key';
     vi.stubGlobal('fetch', mockFetch);
     
     // Mock redis client

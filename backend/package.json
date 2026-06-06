@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",
-    "@dfn/shared": "workspace:*",
+    "@dfn/shared": "file:../shared",
     "@google/genai": "^2.0.1",
     "cors": "^2.8.5",
     "dotenv": "^16.0.0",

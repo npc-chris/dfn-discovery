@@ -22,7 +22,7 @@ importers:
         specifier: ^0.95.1
         version: 0.95.2(zod@3.25.76)
       '@dfn/shared':
-        specifier: workspace:*
+        specifier: file:../shared
         version: link:../shared
       '@google/genai':
         specifier: ^2.0.1
@@ -74,7 +74,7 @@ importers:
   frontend:
     dependencies:
       '@dfn/shared':
-        specifier: workspace:*
+        specifier: file:../shared
         version: link:../shared
       next:
         specifier: ^14.0.0
