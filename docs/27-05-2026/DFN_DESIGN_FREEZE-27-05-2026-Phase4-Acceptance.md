@@ -43,4 +43,5 @@ To support these production endpoints, operator deployments **must** configure t
 ## Conclusion and Next Steps
 The async `queue.ts` completely supports real-world data pipelines to populate factory records with genuine location, market, and inspection data.
 **Phase 4 is complete and frozen.**
-Phase 5 (Frontend App) is safe to initiate.
+Phase 5 (Batch Coordination) is the next planned phase.
+Phase 6 (Frontend App) follows after batch coordination is frozen.

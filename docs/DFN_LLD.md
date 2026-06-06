@@ -142,6 +142,20 @@ Rules:
 - failed jobs must be visible in the job state
 - heavily rely on the queue to handle webhook deliveries. If UpKeep/SafetyCulture APIs go down or rate-limit us, rely on the queue's exponential backoff instead of dropping the site survey.
 
+## Batch Coordination Contract
+
+Batch Coordination operates above the queue and below the presentation layer.
+
+It should define:
+
+- batch request and manifest schema
+- child job correlation and idempotency rules
+- aggregate progress and status rules
+- partial-failure and retry semantics
+- consolidated result schema for bulk checks and calculations
+
+Batch Coordination may split a bulk request into multiple child jobs, wait for their completion, and publish one normalized batch result for downstream consumers.
+
 
 ## Scoring Contract
 

@@ -387,11 +387,12 @@ Based on validation, implementation can proceed with confidence. The scaffolded 
 2. **Phase 2 (Week 2):** Implement Core Intelligence scoring
 3. **Phase 3 (Week 2):** Implement Queue Worker dispatch
 4. **Phase 4 (Week 3):** Implement Enrichment services
-5. **Phase 5 (Week 3):** Implement Presentation Layer
-6. **Phase 6 (Week 4):** Build Frontend UI
-7. **Phase 7 (Week 4):** Testing & polish
+5. **Phase 5 (Week 4):** Implement Batch Coordination
+6. **Phase 6 (Week 5):** Implement Presentation Layer
+7. **Phase 7 (Week 6):** Build Frontend UI
+8. **Phase 8 (Week 7):** Testing & polish
 
-**Total Timeline:** 4 weeks to production-ready system
+**Total Timeline:** 7 weeks to production-ready system
 
 ---
 

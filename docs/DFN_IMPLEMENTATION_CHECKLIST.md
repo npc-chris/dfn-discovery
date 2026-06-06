@@ -1,9 +1,8 @@
 # DFN Discovery - Implementation Checklist
 
-**Status:** Phase 4 Complete ✅ - Ready for Phase 5 Frontend App  
-**Last Updated:** May 24, 2026  
-**Scaffolding Validation:** ✅ PASSED (see DFN_IMPLEMENTATION_VALIDATION.md)  
-**Phase 3 Acceptance:** ✅ PASSED - Backend tests completed, replay/stats endpoints implemented
+**Status:** Phase 4 Complete ✅ - Ready for Phase 5 Batch Coordination  
+**Last Updated:** June 06, 2026  
+
 
 ---
 
@@ -798,23 +797,89 @@
 - [x] HERE adapters implemented and tested
 - [x] Market Intelligence implemented and tested
 - [x] Site/Real Estate implemented and tested
-- [x] All enrichment routes working
-- [x] Caching functional with appropriate TTLs
-- [x] External API failures handled gracefully
-- [x] Fallback data available for failures
-- [x] Zero unimplemented methods
+- [ ] All enrichment routes working
+- [ ] Caching functional with appropriate TTLs
+- [ ] External API failures handled gracefully
+- [ ] Fallback data available for failures
+- [ ] Zero unimplemented methods
 
-**Acceptance:** Can fetch logistics, market, and site context for factories and integrate into scoring
-
-**Phase 4 Status:** COMPLETE - All Phase 4 features backed by actual production endpoints, fallbacks built, and integrated into queue queue handlers.
+**Acceptance:** Can fetch logistics, market, and site context for factories and integrate into scoring and recommendations
 
 ---
 
-## Phase 5: Presentation Layer (Week 3)
+## Phase 5: Batch Coordination (Week 4)
+
+**Goal:** Orchestrate bulk requests, grouped calculations, and fan-out/fan-in batch processing.
+
+### Task 5.1: Batch Manifest Model
+
+- [ ] Define batch request payload
+  - [ ] Batch ID
+  - [ ] Child job definitions
+  - [ ] Correlation metadata
+  - [ ] Idempotency key
+- [ ] Persist batch manifest state
+  - [ ] Track pending, processing, completed, failed counts
+  - [ ] Link child queue jobs to batch ID
+
+**Files:** backend/src/services/batch-coordination.ts
+
+**Acceptance Criteria:**
+
+- Batch manifests persist cleanly
+- Child jobs remain traceable
+- Duplicate batch submission prevented
+
+### Task 5.2: Batch Orchestration Engine
+
+- [ ] Implement fan-out/fan-in coordination
+  - [ ] Split bulk checks into child jobs
+  - [ ] Dispatch existing queue jobs per item
+  - [ ] Aggregate child results
+- [ ] Implement grouped retry semantics
+  - [ ] Retry only failed children when possible
+  - [ ] Preserve batch-level state across retries
+
+**Files:** backend/src/services/batch-coordination.ts
+
+**Acceptance Criteria:**
+
+- Bulk requests can be coordinated without changing Phase 3 queue behavior
+- Partial failures are visible and recoverable
+- Aggregate outputs are deterministic
+
+### Task 5.3: Batch Status Routes
+
+- [ ] GET /batch/:batchId
+  - [ ] Return manifest, child job statuses, and rollup counts
+- [ ] GET /batch/:batchId/progress
+  - [ ] Return progress percentage and current stage
+- [ ] POST /batch/:batchId/replay
+  - [ ] Replay failed child jobs only
+
+**Files:** backend/src/routes/batch.ts
+
+**Acceptance Criteria:**
+
+- Batch status is visible
+- Progress is queryable
+- Replay behavior is safe and scoped
+
+### Phase 5 Validation
+
+- [ ] Batch manifests created and tracked
+- [ ] Bulk requests split into child jobs
+- [ ] Aggregate progress correct
+- [ ] Partial failures handled cleanly
+- [ ] Zero unimplemented batch methods
+
+**Acceptance:** Can submit a bulk request, monitor child jobs, and receive one aggregated result bundle
+
+## Phase 6: Presentation Layer (Week 5)
 
 **Goal:** Format recommendations and generate reports for UI
 
-### Task 5.1: Recommendation Formatting
+### Task 6.1: Recommendation Formatting
 
 - [ ] Implement formatRecommendation()
   - [ ] Map fit scores to descriptions
@@ -846,7 +911,7 @@
 
 ---
 
-### Task 5.2: Summary and Report Generation
+### Task 6.2: Summary and Report Generation
 
 - [ ] Implement formatRecommendationSummary()
   - [ ] Show total recommendation count
@@ -881,7 +946,7 @@
 
 ---
 
-### Task 5.3: Recommendations Routes Implementation
+### Task 6.3: Recommendations Routes Implementation
 
 - [ ] GET /recommendations/:jobId
   - [ ] Fetch recommendations and format
@@ -909,7 +974,7 @@
 
 ---
 
-### Phase 5 Validation
+### Phase 6 Validation
 
 - [ ] Recommendation formatting working
 - [ ] Explanations generated
@@ -921,11 +986,11 @@
 
 ---
 
-## Phase 6: Frontend Development (Week 4)
+## Phase 7: Frontend Development (Week 6)
 
 **Goal:** Build UI for job submission, recommendations, and status tracking
 
-### Task 6.1: Job Submission Form
+### Task 7.1: Job Submission Form
 
 - [ ] Create JobSubmissionForm component
   - [ ] Fields for company_name, product_name, process_type, material_type, volume_band, location
@@ -948,7 +1013,7 @@
 
 ---
 
-### Task 6.2: Job Status Page
+### Task 7.2: Job Status Page
 
 - [ ] Create JobStatusPage component
   - [ ] Display job metadata (company, product, status)
@@ -968,7 +1033,7 @@
 
 ---
 
-### Task 6.3: Recommendations Display
+### Task 7.3: Recommendations Display
 
 - [ ] Create RecommendationCard component
   - [ ] Display factory name and rank
@@ -989,7 +1054,7 @@
 
 ---
 
-### Task 6.4: Recommendation Details Page
+### Task 7.4: Recommendation Details Page
 
 - [ ] Create RecommendationDetailsPage
   - [ ] Show full recommendation
@@ -1008,7 +1073,7 @@
 
 ---
 
-### Task 6.5: Dashboard
+### Task 7.5: Dashboard
 
 - [ ] Create Dashboard component
   - [ ] List recent jobs
@@ -1027,7 +1092,7 @@
 
 ---
 
-### Phase 6 Validation
+### Phase 7 Validation
 
 - [ ] Job form working
 - [ ] Status tracking working
@@ -1041,11 +1106,11 @@
 
 ---
 
-## Phase 7: Testing & Polish (Week 4)
+## Phase 8: Testing & Polish (Week 7)
 
 **Goal:** Comprehensive testing, error handling refinement, and deployment preparation
 
-### Task 7.1: Backend Tests
+### Task 8.1: Backend Tests
 
 - [ ] Unit tests for all services
   - [ ] Job Intake validation and normalization
@@ -1071,7 +1136,7 @@
 
 ---
 
-### Task 7.2: Frontend Tests
+### Task 8.2: Frontend Tests
 
 - [ ] Component tests (React Testing Library)
   - [ ] Job form validation
@@ -1094,7 +1159,7 @@
 
 ---
 
-### Task 7.3: Error Handling Polish
+### Task 8.3: Error Handling Polish
 
 - [ ] Improve error messages
   - [ ] Validation errors clear and actionable
@@ -1120,7 +1185,7 @@
 
 ---
 
-### Task 7.4: Performance Optimization
+### Task 8.4: Performance Optimization
 
 - [ ] Backend optimization
   - [ ] Database query optimization
@@ -1146,7 +1211,7 @@
 
 ---
 
-### Task 7.5: Documentation
+### Task 8.5: Documentation
 
 - [ ] API documentation
   - [ ] Endpoint descriptions
@@ -1174,7 +1239,7 @@
 
 ---
 
-### Task 7.6: Deployment Setup
+### Task 8.6: Deployment Setup
 
 - [ ] Environment configuration
   - [ ] .env.example updated with all vars
@@ -1204,7 +1269,7 @@
 
 ---
 
-### Phase 7 Validation
+### Phase 8 Validation
 
 - [ ] All tests passing
 - [ ] Error handling comprehensive
@@ -1225,13 +1290,14 @@
 | 0: Scaffolding | Complete | Services, types, routes | ✅ DONE |
 | 1: AI Adapters | Week 1 | Extract, summarize, explain | ✅ DONE |
 | 2: Scoring | Week 1 | Fit scores, ranking, gates | ✅ DONE |
-| 3: Queue | Week 2 | Async processing, workers | 🔄 |
-| 4: Enrichment | Week 3 | Geo, market, site services | 🔄 |
-| 5: Presentation | Week 3 | Formatting, reports | 🔄 |
-| 6: Frontend | Week 4 | UI components, pages | 🔄 |
-| 7: Testing & Polish | Week 4 | Tests, errors, deploy | 🔄 |
+| 3: Queue | Week 2 | Async processing, workers | ✅ DONE |
+| 4: Enrichment | Week 3 | Geo, market, site services | ✅ DONE |
+| 5: Batch Coordination | Week 4 | Bulk orchestration, aggregation | 🔄 |
+| 6: Presentation | Week 5 | Formatting, reports | 🔄 |
+| 7: Frontend | Week 6 | UI components, pages | 🔄 |
+| 8: Testing & Polish | Week 7 | Tests, errors, deploy | 🔄 |
 
-**Total Timeline:** 4 weeks from Phase 1 start to production-ready
+**Total Timeline:** 7 weeks from Phase 1 start to production-ready
 
 ---
 
@@ -1248,5 +1314,5 @@
 ---
 
 **Created:** May 8, 2026  
-**Last Updated:** May 12, 2026  
-**Status:** Ready for Phase 3 Implementation
+**Last Updated:** June 06, 2026  
+**Status:** Ready for Phase 5 Batch Coordination Implementation

@@ -54,6 +54,10 @@ flowchart LR
   CI[Core Intelligence]
  end
 
+ subgraph B[Batch Coordination]
+  BC[Batch Coordination]
+ end
+
  subgraph D[Decision Support] <!-- This is needs to be broken down further -->
   MI[Market Intelligence]
   SR[Site and Real Estate Intelligence]
@@ -77,12 +81,14 @@ flowchart LR
  AI --> CI
 CI --> HR
 PR --> CI
- CI --> GL
- CI --> MI
- CI --> SR
- GL --> UI
- MI --> UI
- SR --> UI
+CI --> GL
+CI --> MI
+CI --> SR
+CI --> BC
+GL --> BC
+MI --> BC
+SR --> BC
+BC --> UI
  
  IF -- Submit Field Audit --> SC
  SC -- Webhook --> API
@@ -121,6 +127,7 @@ flowchart TB
 | Geo Adapters | Thin HTTP adapters and cache layer for HERE services | Coordinates, profile opts, cached keys | Normalized route/matrix/geocode/isoline shapes; cache-aware responses |
 | Market Intelligence | Demand signals, pricing signals, capacity signals | Research feeds, survey data, partner data | Market score, trend signals, risk notes (via UN Comtrade/World Bank) |
 | Site and Real Estate Intelligence | Facility briefs, location suitability, access context | Candidate sites, proximity data, property data | Site briefs, site scores, notes (via UpKeep & SafetyCulture) |
+| Batch Coordination | Bulk request orchestration, grouped calculations, aggregate status | Batch manifests, child job outputs, service results | Batch status, rollups, partial-failure summaries |
 | Presentation Layer | Dashboards, reports, exports, filters | All upstream service outputs | User-facing views, downloadable reports |
 
 ## Service Boundaries
@@ -222,7 +229,19 @@ Owns:
 
 This layer should be thin. It should render and orchestrate, not decide.
 
-### 8. Main Repo Integration Layer
+### 8. Batch Coordination Service
+
+Owns:
+
+- batch submission and manifest tracking
+- splitting bulk requests into child jobs
+- fan-out/fan-in aggregation
+- grouped retry and partial-failure semantics
+- consolidated batch progress and results
+
+This service should coordinate existing backend services and queue jobs. It should not own UI behavior or business scoring rules.
+
+### 9. Main Repo Integration Layer
 
 This is not a separate business service. It is the boundary that keeps DFN Discovery decoupled while still allowing it to consume upstream identity, contracts, and optional shared UI assets from the main DFN repository.
 
@@ -247,7 +266,8 @@ Does not own:
 5. Geo and Logistics adds route and access context through HERE-backed provider adapters and DFN logistics policy.
 6. Market Intelligence adds demand and market context.
 7. Site and Real Estate Intelligence adds location suitability.
-8. Presentation Layer combines the outputs into a decision brief.
+8. Batch Coordination groups bulk or multi-check work and aggregates the outputs.
+9. Presentation Layer combines the outputs into a decision brief.
 
 If the main DFN repo needs to participate, it should do so before or after these steps through the integration boundary above, not by embedding its logic inside the Discovery service stack.
 
@@ -314,6 +334,14 @@ These are the first low-level design slices to define.
 - proximity scoring
 - site ranking inputs
 - missing-data handling
+
+### Batch Coordination
+
+- batch request and manifest schema
+- child job correlation and idempotency rules
+- aggregate progress model
+- partial-failure and retry semantics
+- consolidated result schema for bulk checks and calculations
 
 ## AI Rules
 

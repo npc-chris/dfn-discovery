@@ -45,6 +45,7 @@ The system is made of a small set of services that cooperate through explicit co
 | Geo and Logistics | Produce provider-backed distance, routing, reachability, and access context | Mixed, provider-adapter driven |
 | Market Intelligence | Produce demand, pricing, and capacity signals | Mostly asynchronous ingestion |
 | Site and Real Estate Intelligence | Produce site briefs and fit context | Mixed |
+| Batch Coordination | Orchestrate bulk requests, grouped calculations, and fan-out/fan-in job sets | Asynchronous control plane |
 | Presentation Layer | Render dashboards, exports, and reports | Synchronous read path |
 
 ## Primary Decisions
@@ -104,6 +105,7 @@ Asynchronous path:
 - logistics enrichment when external providers are slow
 - provider adapter calls for routing, matrix, geocoding, and isoline lookups
 - integration state syncing (UpKeep and SafetyCulture webhooks via the job queue)
+- batch coordination for bulk submissions, grouped calculations, and aggregate retries
 
 ### 5. Multi-Tenant SaaS Integration (Proxy Architecture)
 
@@ -160,6 +162,14 @@ External third-party SaaS tools (e.g., UpKeep and SafetyCulture) will NOT be giv
 - access-to-market scoring
 - API Integrations: UN Comtrade & World Bank (preferred), SerpApi/GDELT (fallback)
 
+### Batch Coordination Owns
+
+- batch manifests and correlation IDs
+- bulk request splitting and child job grouping
+- aggregate progress and status rollups
+- partial-failure handling and retry grouping
+- consolidated batch results for downstream consumers
+
 ### Presentation Layer Owns
 
 - user views
@@ -182,3 +192,4 @@ Before LLD starts, confirm:
 - Fit Score is the primary score
 - AI only runs as a worker
 - async boundaries are agreed
+- batch coordination boundaries are agreed
