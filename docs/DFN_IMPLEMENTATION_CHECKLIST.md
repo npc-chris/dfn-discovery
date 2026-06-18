@@ -774,12 +774,12 @@
 
 ### Task 4.4: Enrichment Routes Implementation
 
-- [ ] POST /enrichment/logistics-assessment
-- [ ] GET /enrichment/market-signals/:factoryId
-- [ ] GET /enrichment/market-outlook
-- [ ] GET /enrichment/site-brief/:factoryId
-- [ ] GET /enrichment/site-visit-report/:factoryId
-- [ ] POST /enrichment/check-availability
+- [x] POST /enrichment/logistics-assessment
+- [x] GET /enrichment/market-signals/:factoryId
+- [x] GET /enrichment/market-outlook
+- [x] GET /enrichment/site-brief/:factoryId
+- [x] GET /enrichment/site-visit-report/:factoryId
+- [x] POST /enrichment/check-availability
 
 **Files:** backend/src/routes/enrichment.ts
 
@@ -797,11 +797,11 @@
 - [x] HERE adapters implemented and tested
 - [x] Market Intelligence implemented and tested
 - [x] Site/Real Estate implemented and tested
-- [ ] All enrichment routes working
-- [ ] Caching functional with appropriate TTLs
-- [ ] External API failures handled gracefully
-- [ ] Fallback data available for failures
-- [ ] Zero unimplemented methods
+- [x] All enrichment routes working
+- [x] Caching functional with appropriate TTLs
+- [x] External API failures handled gracefully
+- [x] Fallback data available for failures
+- [x] Zero unimplemented methods
 
 **Acceptance:** Can fetch logistics, market, and site context for factories and integrate into scoring and recommendations
 

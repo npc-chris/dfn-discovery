@@ -13,6 +13,7 @@
     "test:core": "ts-node src/services/core-intelligence.test.ts",
     "test:adapters": "ts-node src/services/ai-providers/adapter.test.ts",
     "test:scoring": "ts-node src/routes/scoring.test.ts",
+    "test:enrichment": "vitest run src/routes/enrichment.test.ts -c src/routes/enrichment.vitest.config.ts",
     "test:core:run": "corepack pnpm run build && node dist/services/core-intelligence.test.js",
     "type-check": "tsc --noEmit",
     "db:push": "drizzle-kit push:pg",

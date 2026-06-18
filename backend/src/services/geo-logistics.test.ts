@@ -34,28 +34,28 @@ describe('GeoLogistics Service', () => {
             ],
           },
         ],
-
-        it('falls back to deterministic routing when HERE is unavailable', async () => {
-          delete process.env.HERE_API_KEY;
-
-          const mockJob = {
-            id: 'job-2',
-            delivery_location: { latitude: 6.5244, longitude: 3.3792 },
-          } as unknown as Job;
-
-          const mockFactory = {
-            id: 'fac-2',
-            location: { latitude: 8.9839, longitude: 7.5562 },
-          } as unknown as Factory;
-
-          const assessment = await service.assessLogistics(mockJob, mockFactory);
-
-          expect(assessment.distance_km).toBeGreaterThan(0);
-          expect(assessment.estimated_lead_days).toBeGreaterThan(0);
-          expect(assessment.feasibility_confidence).toBeLessThan(90);
-        });
       }),
     });
+  });
+
+  it('falls back to deterministic routing when HERE is unavailable', async () => {
+    delete process.env.HERE_API_KEY;
+
+    const mockJob = {
+      id: 'job-2',
+      delivery_location: { latitude: 6.5244, longitude: 3.3792 },
+    } as unknown as Job;
+
+    const mockFactory = {
+      id: 'fac-2',
+      location: { latitude: 8.9839, longitude: 7.5562 },
+    } as unknown as Factory;
+
+    const assessment = await service.assessLogistics(mockJob, mockFactory);
+
+    expect(assessment.distance_km).toBeGreaterThan(0);
+    expect(assessment.estimated_lead_days).toBeGreaterThan(0);
+    expect(assessment.feasibility_confidence).toBeLessThan(90);
   });
 
   describe('estimateLeadTime', () => {

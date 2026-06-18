@@ -11,6 +11,7 @@ export default defineConfig({
       'src/services/core-intelligence.test.ts', 
       'src/services/ai-providers/adapter.test.ts', 
       'src/routes/scoring.test.ts',
+      'src/routes/enrichment.test.ts',
       '../.agents/**',
       '../.claude/**',
       '../agents/**',
