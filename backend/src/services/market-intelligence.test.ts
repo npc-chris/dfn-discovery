@@ -14,6 +14,7 @@ describe('MarketIntelligence Service', () => {
   beforeEach(() => {
     service = new MarketIntelligence();
     vi.clearAllMocks();
+    process.env.COMTRADE_API_KEY = 'test-comtrade-key';
     vi.stubGlobal('fetch', mockFetch);
     
     (getRedisClient as any).mockReturnValue({
@@ -47,6 +48,18 @@ describe('MarketIntelligence Service', () => {
       expect(signals.estimated_price_range_per_unit_ngn).toHaveLength(2);
       expect(signals.factory_market_share_percent).toBeGreaterThanOrEqual(0);
     });
+  });
+
+  it('falls back to neutral signals when external sources are unavailable', async () => {
+    delete process.env.COMTRADE_API_KEY;
+    mockFetch.mockRejectedValueOnce(new Error('network down'));
+
+    const mockFactory = { id: 'factory-fallback' } as Factory;
+    const signals = await service.getMarketSignals(mockFactory, 'Textiles');
+
+    expect(signals.demand_confidence).toBeLessThanOrEqual(30);
+    expect(signals.estimated_market_size_annual_ngn).toBeGreaterThan(0);
+    expect(signals.factory_order_frequency_per_month).toBeGreaterThan(0);
   });
 
   describe('computeMarketAccessScore', () => {

@@ -16,6 +16,8 @@ describe('SiteRealEstate Service', () => {
     service = new SiteRealEstate();
     mockFactory = { id: 'factory-123', name: 'Test Factory' } as Factory;
     vi.clearAllMocks();
+    process.env.UPKEEP_API_KEY = 'test-upkeep-key';
+    process.env.SAFETYCULTURE_API_KEY = 'test-safetyculture-key';
     vi.stubGlobal('fetch', mockFetch);
     
     (getRedisClient as any).mockReturnValue({
@@ -94,7 +96,19 @@ describe('SiteRealEstate Service', () => {
       expect(brief.facility_id).toBe('factory-123');
       expect(brief.facility_name).toBe('Test Factory');
       expect(brief.compliance_status).toBeDefined();
-      expect(brief.last_site_visit_date).toBeDefined();
+      expect(brief.last_site_visit_date).toBe('2026-05-20T00:00:00.000Z');
+      expect(brief.facility_size_sqft).toBeGreaterThanOrEqual(0);
+    });
+
+    it('falls back cleanly when provider credentials are missing', async () => {
+      delete process.env.UPKEEP_API_KEY;
+      delete process.env.SAFETYCULTURE_API_KEY;
+
+      const brief = await service.generateSiteBrief(mockFactory);
+
+      expect(brief.compliance_status).toBe('unknown');
+      expect(brief.last_site_visit_date).toBe('Unknown');
+      expect(brief.facility_name).toBe('Test Factory');
     });
   });
 

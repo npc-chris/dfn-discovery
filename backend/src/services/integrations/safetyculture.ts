@@ -45,14 +45,16 @@ export class SafetyCultureIntegration {
     // Note: safetyculture's API usually requires searching across inspections with a site tag or filter
     const data = await this.fetchSC(`/audits/search?site_id=${siteId}`);
 
-    return data.audits.map((a: any) => ({
-      id: a.audit_id,
-      templateId: a.template_id,
-      name: a.name,
-      score: a.score || 0,
-      maxScore: a.total_score || 100,
-      conductedOn: a.modified_at || a.created_at,
-      failedItems: a.failed_responses_count || 0
-    }));
+    return data.audits
+      .map((a: any) => ({
+        id: String(a.audit_id ?? ''),
+        templateId: String(a.template_id ?? ''),
+        name: String(a.name ?? 'Untitled inspection'),
+        score: Number.isFinite(Number(a.score)) ? Number(a.score) : 0,
+        maxScore: Number.isFinite(Number(a.total_score)) && Number(a.total_score) > 0 ? Number(a.total_score) : 100,
+        conductedOn: typeof a.modified_at === 'string' && a.modified_at ? a.modified_at : String(a.created_at ?? ''),
+        failedItems: Number.isFinite(Number(a.failed_responses_count)) ? Number(a.failed_responses_count) : 0,
+      }))
+      .filter((inspection: Inspection) => Boolean(inspection.id && inspection.conductedOn));
   }
 }

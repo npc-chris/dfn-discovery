@@ -31,6 +31,30 @@ export interface LogisticsAssessment {
 }
 
 export class GeoLogistics {
+  private buildAssessmentFromDistance(distanceKm: number, feasibilityConfidence: number): LogisticsAssessment {
+    const normalizedDistanceKm = Math.max(1, distanceKm);
+    const transport_modes = normalizedDistanceKm > 500 ? ['road', 'air'] : ['road'];
+    const primary_mode = normalizedDistanceKm > 700 ? 'air' : 'road';
+    const border_crossings = normalizedDistanceKm > 600 ? 1 : 0;
+    const routing_cost_estimate_ngn = Math.round(normalizedDistanceKm * 1500);
+
+    const partialAssessment: Omit<LogisticsAssessment, 'estimated_lead_days'> = {
+      distance_km: normalizedDistanceKm,
+      transport_modes,
+      primary_mode,
+      routing_cost_estimate_ngn,
+      border_crossings,
+      regulatory_constraints: border_crossings > 0 ? ['inter-state duties', 'transit-permit'] : [],
+      feasible: normalizedDistanceKm < 2500,
+      feasibility_confidence: feasibilityConfidence,
+    };
+
+    return {
+      ...partialAssessment,
+      estimated_lead_days: this.estimateLeadTime(partialAssessment as LogisticsAssessment),
+    };
+  }
+
   private resolveJobCoordinates(job: Job): LatLng {
     const location = job.delivery_location ?? job.location;
 
@@ -39,8 +63,8 @@ export class GeoLogistics {
     }
 
     return {
-      latitude: location.latitude,
-      longitude: location.longitude,
+      lat: location.latitude,
+      lng: location.longitude,
     };
   }
 
@@ -52,8 +76,8 @@ export class GeoLogistics {
     }
 
     return {
-      latitude: location.latitude,
-      longitude: location.longitude,
+      lat: location.latitude,
+      lng: location.longitude,
     };
   }
 
@@ -74,16 +98,19 @@ export class GeoLogistics {
    * TODO: Cache results to avoid repeated API calls
    */
   async assessLogistics(job: Job, factory: Factory): Promise<LogisticsAssessment> {
-    const redis = getRedisClient();
+    const redis = getRedisClient() as any;
     const origin = this.resolveJobCoordinates(job);
     const destination = this.resolveFactoryCoordinates(factory);
-
-    if (!process.env.HERE_API_KEY) {
-      throw new Error('HERE_API_KEY is required for logistics routing');
-    }
-    
-    // Create a stable cache key
     const cacheKey = `logistics:route:${job.id}:${factory.id}`;
+    const fallbackDistanceKm = haversineDistanceKm(origin, destination) * 1.25;
+
+    const cacheAssessment = async (assessment: LogisticsAssessment) => {
+      if (redis.isOpen) {
+        await redis.setEx(cacheKey, 3600, JSON.stringify(assessment)); // 1 hour TTL
+      }
+      return assessment;
+    };
+
     if (redis.isOpen) {
       const cached = await redis.get(cacheKey);
       if (cached) {
@@ -91,38 +118,27 @@ export class GeoLogistics {
       }
     }
 
-    // Use the HERE routing adapter to get a normalized route result
-    const route = await hereRouting.getRoute({ lat: origin.latitude, lng: origin.longitude }, { lat: destination.latitude, lng: destination.longitude }, { transportMode: 'truck' });
-
-    const distance_km = (route.distanceMeters || 0) / 1000;
-    if (distance_km <= 0) throw new Error('HERE routing returned a non-positive distance');
-
-    const transport_modes = distance_km > 500 ? ['road', 'air'] : ['road'];
-    const primary_mode = distance_km > 700 ? 'air' : 'road';
-    const border_crossings = distance_km > 600 ? 1 : 0;
-    const routing_cost_estimate_ngn = distance_km * 1500;
-
-    const partialAssessment: Omit<LogisticsAssessment, 'estimated_lead_days'> = {
-      distance_km,
-      transport_modes,
-      primary_mode,
-      routing_cost_estimate_ngn,
-      border_crossings,
-      regulatory_constraints: border_crossings > 0 ? ['inter-state duties', 'transit-permit'] : [],
-      feasible: true,
-      feasibility_confidence: 90,
-    };
-
-    const assessment: LogisticsAssessment = {
-      ...partialAssessment,
-      estimated_lead_days: this.estimateLeadTime(partialAssessment as LogisticsAssessment)
-    };
-
-    if (redis.isOpen) {
-      await redis.setEx(cacheKey, 3600, JSON.stringify(assessment)); // 1 hour TTL
+    if (!process.env.HERE_API_KEY) {
+      return cacheAssessment(this.buildAssessmentFromDistance(fallbackDistanceKm, 70));
     }
 
-    return assessment;
+    try {
+      // Use the HERE routing adapter to get a normalized route result
+      const route = await hereRouting.getRoute(
+        { lat: origin.lat, lng: origin.lng },
+        { lat: destination.lat, lng: destination.lng },
+        { transportMode: 'truck' },
+      );
+
+      const distance_km = (route.distanceMeters || 0) / 1000;
+      if (distance_km <= 0) {
+        return cacheAssessment(this.buildAssessmentFromDistance(fallbackDistanceKm, 70));
+      }
+
+      return cacheAssessment(this.buildAssessmentFromDistance(distance_km, 90));
+    } catch {
+      return cacheAssessment(this.buildAssessmentFromDistance(fallbackDistanceKm, 70));
+    }
   }
 
   /**
@@ -212,6 +228,23 @@ export class GeoLogistics {
 
     return totalDays;
   }
+}
+
+function haversineDistanceKm(origin: LatLng, destination: LatLng): number {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+
+  const deltaLat = toRadians(destination.lat - origin.lat);
+  const deltaLng = toRadians(destination.lng - origin.lng);
+  const latitudeA = toRadians(origin.lat);
+  const latitudeB = toRadians(destination.lat);
+
+  const a =
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2) * Math.cos(latitudeA) * Math.cos(latitudeB);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return earthRadiusKm * c;
 }
 
 /**

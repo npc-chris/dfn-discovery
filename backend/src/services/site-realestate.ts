@@ -36,6 +36,47 @@ export interface SiteBrief {
   labor_availability_assessment: string; // 'high', 'medium', 'low'
 }
 
+function estimateFacilitySizeSqft(factory: Factory, assetCount: number): number {
+  const capacityBand = String((factory as { capacity_band?: string }).capacity_band ?? '').toLowerCase();
+
+  if (capacityBand.includes('small')) {
+    return 15000;
+  }
+
+  if (capacityBand.includes('medium')) {
+    return 35000;
+  }
+
+  if (capacityBand.includes('large')) {
+    return 70000;
+  }
+
+  if (assetCount > 0) {
+    return assetCount * 2500;
+  }
+
+  return 0;
+}
+
+function buildFallbackSiteBrief(factory: Factory): SiteBrief {
+  return {
+    facility_id: factory.id,
+    facility_name: factory.name,
+    facility_size_sqft: 0,
+    facility_age_years: 0,
+    facility_condition: 'unknown',
+    equipment_age_years: 0,
+    certifications: [],
+    compliance_status: 'unknown',
+    capacity_utilization_percent: 0,
+    expansion_planned: false,
+    last_site_visit_date: 'Unknown',
+    site_visit_confidence: 0,
+    environmental_permits: false,
+    labor_availability_assessment: 'unknown',
+  };
+}
+
 export class SiteRealEstate {
   /**
    * Generate comprehensive facility brief for a factory.
@@ -65,81 +106,97 @@ export class SiteRealEstate {
       }
     }
 
-    const upkeep = new UpKeepIntegration();
-    const safetyCulture = new SafetyCultureIntegration();
+    try {
+      const upkeep = new UpKeepIntegration();
+      const safetyCulture = new SafetyCultureIntegration();
 
-    // Use factory ID as location ID for external systems
-    const locationId = factory.id;
+      // Use factory ID as location ID for external systems
+      const locationId = factory.id;
 
-    // Fetch site data concurrently from systems
-    const [assets, inspections] = await Promise.all([
-      upkeep.getAssets(locationId),
-      upkeep.getWorkOrders(locationId),
-      safetyCulture.getInspections(locationId)
-    ]);
+      // Fetch site data concurrently from systems
+      const [assets, workOrders, inspections] = await Promise.all([
+        upkeep.getAssets(locationId),
+        upkeep.getWorkOrders(locationId),
+        safetyCulture.getInspections(locationId),
+      ]);
 
-    // Data Synthesization
-    
-    // Equipment Age Calculation
-    const currentYear = new Date().getFullYear();
-    let totalAge = 0;
-    let validAssets = 0;
-    
-    assets.forEach(asset => {
+      const currentYear = new Date().getFullYear();
+      let totalAge = 0;
+      let validAssets = 0;
+
+      assets.forEach(asset => {
         if (asset.createdAt) {
-            const year = new Date(asset.createdAt).getFullYear();
-            totalAge += (currentYear - year);
-            validAssets++;
+          const year = new Date(asset.createdAt).getFullYear();
+          if (Number.isFinite(year)) {
+            totalAge += currentYear - year;
+            validAssets += 1;
+          }
         }
-    });
-      const avgEquipmentAge = validAssets > 0 ? (totalAge / validAssets) : 0;
+      });
 
-    // Inspection status
+      const avgEquipmentAge = validAssets > 0 ? (totalAge / validAssets) : 0;
+      const estimatedFacilitySize = estimateFacilitySizeSqft(factory, assets.length);
+
       let complianceStatus: 'fully_compliant' | 'mostly_compliant' | 'non_compliant' | 'unknown' = 'unknown';
       let lastVisitDate = 'Unknown';
       let siteVisitConfidence = 0;
 
-    if (inspections.length > 0) {
-        // Sort newest first
-        inspections.sort((a, b) => new Date(b.conductedOn).getTime() - new Date(a.conductedOn).getTime());
-        const latestInfo = inspections[0];
-        
+      const validInspections = inspections
+        .filter(inspection => Boolean(inspection.conductedOn && Number.isFinite(new Date(inspection.conductedOn).getTime())))
+        .sort((a, b) => new Date(b.conductedOn).getTime() - new Date(a.conductedOn).getTime());
+
+      if (validInspections.length > 0) {
+        const latestInfo = validInspections[0];
         lastVisitDate = latestInfo.conductedOn;
-        const passRate = latestInfo.score / latestInfo.maxScore;
-        
+
+        const maxScore = latestInfo.maxScore > 0 ? latestInfo.maxScore : 100;
+        const passRate = Math.max(0, Math.min(1, latestInfo.score / maxScore));
+
         if (passRate >= 0.95 && latestInfo.failedItems === 0) {
-            complianceStatus = 'fully_compliant';
+          complianceStatus = 'fully_compliant';
         } else if (passRate < 0.70 || latestInfo.failedItems > 5) {
-            complianceStatus = 'non_compliant';
+          complianceStatus = 'non_compliant';
+        } else {
+          complianceStatus = 'mostly_compliant';
         }
 
-        // Boost confidence based on freshness
         const daysSince = (Date.now() - new Date(lastVisitDate).getTime()) / (1000 * 60 * 60 * 24);
-        siteVisitConfidence = Math.max(0, 100 - (daysSince / 5)); // Decays over time
+        siteVisitConfidence = Math.max(0, Math.min(100, 100 - (daysSince / 5)));
+      }
+
+      const openWorkOrders = workOrders.filter(workOrder => ['open', 'in_progress', 'on_hold'].includes(workOrder.status)).length;
+
+      const brief: SiteBrief = {
+        facility_id: factory.id,
+        facility_name: factory.name,
+        facility_size_sqft: estimatedFacilitySize,
+        facility_age_years: Math.round(avgEquipmentAge),
+        facility_condition: complianceStatus === 'unknown' ? 'unknown' : (complianceStatus === 'fully_compliant' ? 'excellent' : (complianceStatus === 'non_compliant' ? 'poor' : 'good')),
+        equipment_age_years: Math.round(avgEquipmentAge),
+        certifications: complianceStatus === 'fully_compliant' ? ['ISO 9001:2015', 'ISO 14001'] : [],
+        compliance_status: complianceStatus,
+        capacity_utilization_percent: Math.min(100, openWorkOrders * 10),
+        expansion_planned: false,
+        last_site_visit_date: lastVisitDate,
+        site_visit_confidence: siteVisitConfidence,
+        environmental_permits: complianceStatus !== 'non_compliant',
+        labor_availability_assessment: complianceStatus === 'unknown' ? 'unknown' : 'medium',
+      };
+
+      if (redis?.isOpen) {
+        await redis.setEx(cacheKey, 43200, JSON.stringify(brief)); // 12 hour TTL
+      }
+
+      return brief;
+    } catch {
+      const fallbackBrief = buildFallbackSiteBrief(factory);
+
+      if (redis?.isOpen) {
+        await redis.setEx(cacheKey, 3600, JSON.stringify(fallbackBrief));
+      }
+
+      return fallbackBrief;
     }
-
-    const brief: SiteBrief = {
-      facility_id: factory.id,
-      facility_name: factory.name,
-      facility_size_sqft: 0,
-      facility_age_years: Math.round(avgEquipmentAge),
-      facility_condition: complianceStatus === 'unknown' ? 'unknown' : (complianceStatus === 'fully_compliant' ? 'excellent' : (complianceStatus === 'non_compliant' ? 'poor' : 'good')),
-      equipment_age_years: Math.round(avgEquipmentAge),
-      certifications: complianceStatus === 'fully_compliant' ? ['ISO 9001:2015', 'ISO 14001'] : [],
-      compliance_status: complianceStatus,
-      capacity_utilization_percent: 0,
-      expansion_planned: false,
-      last_site_visit_date: lastVisitDate,
-      site_visit_confidence: siteVisitConfidence,
-      environmental_permits: complianceStatus !== 'non_compliant',
-      labor_availability_assessment: complianceStatus === 'unknown' ? 'unknown' : 'medium',
-    };
-
-    if (redis?.isOpen) {
-      await redis.setEx(cacheKey, 43200, JSON.stringify(brief)); // 12 hour TTL
-    }
-
-    return brief;
   }
 
   /**
@@ -210,54 +267,65 @@ export class SiteRealEstate {
     redFlags: string[];
     recommendations: string[];
   }> {
-    const safetyCulture = new SafetyCultureIntegration();
-    const inspections = await safetyCulture.getInspections(factory.id);
+    try {
+      const safetyCulture = new SafetyCultureIntegration();
+      const inspections = await safetyCulture.getInspections(factory.id);
 
-    if (inspections.length === 0) {
+      if (inspections.length === 0) {
+        return {
+          lastVisitDate: 'Unknown',
+          daysSinceVisit: 999,
+          findings: ['No recent inspection data found in CMMS.'],
+          redFlags: ['Unverified compliance status'],
+          recommendations: ['Schedule immediate site audit.']
+        };
+      }
+
+      inspections.sort((a, b) => new Date(b.conductedOn).getTime() - new Date(a.conductedOn).getTime());
+      const latest = inspections[0];
+
+      const maxScore = latest.maxScore > 0 ? latest.maxScore : 100;
+      const passRate = latest.score / maxScore;
+      const daysSince = Math.floor((Date.now() - new Date(latest.conductedOn).getTime()) / (1000 * 60 * 60 * 24));
+
+      const findings = [
+        `Conducted audit: ${latest.name}`,
+        `Score: ${latest.score}/${latest.maxScore} (${Math.round(passRate * 100)}%)`
+      ];
+
+      const redFlags = [];
+      const recommendations = [];
+
+      if (latest.failedItems > 0) {
+        redFlags.push(`${latest.failedItems} critical items failed inspection.`);
+        recommendations.push(`Resolve ${latest.failedItems} failed items via UpKeep work orders.`);
+      }
+
+      if (daysSince > 180) {
+        redFlags.push('Inspection data is stale (> 6 months).');
+        recommendations.push('Schedule routine follow-up audit.');
+      }
+
+      if (redFlags.length === 0) {
+        recommendations.push('Maintain current operating procedures.');
+      }
+
+      return {
+        lastVisitDate: latest.conductedOn,
+        daysSinceVisit: daysSince,
+        findings,
+        redFlags,
+        recommendations
+      };
+    } catch {
       return {
         lastVisitDate: 'Unknown',
         daysSinceVisit: 999,
-        findings: ['No recent inspection data found in CMMS.'],
-        redFlags: ['Unverified compliance status'],
-        recommendations: ['Schedule immediate site audit.']
+        findings: ['Site visit report unavailable from SafetyCulture.'],
+        redFlags: ['External inspection source unavailable'],
+        recommendations: ['Retry after provider connectivity is restored.']
       };
     }
-
-    inspections.sort((a, b) => new Date(b.conductedOn).getTime() - new Date(a.conductedOn).getTime());
-    const latest = inspections[0];
-
-    const passRate = latest.score / latest.maxScore;
-    const daysSince = Math.floor((Date.now() - new Date(latest.conductedOn).getTime()) / (1000 * 60 * 60 * 24));
-
-    const findings = [
-        `Conducted audit: ${latest.name}`,
-        `Score: ${latest.score}/${latest.maxScore} (${Math.round(passRate * 100)}%)`
-    ];
-
-    const redFlags = [];
-    const recommendations = [];
-
-    if (latest.failedItems > 0) {
-        redFlags.push(`${latest.failedItems} critical items failed inspection.`);
-        recommendations.push(`Resolve ${latest.failedItems} failed items via UpKeep work orders.`);
-    }
-
-    if (daysSince > 180) {
-        redFlags.push('Inspection data is stale (> 6 months).');
-        recommendations.push('Schedule routine follow-up audit.');
-    }
-
-    if (redFlags.length === 0) {
-        recommendations.push('Maintain current operating procedures.');
-    }
-
-    return {
-      lastVisitDate: latest.conductedOn,
-      daysSinceVisit: daysSince,
-      findings,
-      redFlags,
-      recommendations
-    };
   }
 
   /**
