@@ -80,7 +80,7 @@ export const availableModels: AIModel[] = [
 
   // Google models
   {
-    id: 'gemini-2.0-flash',
+    id: 'gemini-3.1-flash',
     name: 'Gemini 2.0 Flash',
     provider: 'google',
     contextWindow: 1000000,
@@ -123,6 +123,6 @@ export function getDefaultModelForProvider(provider: string): AIModel | undefine
   const models = getModelsByProvider(provider);
   if (provider === 'openai') return models.find((m) => m.id === 'gpt-4o') || models[0];
   if (provider === 'anthropic') return models.find((m) => m.id === 'claude-3-5-sonnet') || models[0];
-  if (provider === 'google') return models.find((m) => m.id === 'gemini-2.0-flash') || models[0];
+  if (provider === 'google') return models.find((m) => m.id === 'gemini-3.1-flash') || models[0];
   return models[0];
 }

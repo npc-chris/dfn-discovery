@@ -15,6 +15,8 @@ erDiagram
 
     jobs {
         uuid id PK
+        string org_id "NOT NULL, indexed — owning organisation"
+        string created_by "NOT NULL — userId from JWT"
         string company_name
         string product_name
         string process_type
@@ -30,6 +32,7 @@ erDiagram
 
     factories {
         uuid id PK
+        string org_id "NULL = platform-managed; set = org-private"
         string factory_name
         jsonb capabilities
         jsonb materials
@@ -47,6 +50,7 @@ erDiagram
         uuid id PK
         uuid job_id FK
         uuid factory_id FK
+        string org_id "NOT NULL, indexed — denormalised for fast org-scoped queries"
         int fit_score
         int feasibility_score
         int confidence_score
@@ -60,7 +64,8 @@ erDiagram
     attachments {
         uuid id PK
         uuid job_id FK
-        string filename
+        string org_id "NOT NULL, indexed — must match job.org_id"
+        string storage_key "Opaque UUID — never the original filename"
         string mime_type
         int size_bytes
         string source_type
@@ -100,3 +105,5 @@ erDiagram
 2. **`passed_inspection`**: In `site_assessments`, this boolean determines the branching outcome for triggering UpKeep Work Orders automatically via the async queue.
 3. **`raw_webhook_payload`**: Essential to preserve full safety audit streams as JSONB so AI extraction workers can re-process historical qualitative fields at a later date.
 4. **Queue Resilience**: The `job_queue` acts as a shock absorber. External inbound webhooks map to `job_queue` records immediately before complex processing to prevent timeouts. Internal async paths (like AI scoring in `recommendations`) also rely on this queue.
+5. **Multi-Tenancy (`org_id`)**: Every table except `site_assessments` (which is factory-scoped, not org-scoped) carries an `org_id NOT NULL` column. This column is derived from the authenticated JWT on every write and applied as a mandatory filter on every read, update, and delete. The application never performs cross-org joins. Queries that return no row because of an `org_id` mismatch must surface as `404 Not Found` — never `403 Forbidden`. See [DFN_SECURITY.md](DFN_SECURITY.md) for the full multi-tenancy specification.
+6. **Attachment Storage Keys**: The `attachments.storage_key` field is an opaque UUID used as the object storage key. The original filename is never used as a storage key to prevent path traversal and enumeration attacks. Signed URLs for attachment access carry a maximum 15-minute TTL.

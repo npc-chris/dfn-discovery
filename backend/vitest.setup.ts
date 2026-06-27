@@ -70,11 +70,24 @@ export async function initializeTestDatabase() {
       DROP TABLE IF EXISTS attachments CASCADE;
       DROP TABLE IF EXISTS jobs CASCADE;
       DROP TABLE IF EXISTS factories CASCADE;
+      DROP TABLE IF EXISTS batch_manifests CASCADE;
+    `);
+
+    await testPool.query(`
+      CREATE TABLE batch_manifests (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        status TEXT NOT NULL DEFAULT 'pending',
+        idempotency_key TEXT UNIQUE,
+        metadata JSONB,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      );
     `);
 
     await testPool.query(`
       CREATE TABLE jobs (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        batch_id UUID REFERENCES batch_manifests(id),
         company_name TEXT NOT NULL,
         product_name TEXT NOT NULL,
         process_type TEXT,
@@ -169,6 +182,7 @@ export async function cleanupTestDatabase() {
     await testPool.query('TRUNCATE TABLE attachments CASCADE;');
     await testPool.query('TRUNCATE TABLE jobs CASCADE;');
     await testPool.query('TRUNCATE TABLE factories CASCADE;');
+    await testPool.query('TRUNCATE TABLE batch_manifests CASCADE;');
   } catch (error) {
     // Ignore errors if tables don't exist yet
   }

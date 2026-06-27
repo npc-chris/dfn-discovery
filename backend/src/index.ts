@@ -10,6 +10,7 @@ import scoringRouter from './routes/scoring';
 import enrichmentRouter from './routes/enrichment';
 import recommendationsRouter from './routes/recommendations';
 import queueRouter from './routes/queue';
+import batchRouter from './routes/batch';
 
 const app = express();
 const portValue = process.env.PORT;
@@ -41,6 +42,7 @@ app.use('/scoring', scoringRouter);
 app.use('/enrichment', enrichmentRouter);
 app.use('/recommendations', recommendationsRouter);
 app.use('/queue', queueRouter);
+app.use('/batch', batchRouter);
 
 // Error handler (must be last)
 app.use(errorHandler);

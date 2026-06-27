@@ -1,10 +1,16 @@
 # DFN Main Repo Integration
 
+**Security reference:** See [DFN_SECURITY.md](DFN_SECURITY.md) for the full auth, multi-tenancy, and cross-product security model.
+
+---
+
 ## Decision
 
 DFN Discovery is a standalone product boundary.
 
 It can integrate with the main DFN repository, but only through versioned contracts, identity, and explicit APIs or events. It should not import or share the main repo's runtime state, database tables, or internal application modules.
+
+---
 
 ## What Can Be Shared
 
@@ -12,6 +18,7 @@ It can integrate with the main DFN repository, but only through versioned contra
 - Versioned API contracts and generated client types.
 - Shared domain constants that are stable and versioned.
 - Optional UI tokens or primitives, if published as a separate package.
+- The `PrismReportManifest` type (defined in `@dfn/shared`, not in either product).
 
 ## What Must Stay Separate
 
@@ -19,6 +26,9 @@ It can integrate with the main DFN repository, but only through versioned contra
 - Session storage and local user state.
 - Queue state and worker state.
 - Ad hoc direct imports from the main repo application code.
+- Billing logic — Discovery enforces quotas, never calculates what a user owes.
+
+---
 
 ## Recommended Integration Pattern
 
@@ -28,15 +38,34 @@ It can integrate with the main DFN repository, but only through versioned contra
 4. Use webhooks or events for asynchronous sync between repos.
 5. Keep auth centralized in one identity provider, then map claims to local roles in each app.
 
+---
+
 ## Practical Contract List
 
 The first shared contracts should be:
 
-- job and factory domain types
-- recommendation and evidence payloads
+- `job` and `factory` domain types
+- `recommendation` and evidence payloads
 - scoring constants and gate rules
-- authenticated user identity claims
+- authenticated user identity claims (`DFNTokenClaims` — see DFN_SECURITY.md §2.1)
 - API request and response schemas
+- `PrismReportManifest` — the cross-product export contract (Prism → Discovery)
+
+---
+
+## Cross-Product Data Flow: Prism → Discovery
+
+When a user exports a PrismReport from Prism into Discovery:
+
+1. **Prism makes an authenticated API call** to Discovery's job intake endpoint, forwarding the user's own DFN JWT as the `Authorization` header. Prism does not use a service account or bot token for this.
+2. **Discovery validates the token** using the shared IdP's JWKS — the same token validation it applies to all requests.
+3. **Discovery checks** that the user's plan includes the `discovery:prism-import` feature flag before accepting the payload.
+4. **Discovery creates a Job** with `metadata.source = { product: 'prism', projectId }` for traceability.
+5. **No call back to Prism** is made by Discovery. The data flow is strictly one-directional.
+
+The `PrismReportManifest` type is defined in `@dfn/shared`. Both products depend on it. Breaking changes require a version bump in the shared package.
+
+---
 
 ## Implementation Rules
 
@@ -44,6 +73,8 @@ The first shared contracts should be:
 - No direct runtime dependency on unpublished source files from the other repo.
 - No duplicate business logic across both repos when a shared contract can hold it.
 - No shared session store unless the session format is explicitly versioned and owned by the identity layer.
+- User tokens must never be forwarded to third-party services or stored in Discovery's database.
+- Service-to-service calls (if Discovery ever calls another DFN product proactively) must use a short-lived service token issued by the platform IdP — never a forwarded user token.
 
 ## Maintenance Rules
 
@@ -51,17 +82,29 @@ The first shared contracts should be:
 - Treat breaking contract changes as release events.
 - Keep adapters thin so each repo can evolve independently.
 - Prefer backward-compatible schema changes in the shared contract package.
+- Discovery must reject `PrismReportManifest` payloads with an unsupported `schemaVersion` and return `422 Unprocessable Entity`.
 
-## Suggested Environment Variables
+---
 
-- `AUTH_ISSUER_URL`
-- `AUTH_AUDIENCE`
-- `MAIN_REPO_API_URL`
-- `SHARED_CONTRACT_VERSION`
-- `DFN_IDENTITY_PROVIDER`
+## Environment Variables
+
+All auth-related environment variables for Discovery are documented in [DFN_SECURITY.md §11](DFN_SECURITY.md). The integration-boundary variables are:
+
+```bash
+AUTH_ISSUER_URL=          # DFN platform IdP issuer URL
+AUTH_AUDIENCE=            # Expected 'aud' claim value for Discovery
+DFN_PLATFORM_API_URL=     # DFN main platform API base URL
+DFN_PLATFORM_SERVICE_TOKEN=  # Service token for Discovery → platform calls
+BILLING_API_URL=          # Platform billing service endpoint
+SHARED_CONTRACT_VERSION=  # Expected @dfn/shared package version
+```
+
+---
 
 ## Ownership Summary
 
-Discovery owns its own data plane and business logic.
+Discovery owns its own data plane, queue, and business logic.
 
-The main DFN repo can provide identity, upstream content, and shared contracts, but it does not own Discovery's runtime behavior.
+The DFN platform provides identity (authentication), billing (plan definitions and quota state), and the API gateway (network-layer rate limiting and routing). Discovery trusts and enforces these — it does not replace them.
+
+The main DFN repo can provide upstream content and shared contracts, but it does not own Discovery's runtime behavior.

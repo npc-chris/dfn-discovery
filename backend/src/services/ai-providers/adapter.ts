@@ -331,7 +331,7 @@ class GoogleAdapter implements AIProviderAdapter {
   private client: GoogleGenAI;
   private model: string;
 
-  constructor(config: AIProviderConfig, model: string = 'gemini-2.0-flash') {
+  constructor(config: AIProviderConfig, model: string = 'gemini-3.1-flash') {
     this.client = new GoogleGenAI({ apiKey: config.apiKey });
     this.model = model;
   }

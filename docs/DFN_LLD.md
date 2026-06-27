@@ -11,6 +11,8 @@ This document defines the first implementation slices for the frozen DFN archite
 | Field | Type | Notes |
 |---|---|---|
 | id | string | UUID or equivalent |
+| org_id | string | Owning organisation — from JWT on create, indexed, NOT NULL |
+| created_by | string | userId from JWT — NOT NULL |
 | company_name | string | Product company submitting the job |
 | product_name | string | Product being manufactured |
 | process_type | string | Derived or entered manufacturing process |
@@ -28,6 +30,7 @@ This document defines the first implementation slices for the frozen DFN archite
 | Field | Type | Notes |
 |---|---|---|
 | id | string | UUID or equivalent |
+| org_id | string | NULL = platform-managed (visible to all orgs); set = org-private |
 | factory_name | string | Display name |
 | capabilities | array | Supported processes and machine classes |
 | materials | array | Supported materials |
@@ -43,6 +46,7 @@ This document defines the first implementation slices for the frozen DFN archite
 |---|---|---|
 | job_id | string | Linked job |
 | factory_id | string | Linked factory |
+| org_id | string | Denormalised from job for fast org-scoped queries, NOT NULL |
 | fit_score | number | Primary score, 0 to 100 |
 | feasibility_score | number | Supporting score, 0 to 100 |
 | confidence_score | number | How trusted the result is |
@@ -91,6 +95,35 @@ Rules:
 - scored can move to recommended when confidence is acceptable.
 - recommended can move to published when the user accepts or exports the result.
 
+## Auth and Security
+
+### Middleware Chain (Protected Routes)
+
+Every request to a protected route passes through this chain before its handler runs:
+
+```
+authMiddleware     → validate JWT via JWKS, attach AuthContext to res.locals.auth
+quotaMiddleware    → enforce plan limits (fast path via token, live check if exhausted)
+featureFlagGate    → enforce plan-gated features (per-route, checks dfn/features claim)
+routeHandler       → enforce resource-level authorization, scope all queries by org_id
+```
+
+### Unauthenticated Endpoints
+
+| Route | Auth method |
+|---|---|
+| `GET /health` | None (public) |
+| `POST /webhooks/safetyculture` | HMAC-SHA256 signature verification |
+
+All other routes require a valid JWT.
+
+### org_id Scoping Rule
+
+Every `SELECT`, `UPDATE`, and `DELETE` query must include `org_id = res.locals.auth.orgId`.
+Resources belonging to a different org return `404` — never `403`.
+
+See [Security Architecture](DFN_SECURITY.md) for the full specification.
+
 ## API Surface
 
 ### Public APIs
@@ -106,7 +139,7 @@ Rules:
 | POST | /factories | Create or import a factory profile |
 | POST | /webhooks/safetyculture | Receive site audit webhook (enqueues processing) |
 
-### Enrichment API contract (recommended)
+### Enrichment API contract
 
 - `POST /enrichment/logistics-assessment` — Accepts `{ jobId?, factoryId?, prismReport? }`. If `jobId`/`factoryId` are provided the service will resolve canonical records; if not, callers may POST full `job` and `factory` shapes. Optional `prismReport` (JSON) is accepted and passed to the logistics policy for transport/profile selection. Returns `LogisticsAssessment`.
 
@@ -155,7 +188,6 @@ It should define:
 - consolidated result schema for bulk checks and calculations
 
 Batch Coordination may split a bulk request into multiple child jobs, wait for their completion, and publish one normalized batch result for downstream consumers.
-
 
 ## Scoring Contract
 
@@ -222,6 +254,37 @@ Guardrails:
 - cache known routing and market data where possible
 - degrade to stale-but-labeled context instead of silent failure
 
+## Security Implementation
+
+This section defines the LLD-level security contracts. See [DFN_SECURITY.md](DFN_SECURITY.md) for the full specification.
+
+### Auth Middleware Contract
+
+- Installed on every route except `/health` and `POST /webhooks/safetyculture`
+- Validates JWT: signature (JWKS), `iss`, `aud`, `exp`
+- JWKS keys cached 24h, rotated on `kid` mismatch (no restart needed)
+- Attaches `AuthContext` to `res.locals.auth`
+- Returns `401` on any validation failure — never `403`
+
+### Quota Middleware Contract
+
+- Reads `res.locals.auth.quotas.jobsRemaining`
+- Fast path: if `> 0`, allow without network call
+- Slow path: if `<= 0`, call platform billing API for live check
+- Returns `402 Payment Required` if over limit
+
+### Webhook Auth Contract
+
+- `POST /webhooks/safetyculture` reads `x-iauditor-signature`
+- Computes `HMAC-SHA256(rawBody, SAFETYCULTURE_WEBHOOK_SECRET)`
+- Uses constant-time comparison
+- Returns `401` and does not enqueue if signature does not match
+
+### Audit Events
+
+Fire-and-forget audit events emitted on: job created, job submitted, job deleted, recommendation exported, batch created, Prism import.
+Events must not block the response path.
+
 ## Observability
 
 Log these events for every job:
@@ -246,8 +309,12 @@ Each event should include:
 
 Before implementation starts, confirm:
 
-- canonical job and factory schemas are stable
+- canonical job and factory schemas are stable (including org_id and created_by columns)
 - state machine is approved
 - scoring components are named and ordered
 - AI worker input and output contracts are fixed
 - queue job list is fixed
+- auth middleware contract agreed and IdP choice confirmed
+- org_id scoping rule confirmed for all tables
+- quota and feature flag middleware contracts agreed
+- audit event list agreed and bus endpoint confirmed

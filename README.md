@@ -18,6 +18,7 @@ The architecture is frozen in the planning docs:
 - [Low-Level Design](docs/DFN_LLD.md) — Schemas, APIs, and state machines
 - [Main Repo Integration](docs/DFN_MAIN_REPO_INTEGRATION.md) — Standalone boundary, shared contracts, and auth integration
 - [Sequence Diagrams](docs/DFN_SEQUENCE_DIAGRAMS.md) — Core flows and worker patterns
+- [Security Architecture](docs/DFN_SECURITY.md) — Auth, multi-tenancy, rate limiting, billing, and cross-product security
 
 **Implementation Phase:**
 PHASE 1: SCAFFOLDING (1 day) — Build the skeleton codebase with empty services, routes, and data models based on the frozen design docs. No real logic yet, just the structure.
@@ -100,6 +101,12 @@ npm test
 - Cache: Redis on Railway
 
 See `.env.example` for configuration variables.
+
+## Security
+
+Discovery delegates authentication to the DFN platform identity provider. All API routes require a valid JWT. Multi-tenancy is enforced by `org_id` scoping on every database query.
+
+See [Security Architecture](docs/DFN_SECURITY.md) for the full security model, required schema changes, hardening checklist, and environment variable reference.
 
 ## Contributing
 

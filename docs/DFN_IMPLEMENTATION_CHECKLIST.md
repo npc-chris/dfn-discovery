@@ -1,7 +1,7 @@
 # DFN Discovery - Implementation Checklist
 
-**Status:** Phase 4 Complete ✅ - Ready for Phase 5 Batch Coordination  
-**Last Updated:** June 06, 2026  
+**Status:** Phase 5 Complete ✅ - Ready for Phase 6 Presentation Layer  
+**Last Updated:** June 27, 2026  
 
 ---
 
@@ -124,7 +124,7 @@
 ### Task 1.4: Google Adapter Implementation
 
 - [x] Implement `GoogleAdapter.extract()`
-  - [x] Call gemini-2.0-flash endpoint
+  - [x] Call gemini-3.1-flash endpoint
   - [x] Handle auth with GOOGLE_API_KEY
   - [x] Parse JSON response
   - [x] Return AIExtractionResponse
@@ -812,14 +812,14 @@
 
 ### Task 5.1: Batch Manifest Model
 
-- [ ] Define batch request payload
-  - [ ] Batch ID
-  - [ ] Child job definitions
-  - [ ] Correlation metadata
-  - [ ] Idempotency key
-- [ ] Persist batch manifest state
-  - [ ] Track pending, processing, completed, failed counts
-  - [ ] Link child queue jobs to batch ID
+- [x] Define batch request payload
+  - [x] Batch ID
+  - [x] Child job definitions
+  - [x] Correlation metadata
+  - [x] Idempotency key
+- [x] Persist batch manifest state
+  - [x] Track pending, processing, completed, failed counts
+  - [x] Link child queue jobs to batch ID
 
 **Files:** backend/src/services/batch-coordination.ts
 
@@ -831,13 +831,13 @@
 
 ### Task 5.2: Batch Orchestration Engine
 
-- [ ] Implement fan-out/fan-in coordination
-  - [ ] Split bulk checks into child jobs
-  - [ ] Dispatch existing queue jobs per item
-  - [ ] Aggregate child results
-- [ ] Implement grouped retry semantics
-  - [ ] Retry only failed children when possible
-  - [ ] Preserve batch-level state across retries
+- [x] Implement fan-out/fan-in coordination
+  - [x] Split bulk checks into child jobs
+  - [x] Dispatch existing queue jobs per item
+  - [x] Aggregate child results
+- [x] Implement grouped retry semantics
+  - [x] Retry only failed children when possible
+  - [x] Preserve batch-level state across retries
 
 **Files:** backend/src/services/batch-coordination.ts
 
@@ -849,12 +849,12 @@
 
 ### Task 5.3: Batch Status Routes
 
-- [ ] GET /batch/:batchId
-  - [ ] Return manifest, child job statuses, and rollup counts
-- [ ] GET /batch/:batchId/progress
-  - [ ] Return progress percentage and current stage
-- [ ] POST /batch/:batchId/replay
-  - [ ] Replay failed child jobs only
+- [x] GET /batch/:batchId
+  - [x] Return manifest, child job statuses, and rollup counts
+- [x] GET /batch/:batchId/progress
+  - [x] Return progress percentage and current stage
+- [x] POST /batch/:batchId/replay
+  - [x] Replay failed child jobs only
 
 **Files:** backend/src/routes/batch.ts
 
@@ -866,11 +866,11 @@
 
 ### Phase 5 Validation
 
-- [ ] Batch manifests created and tracked
-- [ ] Bulk requests split into child jobs
-- [ ] Aggregate progress correct
-- [ ] Partial failures handled cleanly
-- [ ] Zero unimplemented batch methods
+- [x] Batch manifests created and tracked
+- [x] Bulk requests split into child jobs
+- [x] Aggregate progress correct
+- [x] Partial failures handled cleanly
+- [x] Zero unimplemented batch methods
 
 **Acceptance:** Can submit a bulk request, monitor child jobs, and receive one aggregated result bundle
 
@@ -985,11 +985,232 @@
 
 ---
 
-## Phase 7: Frontend Development (Week 6)
+## Phase 7: Security Hardening (Week 6)
+
+**Goal:** Implement auth middleware, org-level data isolation, quota enforcement, and the hardening checklist from [DFN_SECURITY.md](DFN_SECURITY.md) before any public-facing deployment.
+
+> This phase gates production readiness. It must be completed before Phase 8 (Frontend) goes live or any external user touches the system.
+
+### Task 7.1: Database Schema — Multi-Tenancy Columns
+
+- [ ] Add `org_id TEXT NOT NULL` to `jobs` table
+- [ ] Add `created_by TEXT NOT NULL` to `jobs` table
+- [ ] Add `org_id TEXT NOT NULL` to `factories` table
+- [ ] Add `org_id TEXT NOT NULL` to `recommendations` table (denormalised for query perf)
+- [ ] Add `org_id TEXT NOT NULL` to `attachments` table
+- [ ] Add `org_id TEXT NOT NULL` to `batch_manifests` table
+- [ ] Add database-level index on `org_id` for all tables above
+- [ ] Write and test migration scripts
+- [ ] Verify no existing query runs without `org_id` scope
+
+**Files:** `backend/src/db/schema.ts`, migration files
+
+**Acceptance Criteria:**
+
+- Migrations run cleanly on a fresh and existing database
+- All columns carry `NOT NULL` constraint
+- Indexes present and used by query planner
+
+---
+
+### Task 7.2: Auth Middleware
+
+- [ ] Install JWT/JWKS validation library (e.g. `jose`)
+- [ ] Implement `authMiddleware`
+  - [ ] Extract `Authorization: Bearer <token>` header
+  - [ ] Fetch and cache JWKS from `AUTH_ISSUER_URL/.well-known/jwks.json` (24h TTL)
+  - [ ] Rotate JWKS cache on key ID (`kid`) mismatch
+  - [ ] Verify JWT signature, `iss`, `aud`, and `exp`
+  - [ ] Attach decoded claims to `res.locals.auth` as `AuthContext`
+  - [ ] Return `401 Unauthorized` on any failure — never `403`
+- [ ] Apply `authMiddleware` to all routes except `/health` and `POST /webhooks/safetyculture`
+- [ ] Write unit tests: valid token, expired token, wrong audience, tampered signature
+
+**Files:** `backend/src/middleware/auth.ts`, `backend/src/app.ts`
+
+**Acceptance Criteria:**
+
+- Protected routes return `401` without a valid token
+- Health check and webhook endpoint remain public
+- JWKS key rotation works without restart
+- Tests cover all failure cases
+
+---
+
+### Task 7.3: Quota Middleware
+
+- [ ] Implement `quotaMiddleware` for job submission routes
+  - [ ] Read `quotas.jobsRemaining` from `res.locals.auth`
+  - [ ] If `> 0` — allow (fast path, no network call)
+  - [ ] If `<= 0` — call platform billing API for live verification
+  - [ ] Return `402 Payment Required` with upgrade prompt if over limit
+- [ ] Implement feature flag gate middleware
+  - [ ] Check `res.locals.auth.features` for required flag per route
+  - [ ] Return `403 Forbidden` with required plan name if flag missing
+- [ ] Apply feature flags to plan-gated routes:
+  - [ ] `POST /batch` — requires `discovery:batch`
+  - [ ] `POST /jobs` (with PrismReport body) — requires `discovery:prism-import`
+  - [ ] `GET /recommendations/:jobId/report` — requires `discovery:export-report`
+  - [ ] `GET /analytics/*` — requires `discovery:analytics`
+
+**Files:** `backend/src/middleware/quota.ts`, `backend/src/middleware/feature-flag.ts`
+
+**Acceptance Criteria:**
+
+- Fast-path quota check adds < 1ms overhead
+- Live check only triggers when token claim is exhausted
+- Feature-gated routes return clear `403` with plan name
+- Tests cover free, team, business, enterprise plan scenarios
+
+---
+
+### Task 7.4: org_id Scoping on All Queries
+
+- [ ] Audit every database query in `backend/src/services/` and `backend/src/db/`
+- [ ] Add `org_id = res.locals.auth.orgId` scope to every `SELECT`, `UPDATE`, and `DELETE`
+- [ ] Ensure `org_id` is written on every `INSERT` from the authenticated context
+- [ ] Return `404` (not `403`) for resources that belong to a different org
+- [ ] Write integration tests: user A cannot read user B's org data
+
+**Files:** All query files in `backend/src/db/` and `backend/src/services/`
+
+**Acceptance Criteria:**
+
+- Zero queries without `org_id` scope (automated grep check in CI)
+- Cross-org access attempts return `404`
+- Tests verify org isolation end-to-end
+
+---
+
+### Task 7.5: HMAC Webhook Signature Verification
+
+- [ ] Implement HMAC-SHA256 verification for `POST /webhooks/safetyculture`
+  - [ ] Read `x-iauditor-signature` header
+  - [ ] Compute `HMAC-SHA256(rawBody, SAFETYCULTURE_WEBHOOK_SECRET)`
+  - [ ] Compare using `crypto.timingSafeEqual` (prevent timing attacks)
+  - [ ] Return `401` immediately if signature does not match — do not enqueue
+- [ ] Implement HMAC-SHA256 verification for `POST /webhooks/upkeep`
+  - [ ] Read `x-upkeep-signature` header (confirm exact header name in UpKeep docs)
+  - [ ] Compute `HMAC-SHA256(rawBody, UPKEEP_WEBHOOK_SECRET)`
+  - [ ] Compare using `crypto.timingSafeEqual`
+  - [ ] Return `401` immediately if signature does not match — do not enqueue
+- [ ] Extract shared `verifyHmacSignature(rawBody, secret, receivedSignature)` utility used by both routes
+- [ ] Write tests for each route: valid signature, tampered body, missing header
+
+**Files:** `backend/src/routes/webhooks.ts`, `backend/src/middleware/webhook-auth.ts`
+
+**Acceptance Criteria:**
+
+- Both webhook endpoints reject invalid signatures before any processing
+- `crypto.timingSafeEqual` used in both — no string equality comparison
+- Tests cover all tamper scenarios for both SafetyCulture and UpKeep
+
+---
+
+### Task 7.6: Audit Event Emission
+
+- [ ] Install Kafka client library (e.g. `kafkajs`)
+- [ ] Implement `emitAuditEvent(event: AuditEvent)` helper
+  - [ ] Fire-and-forget — produces to Kafka topic `dfn.audit.events`, does not block response
+  - [ ] Partition key: `actorOrgId`
+  - [ ] Idempotent producer enabled
+  - [ ] Serialise as JSON
+  - [ ] Swallow errors — log the failure but never throw to the route handler
+  - [ ] Include: `eventName`, `actorUserId`, `actorOrgId`, `resourceType`, `resourceId`, `plan`, `timestamp`
+- [ ] Emit audit events from routes:
+  - [ ] `discovery.job.created` on `POST /jobs`
+  - [ ] `discovery.job.submitted` on `POST /jobs/:id/submit`
+  - [ ] `discovery.job.deleted` on `DELETE /jobs/:id`
+  - [ ] `discovery.recommendation.exported` on `GET /recommendations/:id/report`
+  - [ ] `discovery.batch.created` on `POST /batch`
+  - [ ] `discovery.prism.imported` on job creation with PrismReport body
+- [ ] Write tests: audit events fire asynchronously, Kafka failures do not affect response
+
+**Files:** `backend/src/lib/audit.ts`, `backend/src/lib/kafka.ts`, applied across route handlers
+
+**Acceptance Criteria:**
+
+- Audit events emitted on all required actions
+- Event emission does not add latency to response path
+- Audit bus unavailability does not cause route failures
+
+---
+
+### Task 7.7: Security Hardening Checklist (from DFN_SECURITY.md §10)
+
+**Transport**
+
+- [ ] All traffic uses HTTPS / TLS 1.2+. HTTP redirected or rejected.
+- [ ] HSTS header (`Strict-Transport-Security`) on all responses
+- [ ] `POST /webhooks/safetyculture` verifies HMAC-SHA256 (`x-iauditor-signature`) before processing (Task 7.5)
+- [ ] `POST /webhooks/upkeep` verifies HMAC-SHA256 (`x-upkeep-signature`) before processing (Task 7.5)
+- [ ] Both webhook handlers use `crypto.timingSafeEqual` — no string equality comparison
+
+**Auth**
+
+- [ ] Auth middleware applied to all non-public routes (Task 7.2)
+- [ ] JWKS cached locally (24h), rotated on `kid` mismatch (Task 7.2)
+- [ ] Token expiry validated before any handler runs
+- [ ] `iss` and `aud` validated against env config — not hardcoded
+
+**Data**
+
+- [ ] Every database query includes `org_id` scope (Task 7.4)
+- [ ] Attachment URLs are signed and short-lived (≤ 15 min TTL)
+- [ ] No raw secrets in application logs
+- [ ] External API keys in secrets manager, not in `.env` on production
+
+**Input**
+
+- [ ] All request bodies validated against strict TypeScript schemas
+- [ ] SQL via parameterised queries (Drizzle ORM)
+- [ ] File upload MIME types validated server-side
+- [ ] Maximum file size enforced server-side
+
+**Dependencies**
+
+- [ ] `npm audit` runs in CI and blocks on critical/high severity
+- [ ] Node.js version pinned in `.nvmrc` and Docker image
+
+**Headers**
+
+- [ ] `X-Content-Type-Options: nosniff`
+- [ ] `X-Frame-Options: DENY`
+- [ ] `Content-Security-Policy` configured for frontend
+- [ ] `Referrer-Policy: strict-origin-when-cross-origin`
+
+**Files:** `backend/src/app.ts` (helmet or manual headers), CI config
+
+**Acceptance Criteria:**
+
+- All checklist items passing
+- Security headers verified via automated scan (e.g. `npx helmet-csp-generator` or equivalent)
+
+---
+
+### Phase 7 Validation
+
+- [ ] `org_id` columns added and indexed on all tables
+- [ ] Auth middleware applied and tested (unit + integration)
+- [ ] Quota middleware blocking over-limit submissions
+- [ ] Feature flags gating plan-restricted routes
+- [ ] All queries include `org_id` scope
+- [ ] Cross-org access returns `404` (not `403`)
+- [ ] Webhook HMAC verification rejecting tampered payloads
+- [ ] Audit events emitting on all required actions
+- [ ] All hardening checklist items passing
+- [ ] `npm audit` clean in CI
+- [ ] Open questions in `DFN_SECURITY.md §12` answered and resolved
+
+**Acceptance:** System is safe for external users. No route is accessible without a valid, scoped token. No user can access another org's data.
+
+---
+
+## Phase 8: Frontend Development (Week 7)
 
 **Goal:** Build UI for job submission, recommendations, and status tracking
 
-### Task 7.1: Job Submission Form
+### Task 8.1: Job Submission Form
 
 - [ ] Create JobSubmissionForm component
   - [ ] Fields for company_name, product_name, process_type, material_type, volume_band, location
@@ -1012,7 +1233,7 @@
 
 ---
 
-### Task 7.2: Job Status Page
+### Task 8.2: Job Status Page
 
 - [ ] Create JobStatusPage component
   - [ ] Display job metadata (company, product, status)
@@ -1032,7 +1253,7 @@
 
 ---
 
-### Task 7.3: Recommendations Display
+### Task 8.3: Recommendations Display
 
 - [ ] Create RecommendationCard component
   - [ ] Display factory name and rank
@@ -1053,7 +1274,7 @@
 
 ---
 
-### Task 7.4: Recommendation Details Page
+### Task 8.4: Recommendation Details Page
 
 - [ ] Create RecommendationDetailsPage
   - [ ] Show full recommendation
@@ -1072,7 +1293,7 @@
 
 ---
 
-### Task 7.5: Dashboard
+### Task 8.5: Dashboard
 
 - [ ] Create Dashboard component
   - [ ] List recent jobs
@@ -1091,7 +1312,7 @@
 
 ---
 
-### Phase 7 Validation
+### Phase 8 Validation
 
 - [ ] Job form working
 - [ ] Status tracking working
@@ -1105,7 +1326,7 @@
 
 ---
 
-## Phase 8: Testing & Polish (Week 7)
+## Phase 9: Testing & Polish (Week 8)
 
 **Goal:** Comprehensive testing, error handling refinement, and deployment preparation
 
@@ -1135,7 +1356,7 @@
 
 ---
 
-### Task 8.2: Frontend Tests
+### Task 9.2: Frontend Tests
 
 - [ ] Component tests (React Testing Library)
   - [ ] Job form validation
@@ -1158,7 +1379,7 @@
 
 ---
 
-### Task 8.3: Error Handling Polish
+### Task 9.3: Error Handling Polish
 
 - [ ] Improve error messages
   - [ ] Validation errors clear and actionable
@@ -1184,7 +1405,7 @@
 
 ---
 
-### Task 8.4: Performance Optimization
+### Task 9.4: Performance Optimization
 
 - [ ] Backend optimization
   - [ ] Database query optimization
@@ -1210,7 +1431,7 @@
 
 ---
 
-### Task 8.5: Documentation
+### Task 9.5: Documentation
 
 - [ ] API documentation
   - [ ] Endpoint descriptions
@@ -1238,7 +1459,7 @@
 
 ---
 
-### Task 8.6: Deployment Setup
+### Task 9.6: Deployment Setup
 
 - [ ] Environment configuration
   - [ ] .env.example updated with all vars
@@ -1268,7 +1489,7 @@
 
 ---
 
-### Phase 8 Validation
+### Phase 9 Validation
 
 - [ ] All tests passing
 - [ ] Error handling comprehensive
@@ -1291,12 +1512,15 @@
 | 2: Scoring | Week 1 | Fit scores, ranking, gates | ✅ DONE |
 | 3: Queue | Week 2 | Async processing, workers | ✅ DONE |
 | 4: Enrichment | Week 3 | Geo, market, site services | ✅ DONE |
-| 5: Batch Coordination | Week 4 | Bulk orchestration, aggregation | 🔄 |
+| 5: Batch Coordination | Week 4 | Bulk orchestration, aggregation | ✅ DONE |
 | 6: Presentation | Week 5 | Formatting, reports | 🔄 |
-| 7: Frontend | Week 6 | UI components, pages | 🔄 |
-| 8: Testing & Polish | Week 7 | Tests, errors, deploy | 🔄 |
+| 7: Security Hardening | Week 6 | Auth, org isolation, hardening | 🔄 |
+| 8: Frontend | Week 7 | UI components, pages | 🔄 |
+| 9: Testing & Polish | Week 8 | Tests, errors, deploy | 🔄 |
 
-**Total Timeline:** 7 weeks from Phase 1 start to production-ready
+**Total Timeline:** 8 weeks from Phase 1 start to production-ready
+
+> **Security gate:** Phase 7 must be fully validated before Phase 8 (Frontend) is deployed to any environment accessible by external users. See [DFN_SECURITY.md](DFN_SECURITY.md) for the full requirements.
 
 ---
 
@@ -1313,5 +1537,5 @@
 ---
 
 **Created:** May 8, 2026  
-**Last Updated:** June 06, 2026  
-**Status:** Ready for Phase 5 Batch Coordination Implementation
+**Last Updated:** June 27, 2026  
+**Status:** Phase 5 Complete - Ready for Phase 6 Presentation Layer

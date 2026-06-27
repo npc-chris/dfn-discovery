@@ -129,7 +129,7 @@ function makeAnthropicAdapter() {
 }
 
 function makeGoogleAdapter() {
-  const adapter = createAIProviderAdapter({ provider: 'google', apiKey: 'test-key' }, 'gemini-2.0-flash') as AIProviderAdapter & {
+  const adapter = createAIProviderAdapter({ provider: 'google', apiKey: 'test-key' }, 'gemini-3.1-flash') as AIProviderAdapter & {
     client: any;
   };
 

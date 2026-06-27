@@ -116,6 +116,20 @@ External third-party SaaS tools (e.g., UpKeep and SafetyCulture) will NOT be giv
 - **Data Isolation:** All inbound and outbound payloads are strictly tagged with our internal `external_factory_id`. Users only see data securely filtered by our backend; they never log in to native vendor tools directly.
 - **Abstraction Layer:** Due to API tier limitations (e.g., UpKeep Enterprise tiers), all external CMMS or field-auditing SaaS integration will sit behind an abstraction layer (e.g., `AssetManagerInterface`). If SaaS pricing makes API calls prohibitive, the adapter can be hot-swapped to an open-source or Airtable-backed database without rewriting core business logic.
 
+### 6. Security Architecture
+
+Discovery does not own identity. Discovery trusts identity.
+
+Three decisions are frozen at the HLD level:
+
+**Authentication:** All user-facing routes require a signed JWT issued by the DFN platform identity provider. Discovery validates the token signature via the IdP's JWKS endpoint — stateless, no round-trip per request. Discovery never stores passwords, sessions, or its own tokens.
+
+**Multi-tenancy:** Every resource in Discovery's database is owned by an `org_id`. The `org_id` is derived from the JWT on every request and applied to every database query as a mandatory scope. Cross-org data access is architecturally impossible, not just policy.
+
+**Billing and quotas:** Discovery enforces plan limits but does not own billing logic. Plan tier, feature flags, and quota headroom are carried in the JWT and verified live against the platform billing service only when the token claim is exhausted. Discovery emits usage events to the platform — it never calculates what a user owes.
+
+See [Security Architecture](DFN_SECURITY.md) for the full specification.
+
 ## Data Ownership
 
 ### Job Intake Owns
@@ -182,6 +196,7 @@ External third-party SaaS tools (e.g., UpKeep and SafetyCulture) will NOT be giv
 2. If AI is allowed to invent missing data, trust collapses fast.
 3. If the presentation layer accumulates business logic, the system becomes hard to freeze.
 4. If market and logistics data are treated as optional, recommendation quality drops sharply.
+5. If auth and multi-tenancy are deferred past the Presentation Layer, retrofitting org scoping across all services and queries becomes high-risk and expensive.
 
 ## HLD Freeze Check
 
@@ -193,3 +208,6 @@ Before LLD starts, confirm:
 - AI only runs as a worker
 - async boundaries are agreed
 - batch coordination boundaries are agreed
+- authentication boundary agreed: Discovery trusts the platform IdP, does not own identity
+- multi-tenancy model agreed: org_id on every resource, enforced at query level
+- billing boundary agreed: Discovery enforces quotas, platform owns billing logic

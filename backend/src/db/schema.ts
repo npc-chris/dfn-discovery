@@ -3,9 +3,20 @@
 
 import { pgTable, text, integer, boolean, timestamp, uuid, jsonb } from 'drizzle-orm/pg-core';
 
+// Batch manifests table
+export const batch_manifests = pgTable('batch_manifests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  status: text('status').notNull().default('pending'), // pending, processing, completed, failed
+  idempotency_key: text('idempotency_key').unique(),
+  metadata: jsonb('metadata'),
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow(),
+});
+
 // Jobs table
 export const jobs = pgTable('jobs', {
   id: uuid('id').primaryKey().defaultRandom(),
+  batch_id: uuid('batch_id').references(() => batch_manifests.id),
   company_name: text('company_name').notNull(),
   product_name: text('product_name').notNull(),
   process_type: text('process_type'),

@@ -7,7 +7,7 @@ import type { Job, JobInput, JobStatus } from '@dfn/shared';
 import { eq } from 'drizzle-orm';
 
 // Validate job input fields
-function validateJobInput(input: JobInput): { valid: boolean; errors: string[] } {
+export function validateJobInput(input: JobInput): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   if (!input.company_name || input.company_name.trim().length === 0) {

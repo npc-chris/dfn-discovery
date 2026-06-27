@@ -100,7 +100,7 @@ Service Layers:
 
 - `OpenAIAdapter` - Calls gpt-4o/gpt-4-turbo/gpt-3.5-turbo
 - `AnthropicAdapter` - Calls claude-3-5-sonnet/claude-3-opus/claude-3-sonnet/claude-3-haiku
-- `GoogleAdapter` - Calls gemini-2.0-flash/gemini-1.5-pro/gemini-1.5-flash
+- `GoogleAdapter` - Calls gemini-3.1-flash/gemini-1.5-pro/gemini-1.5-flash
 
 **Model Registry:** [backend/src/services/ai-providers/model-registry.ts](backend/src/services/ai-providers/model-registry.ts)
 
@@ -711,13 +711,13 @@ QUEUE_CONFIG {
 
 ### Phase 2 (Enrichment Services)
 
-5. 🔄 Geo & Logistics - Distance and routing
+1. 🔄 Geo & Logistics - Distance and routing
 2. 🔄 Market Intelligence - Demand and pricing
 3. 🔄 Site & Real Estate - Facility data
 
 ### Phase 3 (Presentation & Polish)
 
-8. 🔄 Presentation Layer - Format and reports
+1. 🔄 Presentation Layer - Format and reports
 2. 🔄 Frontend UI - Job submission, recommendations display
 3. 🔄 Testing & Integration - E2E tests, deployment pipeline
 
