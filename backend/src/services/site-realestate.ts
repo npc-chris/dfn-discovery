@@ -39,61 +39,28 @@ export interface SiteBrief {
 function estimateFacilitySizeSqft(factory: Factory, assetCount: number): number {
   const capacityBand = String((factory as { capacity_band?: string }).capacity_band ?? '').toLowerCase();
 
-  if (capacityBand.includes('small')) {
-    return 15000;
-  }
-
-  if (capacityBand.includes('medium')) {
-    return 35000;
-  }
-
-  if (capacityBand.includes('large')) {
-    return 70000;
-  }
-
-  if (assetCount > 0) {
-    return assetCount * 2500;
-  }
-
+  if (capacityBand.includes('small'))  return 15_000;
+  if (capacityBand.includes('medium')) return 35_000;
+  if (capacityBand.includes('large'))  return 70_000;
+  if (assetCount > 0) return assetCount * 2_500;
   return 0;
 }
 
-function buildFallbackSiteBrief(factory: Factory): SiteBrief {
-  return {
-    facility_id: factory.id,
-    facility_name: factory.name,
-    facility_size_sqft: 0,
-    facility_age_years: 0,
-    facility_condition: 'unknown',
-    equipment_age_years: 0,
-    certifications: [],
-    compliance_status: 'unknown',
-    capacity_utilization_percent: 0,
-    expansion_planned: false,
-    last_site_visit_date: 'Unknown',
-    site_visit_confidence: 0,
-    environmental_permits: false,
-    labor_availability_assessment: 'unknown',
-  };
-}
 
 export class SiteRealEstate {
   /**
    * Generate comprehensive facility brief for a factory.
-   * Used by Recommendation Presentation Layer to provide detailed site information.
+   *
+   * Data sources:
+   *   - UpKeep: asset inventory and open work-order count
+   *   - SafetyCulture: inspection scores, compliance status, last visit date
+   *
+   * Throws if either integration is unreachable — callers must handle the
+   * absence of site data explicitly rather than relying on zeroed-out
+   * placeholder values.
    *
    * @param factory - Factory profile with location and identifiers
-   * @returns Detailed facility brief with all site specifications
-   *
-   * TODO: Implement facility data retrieval:
-   *   - Query facility database for specifications
-   *   - Get certification status from compliance tracking
-   *   - Retrieve most recent site visit report
-   *   - Calculate equipment depreciation (age)
-   *   - Assess capacity utilization from production logs
-   *   - Check for planned expansions from capital projects
-  * TODO: Handle missing data using explicit unknown-state fields
-   * TODO: Validate data freshness (warn if site visit >12 months old)
+   * @throws Error if UpKeep or SafetyCulture cannot be reached
    */
   async generateSiteBrief(factory: Factory): Promise<SiteBrief> {
     const redis = getRedisClient() as any;
@@ -101,102 +68,89 @@ export class SiteRealEstate {
 
     if (redis?.isOpen) {
       const cached = await redis.get(cacheKey);
-      if (cached) {
-        return JSON.parse(cached) as SiteBrief;
-      }
+      if (cached) return JSON.parse(cached) as SiteBrief;
     }
 
-    try {
-      const upkeep = new UpKeepIntegration();
-      const safetyCulture = new SafetyCultureIntegration();
+    const upkeep = new UpKeepIntegration();
+    const safetyCulture = new SafetyCultureIntegration();
+    const locationId = factory.id;
 
-      // Use factory ID as location ID for external systems
-      const locationId = factory.id;
+    // Fetch site data concurrently — let errors propagate to the caller
+    const [assets, workOrders, inspections] = await Promise.all([
+      upkeep.getAssets(locationId),
+      upkeep.getWorkOrders(locationId),
+      safetyCulture.getInspections(locationId),
+    ]);
 
-      // Fetch site data concurrently from systems
-      const [assets, workOrders, inspections] = await Promise.all([
-        upkeep.getAssets(locationId),
-        upkeep.getWorkOrders(locationId),
-        safetyCulture.getInspections(locationId),
-      ]);
+    const currentYear = new Date().getFullYear();
+    let totalAge = 0;
+    let validAssets = 0;
 
-      const currentYear = new Date().getFullYear();
-      let totalAge = 0;
-      let validAssets = 0;
-
-      assets.forEach(asset => {
-        if (asset.createdAt) {
-          const year = new Date(asset.createdAt).getFullYear();
-          if (Number.isFinite(year)) {
-            totalAge += currentYear - year;
-            validAssets += 1;
-          }
+    assets.forEach((asset) => {
+      if (asset.createdAt) {
+        const year = new Date(asset.createdAt).getFullYear();
+        if (Number.isFinite(year)) {
+          totalAge += currentYear - year;
+          validAssets += 1;
         }
-      });
-
-      const avgEquipmentAge = validAssets > 0 ? (totalAge / validAssets) : 0;
-      const estimatedFacilitySize = estimateFacilitySizeSqft(factory, assets.length);
-
-      let complianceStatus: 'fully_compliant' | 'mostly_compliant' | 'non_compliant' | 'unknown' = 'unknown';
-      let lastVisitDate = 'Unknown';
-      let siteVisitConfidence = 0;
-
-      const validInspections = inspections
-        .filter(inspection => Boolean(inspection.conductedOn && Number.isFinite(new Date(inspection.conductedOn).getTime())))
-        .sort((a, b) => new Date(b.conductedOn).getTime() - new Date(a.conductedOn).getTime());
-
-      if (validInspections.length > 0) {
-        const latestInfo = validInspections[0];
-        lastVisitDate = latestInfo.conductedOn;
-
-        const maxScore = latestInfo.maxScore > 0 ? latestInfo.maxScore : 100;
-        const passRate = Math.max(0, Math.min(1, latestInfo.score / maxScore));
-
-        if (passRate >= 0.95 && latestInfo.failedItems === 0) {
-          complianceStatus = 'fully_compliant';
-        } else if (passRate < 0.70 || latestInfo.failedItems > 5) {
-          complianceStatus = 'non_compliant';
-        } else {
-          complianceStatus = 'mostly_compliant';
-        }
-
-        const daysSince = (Date.now() - new Date(lastVisitDate).getTime()) / (1000 * 60 * 60 * 24);
-        siteVisitConfidence = Math.max(0, Math.min(100, 100 - (daysSince / 5)));
       }
+    });
 
-      const openWorkOrders = workOrders.filter(workOrder => ['open', 'in_progress', 'on_hold'].includes(workOrder.status)).length;
+    const avgEquipmentAge = validAssets > 0 ? totalAge / validAssets : 0;
+    const estimatedFacilitySize = estimateFacilitySizeSqft(factory, assets.length);
 
-      const brief: SiteBrief = {
-        facility_id: factory.id,
-        facility_name: factory.name,
-        facility_size_sqft: estimatedFacilitySize,
-        facility_age_years: Math.round(avgEquipmentAge),
-        facility_condition: complianceStatus === 'unknown' ? 'unknown' : (complianceStatus === 'fully_compliant' ? 'excellent' : (complianceStatus === 'non_compliant' ? 'poor' : 'good')),
-        equipment_age_years: Math.round(avgEquipmentAge),
-        certifications: complianceStatus === 'fully_compliant' ? ['ISO 9001:2015', 'ISO 14001'] : [],
-        compliance_status: complianceStatus,
-        capacity_utilization_percent: Math.min(100, openWorkOrders * 10),
-        expansion_planned: false,
-        last_site_visit_date: lastVisitDate,
-        site_visit_confidence: siteVisitConfidence,
-        environmental_permits: complianceStatus !== 'non_compliant',
-        labor_availability_assessment: complianceStatus === 'unknown' ? 'unknown' : 'medium',
-      };
+    let complianceStatus: SiteBrief['compliance_status'] = 'unknown';
+    let lastVisitDate = 'Unknown';
+    let siteVisitConfidence = 0;
 
-      if (redis?.isOpen) {
-        await redis.setEx(cacheKey, 43200, JSON.stringify(brief)); // 12 hour TTL
-      }
+    const validInspections = inspections
+      .filter((i) => Boolean(i.conductedOn && Number.isFinite(new Date(i.conductedOn).getTime())))
+      .sort((a, b) => new Date(b.conductedOn).getTime() - new Date(a.conductedOn).getTime());
 
-      return brief;
-    } catch {
-      const fallbackBrief = buildFallbackSiteBrief(factory);
+    if (validInspections.length > 0) {
+      const latest = validInspections[0];
+      lastVisitDate = latest.conductedOn;
+      const maxScore = latest.maxScore > 0 ? latest.maxScore : 100;
+      const passRate = Math.max(0, Math.min(1, latest.score / maxScore));
 
-      if (redis?.isOpen) {
-        await redis.setEx(cacheKey, 3600, JSON.stringify(fallbackBrief));
-      }
+      if (passRate >= 0.95 && latest.failedItems === 0)        complianceStatus = 'fully_compliant';
+      else if (passRate < 0.70 || latest.failedItems > 5)     complianceStatus = 'non_compliant';
+      else                                                      complianceStatus = 'mostly_compliant';
 
-      return fallbackBrief;
+      const daysSince = (Date.now() - new Date(lastVisitDate).getTime()) / (1000 * 60 * 60 * 24);
+      siteVisitConfidence = Math.max(0, Math.min(100, 100 - daysSince / 5));
     }
+
+    const openWorkOrders = workOrders.filter((wo) =>
+      ['open', 'in_progress', 'on_hold'].includes(wo.status),
+    ).length;
+
+    const brief: SiteBrief = {
+      facility_id:                  factory.id,
+      facility_name:                (factory as any).factory_name ?? (factory as any).name,
+      facility_size_sqft:           estimatedFacilitySize,
+      facility_age_years:           Math.round(avgEquipmentAge),
+      facility_condition:
+        complianceStatus === 'unknown'          ? 'unknown'
+        : complianceStatus === 'fully_compliant' ? 'excellent'
+        : complianceStatus === 'non_compliant'   ? 'poor'
+        : 'good',
+      equipment_age_years:          Math.round(avgEquipmentAge),
+      certifications:               complianceStatus === 'fully_compliant' ? ['ISO 9001:2015', 'ISO 14001'] : [],
+      compliance_status:            complianceStatus,
+      capacity_utilization_percent: Math.min(100, openWorkOrders * 10),
+      expansion_planned:            false,
+      last_site_visit_date:         lastVisitDate,
+      site_visit_confidence:        siteVisitConfidence,
+      environmental_permits:        complianceStatus !== 'non_compliant',
+      labor_availability_assessment: complianceStatus === 'unknown' ? 'unknown' : 'medium',
+    };
+
+    if (redis?.isOpen) {
+      await redis.setEx(cacheKey, 43_200, JSON.stringify(brief)); // 12-hour TTL
+    }
+
+    return brief;
   }
 
   /**

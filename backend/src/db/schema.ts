@@ -6,6 +6,7 @@ import { pgTable, text, integer, boolean, timestamp, uuid, jsonb } from 'drizzle
 // Batch manifests table
 export const batch_manifests = pgTable('batch_manifests', {
   id: uuid('id').primaryKey().defaultRandom(),
+  org_id: text('org_id'),
   status: text('status').notNull().default('pending'), // pending, processing, completed, failed
   idempotency_key: text('idempotency_key').unique(),
   metadata: jsonb('metadata'),
@@ -16,6 +17,8 @@ export const batch_manifests = pgTable('batch_manifests', {
 // Jobs table
 export const jobs = pgTable('jobs', {
   id: uuid('id').primaryKey().defaultRandom(),
+  org_id: text('org_id'),
+  created_by: text('created_by'),
   batch_id: uuid('batch_id').references(() => batch_manifests.id),
   company_name: text('company_name').notNull(),
   product_name: text('product_name').notNull(),
@@ -33,6 +36,7 @@ export const jobs = pgTable('jobs', {
 // Factory profiles table
 export const factories = pgTable('factories', {
   id: uuid('id').primaryKey().defaultRandom(),
+  org_id: text('org_id'),
   factory_name: text('factory_name').notNull(),
   capabilities: jsonb('capabilities').notNull(),
   materials: jsonb('materials').notNull(),
@@ -50,9 +54,11 @@ export const recommendations = pgTable('recommendations', {
   id: uuid('id').primaryKey().defaultRandom(),
   job_id: uuid('job_id').notNull().references(() => jobs.id),
   factory_id: uuid('factory_id').notNull().references(() => factories.id),
+  org_id: text('org_id'),
   fit_score: integer('fit_score').notNull(),
   feasibility_score: integer('feasibility_score').notNull(),
   confidence_score: integer('confidence_score').notNull(),
+  component_scores: jsonb('component_scores'),
   rank: integer('rank'),
   evidence: jsonb('evidence').notNull(),
   caveats: jsonb('caveats'),
@@ -64,6 +70,7 @@ export const recommendations = pgTable('recommendations', {
 export const attachments = pgTable('attachments', {
   id: uuid('id').primaryKey().defaultRandom(),
   job_id: uuid('job_id').notNull().references(() => jobs.id),
+  org_id: text('org_id'),
   filename: text('filename').notNull(),
   mime_type: text('mime_type').notNull(),
   size_bytes: integer('size_bytes').notNull(),

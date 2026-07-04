@@ -1,7 +1,7 @@
 # DFN Discovery - Implementation Checklist
 
-**Status:** Phase 5 Complete ✅ - Ready for Phase 6 Presentation Layer  
-**Last Updated:** June 27, 2026  
+**Status:** Phase 6 Complete ✅ - Ready for Phase 7 Security Hardening  
+**Last Updated:** July 4, 2026  
 
 ---
 
@@ -880,25 +880,25 @@
 
 ### Task 6.1: Recommendation Formatting
 
-- [ ] Implement formatRecommendation()
-  - [ ] Map fit scores to descriptions
-  - [ ] Map confidence scores to levels
-  - [ ] Generate key strengths narrative
-  - [ ] Generate key risks narrative
-  - [ ] Call Geo/Logistics for lead time
-  - [ ] Call Market Intelligence for cost
-  - [ ] Call Site/Real Estate for facility quality
-  - [ ] Call AI service for explanations
-  - [ ] Return RecommendationPresentation
-- [ ] Implement mapConfidenceLevel()
-  - [ ] 0-30: low
-  - [ ] 30-60: medium
-  - [ ] 60-100: high
-- [ ] Implement mapFitDescription()
-  - [ ] 0-40: poor fit
-  - [ ] 40-60: fair fit
-  - [ ] 60-80: good fit
-  - [ ] 80-100: excellent fit
+- [x] Implement formatRecommendation()
+  - [x] Map fit scores to descriptions
+  - [x] Map confidence scores to levels
+  - [x] Generate key strengths narrative
+  - [x] Generate key risks narrative
+  - [x] Call Geo/Logistics for lead time
+  - [x] Call Market Intelligence for cost
+  - [x] Call Site/Real Estate for facility quality
+  - [x] Call AI service for explanations
+  - [x] Return RecommendationPresentation
+- [x] Implement mapConfidenceLevel()
+  - [x] 0-30: low
+  - [x] 30-60: medium
+  - [x] 60-100: high
+- [x] Implement mapFitDescription()
+  - [x] 0-40: poor fit
+  - [x] 40-60: fair fit
+  - [x] 60-80: good fit
+  - [x] 80-100: excellent fit
 
 **Files:** backend/src/services/presentation-layer.ts
 
@@ -912,27 +912,27 @@
 
 ### Task 6.2: Summary and Report Generation
 
-- [ ] Implement formatRecommendationSummary()
-  - [ ] Show total recommendation count
-  - [ ] Highlight top 3-5 recommendations
-  - [ ] Show job metadata and status
-  - [ ] Display gate status with explanations
-  - [ ] Show analysis timestamp
-- [ ] Implement generateExplanation()
-  - [ ] Support multiple styles (executive, technical, detailed)
-  - [ ] Highlight top 3 factors
-  - [ ] Flag weak areas
-  - [ ] Mention confidence level
-  - [ ] Suggest confidence improvement actions
-- [ ] Implement generateDetailedReport()
-  - [ ] Header with job details
-  - [ ] Executive summary
-  - [ ] Detailed recommendation tables
-  - [ ] Evidence citations
-  - [ ] Methodology section
-  - [ ] Risk assessment
-  - [ ] Appendices with factory profiles
-  - [ ] HTML ready for PDF
+- [x] Implement formatRecommendationSummary()
+  - [x] Show total recommendation count
+  - [x] Highlight top 3-5 recommendations
+  - [x] Show job metadata and status
+  - [x] Display gate status with explanations
+  - [x] Show analysis timestamp
+- [x] Implement generateExplanation()
+  - [x] Support multiple styles (executive, technical, detailed)
+  - [x] Highlight top 3 factors
+  - [x] Flag weak areas
+  - [x] Mention confidence level
+  - [x] Suggest confidence improvement actions
+- [x] Implement generateDetailedReport()
+  - [x] Header with job details
+  - [x] Executive summary
+  - [x] Detailed recommendation tables
+  - [x] Evidence citations
+  - [x] Methodology section
+  - [x] Risk assessment
+  - [x] Appendices with factory profiles
+  - [x] HTML ready for PDF
 
 **Files:** backend/src/services/presentation-layer.ts
 
@@ -947,21 +947,21 @@
 
 ### Task 6.3: Recommendations Routes Implementation
 
-- [ ] GET /recommendations/:jobId
-  - [ ] Fetch recommendations and format
-  - [ ] Support topN and format parameters
-  - [ ] Return JobRecommendationSummary
-- [ ] GET /recommendations/:jobId/top
-  - [ ] Return top recommendation only
-- [ ] GET /recommendations/:jobId/:factoryId/explanation
-  - [ ] Support different explanation styles
-  - [ ] Return natural language explanation
-- [ ] GET /recommendations/:jobId/report
-  - [ ] Support HTML and JSON formats
-  - [ ] Generate complete report
-- [ ] GET /recommendations/:jobId/comparison
-  - [ ] Compare top N factories
-  - [ ] Return table data for UI
+- [x] GET /recommendations/:jobId
+  - [x] Fetch recommendations and format
+  - [x] Support topN and format parameters
+  - [x] Return JobRecommendationSummary
+- [x] GET /recommendations/:jobId/top
+  - [x] Return top recommendation only
+- [x] GET /recommendations/:jobId/:factoryId/explanation
+  - [x] Support different explanation styles
+  - [x] Return natural language explanation
+- [x] GET /recommendations/:jobId/report
+  - [x] Support HTML and JSON formats
+  - [x] Generate complete report
+- [x] GET /recommendations/:jobId/comparison
+  - [x] Compare top N factories
+  - [x] Return table data for UI
 
 **Files:** backend/src/routes/recommendations.ts
 
@@ -975,11 +975,11 @@
 
 ### Phase 6 Validation
 
-- [ ] Recommendation formatting working
-- [ ] Explanations generated
-- [ ] Reports complete
-- [ ] All routes implemented
-- [ ] Zero unimplemented methods
+- [x] Recommendation formatting working
+- [x] Explanations generated
+- [x] Reports complete
+- [x] All routes implemented
+- [x] Zero unimplemented methods
 
 **Acceptance:** Can retrieve formatted recommendations and reports ready for user display
 

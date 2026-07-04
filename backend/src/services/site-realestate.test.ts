@@ -100,15 +100,11 @@ describe('SiteRealEstate Service', () => {
       expect(brief.facility_size_sqft).toBeGreaterThanOrEqual(0);
     });
 
-    it('falls back cleanly when provider credentials are missing', async () => {
+    it('throws an error when provider credentials are missing', async () => {
       delete process.env.UPKEEP_API_KEY;
       delete process.env.SAFETYCULTURE_API_KEY;
 
-      const brief = await service.generateSiteBrief(mockFactory);
-
-      expect(brief.compliance_status).toBe('unknown');
-      expect(brief.last_site_visit_date).toBe('Unknown');
-      expect(brief.facility_name).toBe('Test Factory');
+      await expect(service.generateSiteBrief(mockFactory)).rejects.toThrow();
     });
   });
 

@@ -50,16 +50,12 @@ describe('MarketIntelligence Service', () => {
     });
   });
 
-  it('falls back to neutral signals when external sources are unavailable', async () => {
+  it('throws an error when external sources are unavailable', async () => {
     delete process.env.COMTRADE_API_KEY;
     mockFetch.mockRejectedValueOnce(new Error('network down'));
 
     const mockFactory = { id: 'factory-fallback' } as Factory;
-    const signals = await service.getMarketSignals(mockFactory, 'Textiles');
-
-    expect(signals.demand_confidence).toBeLessThanOrEqual(30);
-    expect(signals.estimated_market_size_annual_ngn).toBeGreaterThan(0);
-    expect(signals.factory_order_frequency_per_month).toBeGreaterThan(0);
+    await expect(service.getMarketSignals(mockFactory, 'Textiles')).rejects.toThrow();
   });
 
   describe('computeMarketAccessScore', () => {
