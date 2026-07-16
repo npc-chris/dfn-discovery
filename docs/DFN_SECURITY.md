@@ -3,7 +3,7 @@
 **Status:** Authoritative reference  
 **Scope:** Discovery-side security concerns only  
 **Audience:** Discovery engineers, platform team, security reviewers  
-**Related docs:** [DFN_MAIN_REPO_INTEGRATION.md](DFN_MAIN_REPO_INTEGRATION.md), [DFN_HLD.md](DFN_HLD.md), [DFN_LLD.md](DFN_LLD.md)  
+**Related docs:** [DFN_MAIN_REPO_INTEGRATION.md](DFN_MAIN_REPO_INTEGRATION.md), [DFN_HLD.md](DFN_HLD.md), [DFN_LLD.md](DFN_LLD.md), [DFN_IDP_DESIGN.md](DFN_IDP_DESIGN.md)  
 **Platform decisions:** All open questions resolved — see §12
 
 ---
@@ -60,7 +60,7 @@ https://<tenant>.auth0.com/.well-known/jwks.json
 
 This is set via the `AUTH_ISSUER_URL` environment variable. Discovery constructs the JWKS URL automatically by appending `/.well-known/jwks.json`. Validation is stateless — no round-trip to Auth0 per request.
 
-**Auth0 custom claim namespace:** Auth0 requires custom JWT claims to use a URL-formatted namespace (not a bare prefix). All DFN-specific claims use the namespace `https://dfn.io/` as the prefix:
+**Auth0 custom claim namespace:** Auth0 requires custom JWT claims to use a URL-formatted namespace (not a bare prefix). All DFN-specific claims use the namespace `https://fabnetwork.com.ng/` as the prefix:
 
 ```typescript
 interface DFNTokenClaims {
@@ -71,12 +71,12 @@ interface DFNTokenClaims {
   exp: number;          // expiry timestamp (unix)
   iat: number;          // issued-at timestamp (unix)
 
-  // DFN platform custom claims (Auth0 namespace: https://dfn.io/)
-  'https://dfn.io/orgId': string;          // organisation the user belongs to
-  'https://dfn.io/orgRole': OrgRole;       // 'owner' | 'admin' | 'member' | 'viewer'
-  'https://dfn.io/plan': PlanTier;         // 'free' | 'team' | 'business' | 'enterprise'
-  'https://dfn.io/quotas': QuotaClaims;    // remaining allowances for current billing period
-  'https://dfn.io/features': string[];     // feature flags unlocked on this plan
+  // DFN platform custom claims (Auth0 namespace: https://fabnetwork.com.ng/)
+  'https://fabnetwork.com.ng/orgId': string;          // organisation the user belongs to
+  'https://fabnetwork.com.ng/orgRole': OrgRole;       // 'owner' | 'admin' | 'member' | 'viewer'
+  'https://fabnetwork.com.ng/plan': PlanTier;         // 'free' | 'team' | 'business' | 'enterprise'
+  'https://fabnetwork.com.ng/quotas': QuotaClaims;    // remaining allowances for current billing period
+  'https://fabnetwork.com.ng/features': string[];     // feature flags unlocked on this plan
 }
 
 type OrgRole = 'owner' | 'admin' | 'member' | 'viewer';
@@ -100,7 +100,8 @@ These custom claims are injected at login time via an **Auth0 Action** (post-log
 Every protected route in Discovery must pass through `authMiddleware` before its handler runs. The middleware must:
 
 1. Extract the `Authorization` header.
-2. Verify the JWT signature using the cached JWKS keys (cache for 24 hours, rotate on key ID mismatch).
+2. Verify the JWT signature using the cached JWKS keys. Cache keys locally for 24 hours.
+   * **Key Rotation Safeguard**: If an unknown Key ID (`kid`) is encountered, trigger a debounced JWKS reload (maximum once per 5 minutes) to protect against JWKS flooding Denial of Service (DoS) attacks. Reject the token immediately if the cached keys cannot verify the token and the debouncing threshold prevents a reload.
 3. Validate `iss` and `aud` against environment config.
 4. Reject expired tokens (`exp < now`).
 5. Attach the decoded claims to `res.locals.auth` for downstream use.
@@ -117,11 +118,11 @@ async function authMiddleware(
 // What downstream handlers receive
 interface AuthContext {
   userId: string;          // from token.sub
-  orgId: string;           // from token['https://dfn.io/orgId']
-  orgRole: OrgRole;        // from token['https://dfn.io/orgRole']
-  plan: PlanTier;          // from token['https://dfn.io/plan']
-  quotas: QuotaClaims;     // from token['https://dfn.io/quotas']
-  features: string[];      // from token['https://dfn.io/features']
+  orgId: string;           // from token['https://fabnetwork.com.ng/orgId']
+  orgRole: OrgRole;        // from token['https://fabnetwork.com.ng/orgRole']
+  plan: PlanTier;          // from token['https://fabnetwork.com.ng/plan']
+  quotas: QuotaClaims;     // from token['https://fabnetwork.com.ng/quotas']
+  features: string[];      // from token['https://fabnetwork.com.ng/features']
 }
 ```
 
@@ -229,15 +230,21 @@ Enterprise plan orgs may contractually require stricter isolation. Discovery sup
 | Level | Mechanism | When used | Who provisions |
 |---|---|---|---|
 | **Logical isolation** | `org_id` scoping in all queries | Default for all plans | Automatic (no provisioning needed) |
-| **Physical isolation** | Separate Postgres schema per org (schema-per-tenant) | Enterprise contracts with data residency requirements | **Discovery** (via a provisioning script run at org onboarding) |
+| **Physical isolation** | Separate Postgres schema per org (schema-per-tenant) | Enterprise contracts with data residency requirements | **Discovery** (via background workers queue triggered by platform webhooks) |
 
-The application code must not need to know which level is active — the database connection string and schema search path are the only difference. Discovery provides a provisioning script (to be built in Phase 7) that creates the per-org schema and runs migrations against it when an enterprise org is activated.
+The application code must not need to know which level is active — the database connection string and schema search path are the only difference. Discovery provides a provisioning worker (to be built in Phase 7) that creates the per-org schema and runs migrations against it asynchronously.
 
 **Provisioning contract:**
-- Triggered by a webhook from the DFN platform when an org upgrades to Enterprise.
-- Discovery creates a Postgres schema named `org_<orgId>` and runs all migrations against it.
-- The schema name is looked up from a `org_schema_map` config table at connection time.
-- Schema teardown (org offboarding) follows the same pattern in reverse and requires explicit confirmation.
+
+- **Triggered via Webhook**: The DFN platform calls `POST /webhooks/provision-org` when an org upgrades to Enterprise.
+- **Asynchronous Execution**: Upon receipt, the route handler validates the webhook HMAC signature, registers the request, enqueues a schema-provisioning job in the BullMQ queue, and returns `202 Accepted` immediately to prevent HTTP timeouts.
+- **Worker Execution**: The queue worker creates a Postgres schema named `org_<orgId>` and runs all database migrations against it.
+- **Metadata Registry**: The schema name is mapped and looked up from a `org_schema_map` config table at database connection time.
+- **Schema Teardown**: Org offboarding follows the same pattern in reverse and requires explicit multi-factor administrative confirmation.
+
+> [!WARNING]
+> **PostgreSQL Schema Scaling Limits**: 
+> A schema-per-tenant architecture in PostgreSQL introduces catalog bloat, memory overhead, and planning performance degradation when scaling beyond 100–200 schemas. For scales exceeding this threshold, the infrastructure must distribute schemas across database shards (multi-database instance routing) rather than relying on a single cluster.
 
 ### 4.3 Factory Profiles and Shared Data
 
@@ -325,22 +332,38 @@ Discovery must never have billing logic — it must never calculate what a user 
 flowchart TB
     A(["POST /jobs/submit"])
     B["authMiddleware\nattach token claims → res.locals.auth"]
-    C{"quotas.jobsRemaining > 0\nin token claim?"}
-    D["✅ Fast path — allow"]
-    E["Live check: platform billing API"]
-    F{"Still over limit?"}
-    G["❌ 402 Payment Required\n+ upgrade prompt"]
-    H["✅ Allow"]
-    I["Discovery creates job"]
-    J["Emit usage event\n→ platform billing service\n{ discovery.job.submitted, orgId, userId }"]
+    C{"Is 'quota-exhausted'\nstate cached in Redis?"}
+    D["❌ 402 Payment Required\n(Fast Reject via Cache)"]
+    E{"JWT claim shows\njobsRemaining > 0?"}
+    F{"Decrement Redis-backed\ntenant job counter"}
+    G["✅ Fast path — allow"]
+    H["Live check: platform billing API"]
+    I{"Is quota exhausted?"}
+    J["Cache exhaust in Redis (2m TTL)\nReturn ❌ 402 Payment Required"]
+    K["Reset local Redis counter\n✅ Allow"]
+    L["Discovery creates job"]
+    M["Emit usage event\n→ platform billing service\n{ discovery.job.submitted, orgId, userId }"]
 
     A --> B --> C
-    C -- yes --> D --> I
-    C -- no --> E --> F
-    F -- yes --> G
-    F -- no --> H --> I
-    I --> J
+    C -- yes --> D
+    C -- no --> E
+    E -- yes --> F
+    F -- success (count > 0) --> G --> L
+    F -- fail (exhausted) --> H
+    E -- no --> H
+    H --> I
+    I -- yes --> J
+    I -- no --> K --> L
+    L --> M
 ```
+
+#### Quota Enforcement Mechanisms
+
+To guarantee reliability and prevent abuse in high-concurrency production environments:
+
+1. **Redis Concurrency Counter**: A short-lived (15-minute) counter is stored in Redis for each tenant. When a job is submitted, this counter is decremented atomically. This prevents users from bypassing quotas by submitting concurrent requests simultaneously before the JWT access token (15-minute TTL) expires or refreshes.
+2. **Negative Response Caching**: If the live check to the platform billing service determines that an organization's quota is exhausted, this negative status is cached in Redis with a 2-minute TTL. Any subsequent job submissions within this window will fail immediately with a `402 Payment Required` response without hitting the platform billing database.
+3. **Webhook-Driven Eviction**: When a user upgrades their plan or purchases additional quotas, the platform billing service sends a webhook to Discovery. Discovery immediately evicts the cached negative quota state and updates the local Redis counter, restoring access without requiring a logout/login cycle.
 
 ### 6.3 Feature Flag Enforcement
 
@@ -424,7 +447,7 @@ Content-Type: application/json
   "grant_type": "client_credentials",
   "client_id": "<Discovery M2M App client_id>",
   "client_secret": "<AUTH0_CLIENT_SECRET>",
-  "audience": "https://api.digitalfabricationnetwork.com"
+  "audience": "https://api.fabnetwork.com.ng"
 }
 ```
 
@@ -448,7 +471,7 @@ User tokens must never be forwarded to other services — this is a hard rule.
 
 Enterprise orgs may configure their own identity provider (e.g., Okta, Azure AD, Google Workspace) to authenticate their users. This is handled entirely by **Auth0 Enterprise Connections** — Discovery has no role in SSO configuration.
 
-From Discovery's perspective: an enterprise user with SSO configured produces the same JWT structure as any other user, with the same `https://dfn.io/` namespaced custom claims injected by the Auth0 Action. Discovery cannot distinguish SSO users from non-SSO users, and it does not need to.
+From Discovery's perspective: an enterprise user with SSO configured produces the same JWT structure as any other user, with the same `https://fabnetwork.com.ng/` namespaced custom claims injected by the Auth0 Action. Discovery cannot distinguish SSO users from non-SSO users, and it does not need to.
 
 ### 8.2 Audit Logging
 
@@ -461,21 +484,22 @@ Discovery acts as a Kafka **producer only** — it never reads from the audit to
 interface AuditEvent {
   eventName: string;         // e.g. 'discovery.job.submitted'
   actorUserId: string;       // from token.sub
-  actorOrgId: string;        // from token['https://dfn.io/orgId']
+  actorOrgId: string;        // from token['https://fabnetwork.com.ng/orgId']
   resourceType: string;      // 'job' | 'batch' | 'recommendation' | etc.
   resourceId: string;
-  plan: PlanTier;            // from token['https://dfn.io/plan']
+  plan: PlanTier;            // from token['https://fabnetwork.com.ng/plan']
   timestamp: string;         // ISO 8601
   metadata?: Record<string, unknown>;
 }
 ```
 
 **Kafka producer contract:**
+
 - Topic: `dfn.audit.events`
 - Partition key: `orgId` (ensures all events for one org land in the same partition, preserving order)
 - Delivery: at-least-once (idempotent producer enabled)
 - Serialisation: JSON
-- Failure behaviour: errors are logged and swallowed — audit emission must never fail a user-facing request
+- Failure behaviour: audit emission must never block or fail a user-facing HTTP request. However, rather than swallowing errors (which risks compliance gaps during network splits), failed events are written to a Redis-backed failover queue (or a local transactional Outbox table). A background queue worker continually retries delivery to Kafka. If the broker is unreachable beyond a configurable threshold (e.g., 3 hours), critical operations alerts are triggered for administrative intervention.
 
 **Required audit events for Discovery:**
 
@@ -594,7 +618,7 @@ AUTH_ISSUER_URL=https://<tenant>.auth0.com/
 # Must match the 'audience' configured on the Auth0 API for Discovery
 AUTH_AUDIENCE=dfn-discovery
 # Custom claim namespace (Auth0 requires URL format)
-AUTH_CLAIM_NAMESPACE=https://dfn.io/
+AUTH_CLAIM_NAMESPACE=https://fabnetwork.com.ng/
 
 # ─── Auth0 M2M (Service-to-Service, Client Credentials) ──────────────────────
 # Credentials for Discovery's Machine-to-Machine Auth0 application
@@ -604,10 +628,10 @@ AUTH0_CLIENT_SECRET=<Discovery M2M application client_secret>
 AUTH0_TOKEN_ENDPOINT=https://<tenant>.auth0.com/oauth/token
 
 # ─── Platform Services ───────────────────────────────────────────────────────
-DFN_PLATFORM_API_URL=https://api.digitalfabricationnetwork.com
+DFN_PLATFORM_API_URL=https://api.fabnetwork.com.ng
 
 # ─── Billing ─────────────────────────────────────────────────────────────────
-BILLING_API_URL=https://billing.digitalfabricationnetwork.com
+BILLING_API_URL=https://billing.fabnetwork.com.ng
 
 # ─── Kafka (Audit Event Bus) ──────────────────────────────────────────────────
 # Comma-separated list of Kafka broker addresses
@@ -654,7 +678,7 @@ All decisions previously listed as open questions have been answered. They are r
 
 | # | Question | Decision |
 |---|---|---|
-| 1 | **IdP choice** | **Auth0.** JWKS endpoint: `https://<tenant>.auth0.com/.well-known/jwks.json`. Custom claims use the URL namespace `https://dfn.io/` (Auth0 requires URL-formatted namespaces). Custom claims injected via an Auth0 Post-Login Action. |
+| 1 | **IdP choice** | **Auth0.** JWKS endpoint: `https://<tenant>.auth0.com/.well-known/jwks.json`. Custom claims use the URL namespace `https://fabnetwork.com.ng/` (Auth0 requires URL-formatted namespaces). Custom claims injected via an Auth0 Post-Login Action. |
 | 2 | **Token TTL / quota drift** | **15 minutes** for access tokens. Short enough to limit quota claim drift to at most one billing window; consistent enough to avoid excessive token-refresh pressure. Refresh tokens managed by Auth0 (7-day sliding window with rotation). |
 | 3 | **Service token issuance** | **Auth0 Client Credentials flow** (`grant_type=client_credentials`). Discovery holds its own M2M application credentials (`AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`). Specific scopes and audience per inter-service operation are deferred to implementation. Service tokens must be cached for their TTL and never persisted. |
 | 4 | **Audit bus** | **Kafka topic `dfn.audit.events`**. Discovery is a producer only. Partition key is `orgId`. At-least-once delivery with idempotent producer. JSON serialisation. Kafka broker addresses and credentials configured via `KAFKA_BROKERS`, `KAFKA_SASL_USERNAME/PASSWORD`. |

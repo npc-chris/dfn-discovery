@@ -190,29 +190,33 @@ export class GeoLogistics {
    * @param assessment - Logistics assessment
    * @returns Lead time in business days
    *
-   * TODO: Calculate based on:
-   *   - Transport mode speed (road: 10 km/day, rail: 20 km/day, air: next day, sea: 2-4 weeks)
-   *   - Customs/border processing (2-5 days if crossing)
-   *   - Factory processing time (5 business days default)
+   * Calculates fallback lead time when HERE routing is unavailable.
+   * Speed baselines (conservative; gives supply-chain breathing room):
+   *   - Road : 300 km/day  (Nigerian long-haul truck average)
+   *   - Rail : 100 km/day  (Nigerian freight rail)
+   *   - Air  : 1 day       (next-day delivery)
+   *   - Sea  : 21 days     (~3-week average)
+   *   - Customs/border processing: 3 days per crossing
+   *   - Factory processing time: 5 business days
    */
   estimateLeadTime(assessment: LogisticsAssessment): number {
     let travelDays = 0;
-    
-    // Transport mode speed (road: 10 km/day, rail: 20 km/day, air: next day, sea: 2-4 weeks)
-    // Note: The speeds given in doc are quite slow, interpreting literally.
+
     switch (assessment.primary_mode) {
       case 'air':
         travelDays = 1;
         break;
       case 'sea':
-        travelDays = 21; // ~3 weeks avg
+        travelDays = 21; // ~3 weeks average
         break;
       case 'rail':
-        travelDays = Math.ceil(assessment.distance_km / 20);
+        // Nigerian freight rail: ~100 km/day (conservative)
+        travelDays = Math.ceil(assessment.distance_km / 100);
         break;
       case 'road':
       default:
-        travelDays = Math.ceil(assessment.distance_km / 10);
+        // Nigerian long-haul truck: ~300 km/day (conservative)
+        travelDays = Math.ceil(assessment.distance_km / 300);
         break;
     }
 

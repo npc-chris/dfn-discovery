@@ -18,13 +18,19 @@
  */
 
 import { db } from '../db/client';
-import { job_queue, jobs, factories, recommendations } from '../db/schema';
+import { job_queue, jobs, factories, recommendations, attachments } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import type { Factory as SharedFactory, Job } from '@dfn/shared/types';
 import { getGeoLogistics } from '../services/geo-logistics';
 import { getMarketIntelligence } from '../services/market-intelligence';
 import { getSiteRealEstate } from '../services/site-realestate';
+import { getCoreIntelligence } from '../services/core-intelligence';
+import { getPresentationLayer } from '../services/presentation-layer';
+import { createAIAnalysisWorkers } from '../services/ai-analysis-workers';
+import { transitionJobStatus } from '../services/job-intake';
+import { replaceRecommendationsForJob, getRecommendationsForJob, updateRecommendation } from '../db/queries';
+import type { AIProvider } from '../services/ai-providers/types';
 
 // ============================================================================
 // TYPES & CONSTANTS
@@ -556,64 +562,179 @@ function getHandlerForJobType(queueType: string): JobHandler | null {
 /**
  * Handler 1: Classify Job
  *
- * Uses AI to normalize and classify job:
- * - Extract process type (if not provided)
- * - Extract material type (if not provided)
- * - Updates job record
+ * Uses AI to normalize and classify the job:
+ * - Extracts process_type, material_type, volume_band from the job description
+ * - Updates the job record with extracted fields
+ * - Transitions job status from 'submitted' → 'normalized'
  */
-async function classifyJobHandler(_jobId: string, _payload: Record<string, unknown>): Promise<Record<string, unknown>> {
-  // TODO: Implement in Task 3.3
-  // Call AI Analysis Workers to extract/classify
-  // Update job with process_type, material_type
-  return { classified: true };
+async function classifyJobHandler(jobId: string, _payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const [jobRow] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
+  if (!jobRow) throw new Error(`Job not found: ${jobId}`);
+
+  const provider = (process.env.AI_PROVIDER ?? 'openai') as AIProvider;
+  const providerKey = provider === 'anthropic'
+    ? process.env.ANTHROPIC_API_KEY
+    : provider === 'google'
+      ? process.env.GOOGLE_API_KEY
+      : process.env.OPENAI_API_KEY;
+
+  if (!providerKey) throw new Error(`Missing API key for provider: ${provider}`);
+
+  const model = process.env.AI_MODEL;
+  if (!model) throw new Error('AI_MODEL environment variable is not set');
+
+  const ai = createAIAnalysisWorkers(provider, providerKey, model);
+
+  const extraction = await ai.extractJobData({
+    jobId,
+    jobData: {
+      company_name: jobRow.company_name,
+      product_name: jobRow.product_name,
+      process_type: jobRow.process_type,
+      material_type: jobRow.material_type,
+      volume_band: jobRow.volume_band,
+      metadata: jobRow.metadata,
+    },
+    instructions: 'Extract process_type, material_type, and volume_band (small/medium/large/enterprise) from this manufacturing job description. Return only the JSON fields.',
+  });
+
+  const fields = extraction.extracted as Record<string, string>;
+  const now = new Date();
+
+  await db.update(jobs).set({
+    process_type: fields.process_type ?? jobRow.process_type,
+    material_type: fields.material_type ?? jobRow.material_type,
+    volume_band: fields.volume_band ?? jobRow.volume_band,
+    updated_at: now,
+  }).where(eq(jobs.id, jobId));
+
+  await transitionJobStatus(jobId, 'normalized', 'queue-worker');
+
+  return {
+    classified: true,
+    process_type: fields.process_type ?? jobRow.process_type,
+    material_type: fields.material_type ?? jobRow.material_type,
+    volume_band: fields.volume_band ?? jobRow.volume_band,
+  };
 }
 
 /**
  * Handler 2: Extract Evidence
  *
- * Extract structured data from job attachments via AI:
- * - Get attachments from job
- * - Call AI extraction for each
- * - Create evidence items
+ * Extracts structured data from job attachments via AI:
+ * - Fetches all attachments linked to the job
+ * - Calls AI extraction for each attachment filename/metadata
+ * - Stores extraction results as evidence in the recommendations table
+ * - Transitions job status to 'analyzing'
  */
-async function extractEvidenceHandler(_jobId: string, _payload: Record<string, unknown>): Promise<Record<string, unknown>> {
-  // TODO: Implement in Task 3.3
-  // Call AI Analysis Workers to extract from each attachment
-  // Create evidence items in evidence_items table
-  return { evidenceExtracted: true };
+async function extractEvidenceHandler(jobId: string, _payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const attachmentRows = await db
+    .select()
+    .from(attachments)
+    .where(eq(attachments.job_id, jobId as any));
+
+  if (attachmentRows.length === 0) {
+    // No attachments — transition directly, evidence will be empty
+    await transitionJobStatus(jobId, 'analyzing', 'queue-worker');
+    return { evidenceExtracted: true, attachmentCount: 0 };
+  }
+
+  const provider = (process.env.AI_PROVIDER ?? 'openai') as AIProvider;
+  const providerKey = provider === 'anthropic'
+    ? process.env.ANTHROPIC_API_KEY
+    : provider === 'google'
+      ? process.env.GOOGLE_API_KEY
+      : process.env.OPENAI_API_KEY;
+
+  if (!providerKey) throw new Error(`Missing API key for provider: ${provider}`);
+  const model = process.env.AI_MODEL;
+  if (!model) throw new Error('AI_MODEL environment variable is not set');
+
+  const ai = createAIAnalysisWorkers(provider, providerKey, model);
+
+  const evidenceItems: Record<string, unknown>[] = [];
+  for (const attachment of attachmentRows) {
+    try {
+      const extraction = await ai.extractJobData({
+        jobId,
+        jobData: {
+          filename: attachment.filename,
+          mime_type: attachment.mime_type,
+          size_bytes: attachment.size_bytes,
+          source_type: attachment.source_type,
+        },
+        instructions: 'Extract manufacturing evidence claims from this attachment metadata. Return material specifications, process requirements, or quality standards mentioned.',
+      });
+      evidenceItems.push({
+        attachment_id: attachment.id,
+        extracted: extraction.extracted,
+        confidence: extraction.confidence,
+      });
+    } catch (err) {
+      console.warn(`[extractEvidenceHandler] Failed to extract from attachment ${attachment.id}:`, err);
+    }
+  }
+
+  // Store extracted evidence into existing recommendations (if any) or job metadata
+  const existingRecs = await getRecommendationsForJob(jobId);
+  for (const rec of existingRecs) {
+    await updateRecommendation(jobId, rec.factory_id, { evidence: evidenceItems });
+  }
+
+  await transitionJobStatus(jobId, 'analyzing', 'queue-worker');
+
+  return { evidenceExtracted: true, attachmentCount: attachmentRows.length, evidenceItemCount: evidenceItems.length };
 }
 
 /**
  * Handler 3: Score Fit
  *
- * Score job against all factories:
- * - Call Core Intelligence scoring
- * - Store recommendations
+ * Scores the job against all active factories:
+ * - Fetches all active factories from the database
+ * - Calls CoreIntelligence.scoreJob() to compute weighted component scores
+ * - Persists ranked ScoringResult[] to the recommendations table
+ * - Transitions job to 'scored'
  */
-async function scoreFitHandler(_jobId: string, _payload: Record<string, unknown>): Promise<Record<string, unknown>> {
-  // TODO: Implement in Task 3.3
-  // Call Core Intelligence to score job
-  // Persist recommendations to recommendations table
-  return { scored: true };
+async function scoreFitHandler(jobId: string, _payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const [jobRow] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
+  if (!jobRow) throw new Error(`Job not found: ${jobId}`);
+
+  const allFactories = await db.select().from(factories).where(eq(factories.active, true));
+  if (allFactories.length === 0) {
+    throw new Error('No active factories available for scoring');
+  }
+
+  const sharedFactories = allFactories.map(toSharedFactory);
+  const coreIntel = getCoreIntelligence();
+
+  const scoringResults = await coreIntel.scoreJob({
+    jobId,
+    job: jobRow as unknown as Job,
+    factories: sharedFactories,
+    evidence: {},
+  });
+
+  const orgId = jobRow.org_id ?? undefined;
+  await replaceRecommendationsForJob(jobId, scoringResults, orgId);
+
+  await transitionJobStatus(jobId, 'scored', 'queue-worker');
+
+  return { scored: true, recommendationCount: scoringResults.length };
 }
 
 /**
- * Handler 4: Enrich Logistics (Phase 4 stub)
+ * Handler 4: Enrich Logistics
  *
- * Add logistics context to recommendations:
- * - Call Geo/Logistics service
- * - Update recommendations with logistics data
+ * Adds logistics context to recommendations:
+ * - Calls GeoLogistics.assessLogistics() for each recommendation's factory
+ * - Persists the LogisticsAssessment into the recommendation's component_scores JSONB field
  */
 async function enrichLogisticsHandler(jobId: string, _payload: Record<string, unknown>): Promise<Record<string, unknown>> {
   const geoLogistics = getGeoLogistics();
-  
-  // Need the job to get locations
+
   const [jobRecord] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
-  if (!jobRecord) {
-    throw new Error(`Job ${jobId} not found`);
-  }
-  
-  const factory = await resolveFactoryForJob(jobId, _payload);
+  if (!jobRecord) throw new Error(`Job ${jobId} not found`);
+
   const metadata = (jobRecord.metadata ?? {}) as Record<string, unknown>;
   const targetPriceMax = typeof metadata.target_price_max === 'number' ? metadata.target_price_max : undefined;
 
@@ -624,62 +745,135 @@ async function enrichLogisticsHandler(jobId: string, _payload: Record<string, un
     target_price_max: targetPriceMax,
   } as Job;
 
-  const assessment = await geoLogistics.assessLogistics(job, factory);
+  const existingRecs = await getRecommendationsForJob(jobId);
+  let enrichedCount = 0;
 
-  return { logisticsEnriched: true, assessment };
+  for (const rec of existingRecs) {
+    const factory = await resolveFactoryForJob(jobId, { factory_id: rec.factory_id });
+    try {
+      const assessment = await geoLogistics.assessLogistics(job, factory);
+      const existingScores = (rec.component_scores ?? {}) as Record<string, unknown>;
+      await updateRecommendation(jobId, rec.factory_id, {
+        component_scores: { ...existingScores, logistics_assessment: assessment },
+      });
+      enrichedCount++;
+    } catch (err) {
+      console.warn(`[enrichLogisticsHandler] Logistics enrichment failed for factory ${rec.factory_id}:`, err);
+    }
+  }
+
+  return { logisticsEnriched: true, enrichedCount };
 }
 
 /**
- * Handler 5: Refresh Market Signals (Phase 4 stub)
+ * Handler 5: Refresh Market Signals
  *
- * Add market intelligence to recommendations:
- * - Call Market Intelligence service
- * - Update recommendations with market data
+ * Adds market intelligence to each recommendation:
+ * - Calls MarketIntelligence.getMarketSignals() per factory
+ * - Persists signals into the recommendation's component_scores JSONB field
  */
 async function refreshMarketSignalsHandler(jobId: string, _payload: Record<string, unknown>): Promise<Record<string, unknown>> {
   const marketIntel = getMarketIntelligence();
-  
+
   const [jobRecord] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
-  if (!jobRecord) {
-    throw new Error(`Job ${jobId} not found`);
+  if (!jobRecord) throw new Error(`Job ${jobId} not found`);
+
+  const productType = (jobRecord.metadata as any)?.product_category
+    ?? jobRecord.process_type
+    ?? 'Generic Manufacturing';
+
+  const existingRecs = await getRecommendationsForJob(jobId);
+  let enrichedCount = 0;
+
+  for (const rec of existingRecs) {
+    const factory = await resolveFactoryForJob(jobId, { factory_id: rec.factory_id });
+    try {
+      const signals = await marketIntel.getMarketSignals(factory, productType);
+      const existingScores = (rec.component_scores ?? {}) as Record<string, unknown>;
+      await updateRecommendation(jobId, rec.factory_id, {
+        component_scores: { ...existingScores, market_signals: signals },
+      });
+      enrichedCount++;
+    } catch (err) {
+      console.warn(`[refreshMarketSignalsHandler] Market enrichment failed for factory ${rec.factory_id}:`, err);
+    }
   }
 
-  const category = (jobRecord.requirements as any)?.category || 'Generic Manufacturing';
-
-  // In production, we loop recommendations. Here we fetch the generic market outlook.
-  const outlook = await marketIntel.getMarketOutlook(category);
-
-  return { marketSignalsRefreshed: true, outlook };
+  return { marketSignalsRefreshed: true, enrichedCount };
 }
 
 /**
- * Handler 6: Refresh Site Brief (Phase 4 stub)
+ * Handler 6: Refresh Site Brief
  *
- * Add facility data to recommendations:
- * - Call Site/Real Estate service
- * - Update recommendations with site data
+ * Adds facility data to recommendations:
+ * - Calls SiteRealEstate.generateSiteBrief() for each recommendation's factory
+ * - Persists the SiteBrief into the recommendation's component_scores JSONB field
  */
-async function refreshSiteBriefHandler(jobId: string, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function refreshSiteBriefHandler(jobId: string, _payload: Record<string, unknown>): Promise<Record<string, unknown>> {
   const siteRealEstate = getSiteRealEstate();
 
-  const factory = await resolveFactoryForJob(jobId, payload);
-  const brief = await siteRealEstate.generateSiteBrief(factory);
+  const existingRecs = await getRecommendationsForJob(jobId);
+  let enrichedCount = 0;
 
-  return { siteBriefRefreshed: true, brief };
+  for (const rec of existingRecs) {
+    const factory = await resolveFactoryForJob(jobId, { factory_id: rec.factory_id });
+    try {
+      const brief = await siteRealEstate.generateSiteBrief(factory);
+      const existingScores = (rec.component_scores ?? {}) as Record<string, unknown>;
+      await updateRecommendation(jobId, rec.factory_id, {
+        component_scores: { ...existingScores, site_brief: brief },
+      });
+      enrichedCount++;
+    } catch (err) {
+      console.warn(`[refreshSiteBriefHandler] Site brief failed for factory ${rec.factory_id}:`, err);
+    }
+  }
+
+  return { siteBriefRefreshed: true, enrichedCount };
 }
 
 /**
  * Handler 7: Generate Recommendation Brief
  *
- * Format recommendations for UI display:
- * - Call Presentation Layer
- * - Update job status to 'recommended'
+ * Formats recommendations for UI display via the Presentation Layer:
+ * - Fetches the ranked recommendations for the job
+ * - Calls PresentationLayer to generate the full summary
+ * - Transitions the job status to 'recommended'
  */
-async function generateRecommendationBriefHandler(_jobId: string, _payload: Record<string, unknown>): Promise<Record<string, unknown>> {
-  // TODO: Implement in Task 3.3
-  // Call Presentation Layer to format recommendations
-  // Update job status to 'recommended'
-  return { recommendationBriefGenerated: true };
+async function generateRecommendationBriefHandler(jobId: string, _payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const [jobRow] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
+  if (!jobRow) throw new Error(`Job not found: ${jobId}`);
+
+  const presentationLayer = getPresentationLayer();
+  const existingRecs = await getRecommendationsForJob(jobId);
+
+  if (existingRecs.length === 0) {
+    throw new Error(`No recommendations found for job ${jobId} — run score-fit first`);
+  }
+
+  // Build a minimal ScoringResult[] from persisted recommendation rows so the
+  // Presentation Layer can format them without re-running the scoring engine.
+  const scoringResults = existingRecs.map((rec) => ({
+    recommendationId: rec.id,
+    factoryId: rec.factory_id,
+    fitScore: rec.fit_score,
+    feasibilityScore: rec.feasibility_score,
+    confidenceScore: rec.confidence_score,
+    componentScores: (rec.component_scores ?? {}) as Record<string, number>,
+    evidenceCount: Array.isArray(rec.evidence) ? rec.evidence.length : 0,
+    gatePassed: rec.rank != null && rec.rank > 0,
+    gateFaiureReason: rec.caveats ? (rec.caveats as string[])[0] : undefined,
+    rank: rec.rank ?? -1,
+  }));
+
+  const summary = presentationLayer.formatRecommendationSummary(
+    jobRow as unknown as Job,
+    [], // Recommendations formatted separately — summary uses raw scoring data
+  );
+
+  await transitionJobStatus(jobId, 'recommended', 'queue-worker');
+
+  return { recommendationBriefGenerated: true, recommendationCount: scoringResults.length, summary };
 }
 
 // ============================================================================

@@ -61,7 +61,7 @@ describe('GeoLogistics Service', () => {
   describe('estimateLeadTime', () => {
     it('calculates correct short lead time for domestic road', () => {
       const assessment: LogisticsAssessment = {
-        distance_km: 100, // 100 / 10 = 10 days
+        distance_km: 100,
         estimated_lead_days: 0,
         transport_modes: ['road'],
         primary_mode: 'road',
@@ -72,16 +72,16 @@ describe('GeoLogistics Service', () => {
         feasibility_confidence: 90,
       };
 
-      // 100 distance / 10km/day = 10 days
+      // 100 distance / 300 km/day = ceil(0.33) = 1 day travel
       // Factory processing = +5 days
-      // Total = 15 days
+      // Total = 6 days
       const leadTime = service.estimateLeadTime(assessment);
-      expect(leadTime).toBe(15);
+      expect(leadTime).toBe(6);
     });
 
     it('adds customs processing for border crossings', () => {
       const assessment: LogisticsAssessment = {
-        distance_km: 200, // 200 / 20 = 10 days
+        distance_km: 200,
         estimated_lead_days: 0,
         transport_modes: ['rail'],
         primary_mode: 'rail',
@@ -92,9 +92,10 @@ describe('GeoLogistics Service', () => {
         feasibility_confidence: 90,
       };
 
-      // 10 days travel + 3 days customs + 5 days factory = 18 days
+      // 200km / 100km/day = ceil(2) = 2 days travel
+      // 3 days customs + 5 days factory = 10 days total
       const leadTime = service.estimateLeadTime(assessment);
-      expect(leadTime).toBe(18);
+      expect(leadTime).toBe(10);
     });
 
     it('returns fast delivery for air transport', () => {

@@ -1,6 +1,6 @@
 # DFN Main Repo Integration
 
-**Security reference:** See [DFN_SECURITY.md](DFN_SECURITY.md) for the full auth, multi-tenancy, and cross-product security model.
+**Security reference:** See [DFN_SECURITY.md](DFN_SECURITY.md) for the full auth, multi-tenancy, and cross-product security model, and [DFN_IDP_DESIGN.md](DFN_IDP_DESIGN.md) for the platform IdP configuration specification.
 
 ---
 

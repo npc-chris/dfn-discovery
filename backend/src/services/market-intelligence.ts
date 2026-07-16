@@ -192,31 +192,60 @@ export class MarketIntelligence {
   }
 
   /**
-   * Get market outlook and trend information for presentation.
-   * Used to inform user about market conditions affecting recommendation.
+   * Get market outlook and trend information for a product type.
+   * Used to inform the user about market conditions affecting the recommendation.
+   *
+   * Data sources (priority order):
+   *   1. Redis cache — 24h TTL keyed by product type
+   *   2. getMarketSignals() — derives trend from World Bank + Comtrade data
+   *
+   * Throws if market data is unavailable from all sources (same contract as
+   * getMarketSignals — callers must handle absence explicitly).
    *
    * @param productType - Product category
-   * @returns Trend description and confidence
-   *
-   * TODO: Provide natural language summary of market conditions
-   * TODO: Highlight risks (declining demand, oversupply)
-   * TODO: Identify opportunities (rising demand, price stability)
+   * @returns Natural-language market outlook and confidence level
+   * @throws Error if market data is unavailable
    */
   async getMarketOutlook(productType: string): Promise<{ outlook: string; confidence: number }> {
-    const productHash = productType.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const isPositive = productHash % 2 === 0;
+    const redis = getRedisClient() as any;
+    const outlookCacheKey = `market:outlook:${productType}`;
 
-    let outlook = '';
-    if (isPositive) {
-      outlook = `The market outlook for ${productType} is generally positive with rising demand and stable pricing projected for the next 2 quarters. We see growth opportunities primarily due to domestic supply chain shifts.`;
-    } else {
-      outlook = `Demand for ${productType} shows a slight cooling trend. While market saturation is a risk, stable mid-market producers with long-term contracts remain insulated.`;
+    if (redis?.isOpen) {
+      const cached = await redis.get(outlookCacheKey);
+      if (cached) {
+        return JSON.parse(cached) as { outlook: string; confidence: number };
+      }
     }
 
-    return {
-      outlook,
-      confidence: 65 + (productHash % 30),
-    };
+    // Derive trend from a representative factory (use a sentinel ID for aggregate queries).
+    // getMarketSignals will throw if data is unavailable — we propagate that error rather
+    // than returning invented outlook text.
+    const signals = await this.getMarketSignals({ id: '__aggregate__' } as any, productType);
+
+    const trendLabel =
+      signals.product_demand_trend === 'increasing'
+        ? 'growing'
+        : signals.product_demand_trend === 'decreasing'
+          ? 'cooling'
+          : 'stable';
+
+    const outlook = [
+      `The ${productType} market is currently ${trendLabel} based on Nigeria trade flow data (UN Comtrade) and manufacturing value-added indicators (World Bank).`,
+      signals.product_demand_trend === 'increasing'
+        ? 'Rising demand and stable pricing are projected for the next two quarters, driven by domestic supply chain shifts.'
+        : signals.product_demand_trend === 'decreasing'
+          ? 'Demand shows a softening trend. Producers with long-term contracts and diversified process capabilities remain most resilient.'
+          : 'Market conditions are broadly stable. Price volatility risk is moderate; monitor trade flow data quarterly.',
+      `Estimated annual market size: ₦${(signals.estimated_market_size_annual_ngn / 1_000_000_000).toFixed(1)}B.`,
+    ].join(' ');
+
+    const result = { outlook, confidence: signals.demand_confidence };
+
+    if (redis?.isOpen) {
+      await redis.setEx(outlookCacheKey, 86_400, JSON.stringify(result)); // 24h TTL
+    }
+
+    return result;
   }
 }
 

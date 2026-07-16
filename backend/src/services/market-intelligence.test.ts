@@ -95,11 +95,30 @@ describe('MarketIntelligence Service', () => {
   });
 
   describe('getMarketOutlook', () => {
-    it('returns a natural language outlook string', async () => {
-      const outlook = await service.getMarketOutlook('Plastics');
-      expect(outlook.outlook).toBeTypeOf('string');
-      expect(outlook.outlook.length).toBeGreaterThan(10);
-      expect(outlook.confidence).toBeGreaterThan(0);
+    // Test-only helper: the deterministic hash-based outlook that was previously
+    // baked into the production code. Preserved here for regression testing of
+    // the expected shape, NOT for use in production logic.
+    function deterministicMockOutlook(productType: string): { outlook: string; confidence: number } {
+      const productHash = productType.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const isPositive = productHash % 2 === 0;
+      const outlook = isPositive
+        ? `The market outlook for ${productType} is generally positive with rising demand and stable pricing projected for the next 2 quarters. We see growth opportunities primarily due to domestic supply chain shifts.`
+        : `Demand for ${productType} shows a slight cooling trend. While market saturation is a risk, stable mid-market producers with long-term contracts remain insulated.`;
+      return { outlook, confidence: 65 + (productHash % 30) };
+    }
+
+    it('mock helper produces a deterministic outlook string (test-only)', () => {
+      const result = deterministicMockOutlook('Plastics');
+      expect(result.outlook).toBeTypeOf('string');
+      expect(result.outlook.length).toBeGreaterThan(10);
+      expect(result.confidence).toBeGreaterThanOrEqual(65);
+      expect(result.confidence).toBeLessThanOrEqual(94);
+    });
+
+    it('real getMarketOutlook throws when market data is unavailable', async () => {
+      delete process.env.COMTRADE_API_KEY;
+      mockFetch.mockRejectedValueOnce(new Error('network down'));
+      await expect(service.getMarketOutlook('Plastics')).rejects.toThrow();
     });
   });
 });
