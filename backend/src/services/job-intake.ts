@@ -73,7 +73,7 @@ export async function createJob(input: JobInput): Promise<Job> {
     })
     .returning();
 
-  return createdJob as Job;
+  return createdJob as unknown as Job;
 }
 
 export async function submitJob(jobId: string): Promise<Job> {
@@ -110,7 +110,7 @@ export async function submitJob(jobId: string): Promise<Job> {
 export async function getJob(jobId: string): Promise<Job | null> {
   try {
     const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId as any)).limit(1);
-    return (job as Job) || null;
+    return (job as unknown as Job) || null;
   } catch {
     return null;
   }
@@ -137,7 +137,7 @@ export async function updateJobStatus(jobId: string, status: JobStatus): Promise
     .where(eq(jobs.id, jobId))
     .returning();
 
-  return updatedJob as Job;
+  return updatedJob as unknown as Job;
 }
 
 // ============================================================================
@@ -256,7 +256,7 @@ export async function transitionJobStatus(
     .where(eq(jobs.id, jobId))
     .returning();
 
-  return updatedJob as Job;
+  return updatedJob as unknown as Job;
 }
 
 /**

@@ -7,7 +7,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { getPresentationLayer } from '../services/presentation-layer';
 import { getRecommendationsForJob, getFactoriesByIds, getJobById } from '../db/queries';
 
-const router = Router();
+const router: Router = Router();
 
 // ---------------------------------------------------------------------------
 // Route Handler Implementations (Exported for testability)

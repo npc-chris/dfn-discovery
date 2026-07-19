@@ -19,12 +19,12 @@
  *   GET /api/v1/analytics/gaps                   — top-level national gap analysis
  */
 
-import express, { Request, Response } from 'express';
+import express, { Request, Response, Express } from 'express';
 import { sql } from 'drizzle-orm';
 import { db } from '../db/client';
 import { jobs, factories, recommendations } from '../db/schema';
 
-const analyticsApp = express();
+const analyticsApp: Express = express();
 analyticsApp.use(express.json());
 
 // ---------------------------------------------------------------------------

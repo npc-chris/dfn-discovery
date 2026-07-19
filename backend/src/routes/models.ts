@@ -1,7 +1,7 @@
 // Model discovery API routes
 // Public endpoint for querying available AI models and providers
 
-import express from 'express';
+import { Router } from 'express';
 import {
   discoverModels,
   discoverModelById,
@@ -10,10 +10,10 @@ import {
   getDefaultModel,
 } from '../services/ai-providers/model-discovery';
 
-const router = express.Router();
+const router: Router = Router();
 
 // List all available providers
-router.get('/providers', async (req, res) => {
+router.get('/providers', async (_req, res) => {
   try {
     const providers = await listProviders();
     res.json({ providers });

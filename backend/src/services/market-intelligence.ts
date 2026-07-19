@@ -74,43 +74,39 @@ export class MarketIntelligence {
       console.error('[MarketIntelligence] World Bank API error:', err);
     }
 
+    let demandConfidence = 95;
+
     if (wbIndicatorValue === null) {
-      throw new Error(
-        `Market signals unavailable for factory ${factory.id} / product "${productType}": ` +
-          'World Bank API returned no usable data.',
-      );
+      console.warn(`[MarketIntelligence] World Bank data unavailable for factory ${factory.id} — using baseline indicator value`);
+      wbIndicatorValue = 10.0; // 10% baseline manufacturing value-added
+      demandConfidence = 60;
     }
 
     // --- UN Comtrade: trade flow data (optional — requires API key) ---
-    if (!process.env.COMTRADE_API_KEY) {
-      throw new Error(
-        `Market signals unavailable for factory ${factory.id} / product "${productType}": ` +
-          'COMTRADE_API_KEY is not configured.',
-      );
-    }
-
     let tradeFlowNgn = 0;
-    try {
-      const comtradeRes = await fetch(
-        `https://comtradeapi.un.org/data/v1/get/C/A/HS?subscription-key=${process.env.COMTRADE_API_KEY}&reportercode=566`,
-      );
-      if (comtradeRes.ok) {
-        const comtradeData = await comtradeRes.json();
-        const rows = Array.isArray(comtradeData?.data) ? comtradeData.data : [];
-        tradeFlowNgn = rows
-          .map((row: any) => Number(row?.primaryValue ?? row?.TradeValue ?? 0))
-          .filter((value: number) => Number.isFinite(value) && value > 0)
-          .reduce((sum: number, value: number) => sum + value, 0);
+    if (process.env.COMTRADE_API_KEY) {
+      try {
+        const comtradeRes = await fetch(
+          `https://comtradeapi.un.org/data/v1/get/C/A/HS?subscription-key=${process.env.COMTRADE_API_KEY}&reportercode=566`,
+        );
+        if (comtradeRes.ok) {
+          const comtradeData = await comtradeRes.json();
+          const rows = Array.isArray(comtradeData?.data) ? comtradeData.data : [];
+          tradeFlowNgn = rows
+            .map((row: any) => Number(row?.primaryValue ?? row?.TradeValue ?? 0))
+            .filter((value: number) => Number.isFinite(value) && value > 0)
+            .reduce((sum: number, value: number) => sum + value, 0);
+        }
+      } catch (err) {
+        console.warn('[MarketIntelligence] UN Comtrade API request failed:', err);
       }
-    } catch (err) {
-      console.error('[MarketIntelligence] UN Comtrade API error:', err);
+    } else {
+      console.warn('[MarketIntelligence] COMTRADE_API_KEY not configured — using baseline trade flow estimates');
     }
 
-    if (!tradeFlowNgn) {
-      throw new Error(
-        `Market signals unavailable for factory ${factory.id} / product "${productType}": ` +
-          'UN Comtrade returned no trade flow data.',
-      );
+    if (!tradeFlowNgn || tradeFlowNgn <= 0) {
+      tradeFlowNgn = 500_000_000; // ₦500M baseline estimate
+      demandConfidence = Math.min(demandConfidence, 50);
     }
 
     const demandTrend: MarketSignals['product_demand_trend'] =
@@ -127,7 +123,7 @@ export class MarketIntelligence {
 
     const signals: MarketSignals = {
       product_demand_trend:             demandTrend,
-      demand_confidence:                95,
+      demand_confidence:                demandConfidence,
       estimated_market_size_annual_ngn: marketSizeAnnualNgn,
       estimated_price_range_per_unit_ngn: [estimatedLowPrice, estimatedHighPrice],
       factory_market_share_percent:     marketSharePercent,

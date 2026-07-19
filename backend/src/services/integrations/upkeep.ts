@@ -8,35 +8,41 @@ export class UpKeepIntegration implements AssetManagerInterface {
   private baseUrl = 'https://api.onupkeep.com/api/v2';
 
   constructor() {
-    const apiKey = process.env.UPKEEP_API_KEY;
-    if (!apiKey) {
-      throw new Error('UPKEEP_API_KEY is required');
-    }
-
-    this.apiKey = apiKey;
+    this.apiKey = process.env.UPKEEP_API_KEY || '';
   }
 
   private async fetchUpKeep(endpoint: string, options: RequestInit = {}) {
-    const res = await fetch(`${this.baseUrl}${endpoint}`, {
-      ...options,
-      headers: {
-        'Session-Token': this.apiKey,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-
-    if (!res.ok) {
-        throw new Error(`UpKeep API error: ${res.statusText}`);
+    if (!this.apiKey) {
+      return { results: [], data: {} };
     }
-    
-    return res.json();
+
+    try {
+      const res = await fetch(`${this.baseUrl}${endpoint}`, {
+        ...options,
+        headers: {
+          'Session-Token': this.apiKey,
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
+
+      if (!res.ok) {
+        console.warn(`UpKeep API error ${res.status}: ${res.statusText}`);
+        return { results: [], data: {} };
+      }
+
+      return res.json();
+    } catch (err) {
+      console.warn('[UpKeepIntegration] API request failed:', err);
+      return { results: [], data: {} };
+    }
   }
 
   async getAssets(locationId: string): Promise<Asset[]> {
     const data = await this.fetchUpKeep(`/assets?location=${locationId}`);
+    const results = Array.isArray(data?.results) ? data.results : [];
 
-    return data.results.map((a: any) => ({
+    return results.map((a: any) => ({
       id: a.id,
       name: a.name,
       category: a.category,
@@ -49,8 +55,9 @@ export class UpKeepIntegration implements AssetManagerInterface {
 
   async getWorkOrders(locationId: string): Promise<WorkOrder[]> {
     const data = await this.fetchUpKeep(`/work-orders?location=${locationId}`);
+    const results = Array.isArray(data?.results) ? data.results : [];
 
-    return data.results.map((wo: any) => ({
+    return results.map((wo: any) => ({
       id: wo.id,
       title: wo.title,
       status: wo.status,

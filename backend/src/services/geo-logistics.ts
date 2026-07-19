@@ -30,6 +30,92 @@ export interface LogisticsAssessment {
   feasibility_confidence: number; // 0-100
 }
 
+const NIGERIA_LGA_COORDINATES: Record<string, LatLng> = {
+  // Lagos LGAs
+  'ikeja': { lat: 6.6018, lng: 3.3515 },
+  'eti-osa': { lat: 6.4584, lng: 3.6015 },
+  'lagos mainland': { lat: 6.5000, lng: 3.3800 },
+  'alimosho': { lat: 6.6167, lng: 3.2500 },
+  'ikorodu': { lat: 6.6167, lng: 3.5000 },
+  'oshodi-isolo': { lat: 6.5333, lng: 3.3167 },
+  'apapa': { lat: 6.4500, lng: 3.3667 },
+  'surulere': { lat: 6.5000, lng: 3.3500 },
+  'epe': { lat: 6.5833, lng: 3.9833 },
+  'badagry': { lat: 6.4167, lng: 2.8833 },
+  
+  // Kano LGAs
+  'kano municipal': { lat: 12.0022, lng: 8.5920 },
+  'dala': { lat: 12.0167, lng: 8.5167 },
+  'fagge': { lat: 12.0100, lng: 8.5300 },
+  'gwale': { lat: 11.9833, lng: 8.4833 },
+  'nassarawa': { lat: 12.0000, lng: 8.5500 },
+  
+  // FCT / Abuja LGAs
+  'abuja municipal': { lat: 9.0765, lng: 7.3986 },
+  'amac': { lat: 9.0765, lng: 7.3986 },
+  'bwari': { lat: 9.2833, lng: 7.3833 },
+  'gwagwalada': { lat: 8.9500, lng: 7.0833 },
+  
+  // Oyo / Ibadan LGAs
+  'ibadan north': { lat: 7.4167, lng: 3.9000 },
+  'ibadan south-west': { lat: 7.3667, lng: 3.8667 },
+  'oluyole': { lat: 7.2833, lng: 3.8667 },
+  
+  // Rivers / Port Harcourt LGAs
+  'port harcourt': { lat: 4.8156, lng: 7.0498 },
+  'obio-akpor': { lat: 4.8500, lng: 7.0000 },
+  
+  // Enugu LGAs
+  'enugu north': { lat: 6.4584, lng: 7.5464 },
+  'enugu south': { lat: 6.4167, lng: 7.5000 },
+  
+  // Kaduna LGAs
+  'kaduna north': { lat: 10.5333, lng: 7.4333 },
+  'kaduna south': { lat: 10.4833, lng: 7.4167 },
+  
+  // Anambra LGAs
+  'onitsha north': { lat: 6.1557, lng: 6.9855 },
+  'onitsha south': { lat: 6.1333, lng: 6.7833 },
+  'nnewi north': { lat: 6.0167, lng: 6.9167 },
+  
+  // Abia LGAs
+  'aba north': { lat: 5.1333, lng: 7.3667 },
+  'aba south': { lat: 5.1066, lng: 7.3667 },
+  
+  // Edo / Benin LGAs
+  'oredo': { lat: 6.3350, lng: 5.6037 },
+  'ikpoba-okha': { lat: 6.3167, lng: 5.6500 },
+  'egor': { lat: 6.3667, lng: 5.6000 },
+  
+  // Plateau / Jos LGAs
+  'jos north': { lat: 9.9167, lng: 8.8833 },
+  'jos south': { lat: 9.7500, lng: 8.8667 },
+  
+  // Ogun LGAs
+  'abeokuta south': { lat: 7.1557, lng: 3.3458 },
+  'ado-odo/ota': { lat: 6.6833, lng: 3.2333 },
+  'sagamu': { lat: 6.8333, lng: 3.6500 },
+};
+
+function lookupLgaCoordinates(location?: any): LatLng {
+  if (!location) {
+    throw new Error('Location is required to resolve coordinates');
+  }
+
+  if (typeof location.latitude === 'number' && typeof location.longitude === 'number') {
+    return { lat: location.latitude, lng: location.longitude };
+  }
+
+  if (location.lga && typeof location.lga === 'string') {
+    const lgaKey = location.lga.toLowerCase().trim();
+    if (NIGERIA_LGA_COORDINATES[lgaKey]) {
+      return NIGERIA_LGA_COORDINATES[lgaKey];
+    }
+  }
+
+  throw new Error(`Location missing valid lat/lng and unrecognized LGA: "${location.lga || 'undefined'}"`);
+}
+
 export class GeoLogistics {
   private buildAssessmentFromDistance(distanceKm: number, feasibilityConfidence: number): LogisticsAssessment {
     const normalizedDistanceKm = Math.max(1, distanceKm);
@@ -57,28 +143,12 @@ export class GeoLogistics {
 
   private resolveJobCoordinates(job: Job): LatLng {
     const location = job.delivery_location ?? job.location;
-
-    if (location.latitude == null || location.longitude == null) {
-      throw new Error(`Missing job coordinates for ${job.id}`);
-    }
-
-    return {
-      lat: location.latitude,
-      lng: location.longitude,
-    };
+    return lookupLgaCoordinates(location);
   }
 
   private resolveFactoryCoordinates(factory: Factory): LatLng {
     const location = factory.location ?? factory.locations?.[0];
-
-    if (!location || location.latitude == null || location.longitude == null) {
-      throw new Error(`Missing factory coordinates for ${factory.id}`);
-    }
-
-    return {
-      lat: location.latitude,
-      lng: location.longitude,
-    };
+    return lookupLgaCoordinates(location);
   }
 
   /**

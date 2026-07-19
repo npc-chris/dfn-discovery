@@ -9,7 +9,7 @@
  * - Task 3.6: Webhooks
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   enqueueJob,
   getQueueJobStatus,

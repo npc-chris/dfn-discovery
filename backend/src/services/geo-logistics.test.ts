@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getGeoLogistics, GeoLogistics, LogisticsAssessment } from './geo-logistics';
+import { GeoLogistics, LogisticsAssessment } from './geo-logistics';
 import type { Job, Factory } from '@dfn/shared/types';
 import { getRedisClient } from './redis-client';
 

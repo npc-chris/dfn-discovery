@@ -7,7 +7,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { createAIAnalysisWorkers } from '../services/ai-analysis-workers';
 import { AppError } from '../middleware/error';
 
-const router = Router();
+const router: Router = Router();
 
 const AI_PROVIDER = process.env.AI_PROVIDER as 'openai' | 'anthropic' | 'google' | undefined;
 const AI_MODEL = process.env.AI_MODEL;

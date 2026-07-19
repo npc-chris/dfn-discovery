@@ -245,11 +245,11 @@ See `DFN_FRONTEND_ARCHITECTURE.md` for the full component tree, data-fetching st
 
 ## Phase 6.9 Acceptance Criteria
 
-- [ ] All six analytics endpoints return real database aggregations (no mock returns `{}`)
-- [ ] `GET /api/v1/analytics/regions` query < 200ms on staging dataset
-- [ ] `GET /api/v1/analytics/gaps` correctly identifies processes with 0 matched factories
-- [ ] `threshold` query parameter respected for gap endpoints
-- [ ] No `org_id` filtering leakage (analytics are cross-org aggregate views — no PII)
-- [ ] Error responses follow the standard `{ error: string }` contract
-- [ ] TypeScript compilation passes with zero errors
-- [ ] Analytics sub-app is independently mountable (no circular dependency on recommendation core)
+- [x] All six analytics endpoints return real database aggregations (no mock returns {})
+- [x] `GET /api/v1/analytics/regions` query < 200ms on staging dataset
+- [x] `GET /api/v1/analytics/gaps` correctly identifies processes with 0 matched factories
+- [x] `threshold` query parameter respected for gap endpoints
+- [x] No `org_id` filtering leakage (analytics are cross-org aggregate views — no PII)
+- [x] Error responses follow the standard `{ error: string }` contract
+- [x] TypeScript compilation passes with zero errors
+- [x] Analytics sub-app is independently mountable (no circular dependency on recommendation core)

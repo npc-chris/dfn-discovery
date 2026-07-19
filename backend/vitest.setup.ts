@@ -76,6 +76,7 @@ export async function initializeTestDatabase() {
     await testPool.query(`
       CREATE TABLE batch_manifests (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id TEXT,
         status TEXT NOT NULL DEFAULT 'pending',
         idempotency_key TEXT UNIQUE,
         metadata JSONB,
@@ -87,6 +88,8 @@ export async function initializeTestDatabase() {
     await testPool.query(`
       CREATE TABLE jobs (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id TEXT,
+        created_by TEXT,
         batch_id UUID REFERENCES batch_manifests(id),
         company_name TEXT NOT NULL,
         product_name TEXT NOT NULL,
@@ -105,6 +108,7 @@ export async function initializeTestDatabase() {
     await testPool.query(`
       CREATE TABLE factories (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id TEXT,
         factory_name TEXT NOT NULL,
         capabilities JSONB NOT NULL,
         materials JSONB NOT NULL,
@@ -123,9 +127,11 @@ export async function initializeTestDatabase() {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         job_id UUID NOT NULL REFERENCES jobs(id),
         factory_id UUID NOT NULL REFERENCES factories(id),
+        org_id TEXT,
         fit_score INTEGER NOT NULL,
         feasibility_score INTEGER NOT NULL,
         confidence_score INTEGER NOT NULL,
+        component_scores JSONB,
         rank INTEGER,
         evidence JSONB NOT NULL,
         caveats JSONB,
@@ -154,6 +160,7 @@ export async function initializeTestDatabase() {
       CREATE TABLE attachments (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         job_id UUID NOT NULL REFERENCES jobs(id),
+        org_id TEXT,
         filename TEXT NOT NULL,
         mime_type TEXT NOT NULL,
         size_bytes INTEGER NOT NULL,

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getSiteRealEstate, SiteRealEstate, SiteBrief } from './site-realestate';
+import { SiteRealEstate, SiteBrief } from './site-realestate';
 import type { Factory } from '@dfn/shared/types';
 import { getRedisClient } from './redis-client';
 
@@ -100,11 +100,13 @@ describe('SiteRealEstate Service', () => {
       expect(brief.facility_size_sqft).toBeGreaterThanOrEqual(0);
     });
 
-    it('throws an error when provider credentials are missing', async () => {
+    it('degrades gracefully with baseline brief when provider credentials are missing', async () => {
       delete process.env.UPKEEP_API_KEY;
       delete process.env.SAFETYCULTURE_API_KEY;
 
-      await expect(service.generateSiteBrief(mockFactory)).rejects.toThrow();
+      const brief = await service.generateSiteBrief(mockFactory);
+      expect(brief.facility_id).toBe('factory-123');
+      expect(brief.site_visit_confidence).toBe(0);
     });
   });
 

@@ -1,7 +1,7 @@
-import express from 'express';
+import { Router } from 'express';
 import { createBatch, getBatchStatus, getBatchProgress, replayBatch } from '../services/batch-coordination';
 
-const router = express.Router();
+const router: Router = Router();
 
 /**
  * POST /batch

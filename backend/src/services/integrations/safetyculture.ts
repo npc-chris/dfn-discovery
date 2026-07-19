@@ -16,36 +16,41 @@ export class SafetyCultureIntegration {
   private baseUrl = 'https://api.safetyculture.io';
 
   constructor() {
-    const apiKey = process.env.SAFETYCULTURE_API_KEY;
-    if (!apiKey) {
-      throw new Error('SAFETYCULTURE_API_KEY is required');
-    }
-
-    this.apiKey = apiKey;
+    this.apiKey = process.env.SAFETYCULTURE_API_KEY || '';
   }
 
   private async fetchSC(endpoint: string, options: RequestInit = {}) {
-    const res = await fetch(`${this.baseUrl}${endpoint}`, {
-      ...options,
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-
-    if (!res.ok) {
-        throw new Error(`SafetyCulture API error: ${res.statusText}`);
+    if (!this.apiKey) {
+      return { audits: [] };
     }
-    
-    return res.json();
+
+    try {
+      const res = await fetch(`${this.baseUrl}${endpoint}`, {
+        ...options,
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
+
+      if (!res.ok) {
+        console.warn(`SafetyCulture API error ${res.status}: ${res.statusText}`);
+        return { audits: [] };
+      }
+
+      return res.json();
+    } catch (err) {
+      console.warn('[SafetyCultureIntegration] API request failed:', err);
+      return { audits: [] };
+    }
   }
 
   async getInspections(siteId: string): Promise<Inspection[]> {
-    // Note: safetyculture's API usually requires searching across inspections with a site tag or filter
     const data = await this.fetchSC(`/audits/search?site_id=${siteId}`);
+    const audits = Array.isArray(data?.audits) ? data.audits : [];
 
-    return data.audits
+    return audits
       .map((a: any) => ({
         id: String(a.audit_id ?? ''),
         templateId: String(a.template_id ?? ''),

@@ -17,6 +17,8 @@ import { createHash } from 'crypto';
 import type { Job, Factory, EvidenceItem } from '@dfn/shared';
 import { SCORING_WEIGHTS, CONFIDENCE_PENALTY_FACTOR, RECOMMENDATION_GATE_RULES } from '@dfn/shared/constants/scoring';
 import { getRedisConnection } from './redis-client.ts';
+import { getGeoLogistics } from './geo-logistics.ts';
+import { getMarketIntelligence } from './market-intelligence.ts';
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -159,7 +161,7 @@ export class CoreIntelligence {
 
       for (const key of Object.keys(SCORING_WEIGHTS) as Array<keyof typeof SCORING_WEIGHTS>) {
         const scoringKey = key as keyof typeof SCORING_WEIGHTS;
-        const score = this.computeComponentScore(scoringKey, job, factory, factoryEvidence);
+        const score = await this.computeComponentScore(scoringKey, job, factory, factoryEvidence);
         if (score === -1) {
           missingCount += 1;
           componentScores[key as string] = 0;
@@ -213,16 +215,6 @@ export class CoreIntelligence {
    *
    * @param scoringResults - Unranked scoring results
    * @returns Ranked and filtered recommendations
-   *
-   * TODO: Sort by fit score (descending)
-   * TODO: Within same fit score, sort by confidence score
-   * TODO: Apply recommendation gate rules:
-   *   - At least 1 factory in results
-   *   - At least 1 evidence item per factory
-   *   - Confidence ≥30 for draft, ≥60 for final
-   * TODO: Assign rank 1, 2, 3, etc.
-   * TODO: Set gatePassed flag and failure reason if gate rules not met
-   * TODO: Return top N (configurable, default 5) recommendations
    */
   async rankRecommendations(scoringResults: ScoringResult[]): Promise<ScoringResult[]> {
     if (!Array.isArray(scoringResults) || scoringResults.length === 0) return [];
@@ -264,23 +256,10 @@ export class CoreIntelligence {
 
   /**
    * Compute a single component score (0-100).
-   * Used by scoreJob to evaluate one aspect of job-factory fit.
-   *
-   * @param component - Component type (processMatch, materialMatch, etc.)
-   * @param job - Job data
-   * @param factory - Factory data
-   * @returns Score 0-100
-   *
-   * TODO: Implement deterministic scoring for each component:
-   *   - ProcessMatch: compare job.process_type with factory.capabilities.processes
-   *   - MaterialMatch: compare job.material_type with factory.capabilities.materials
-   *   - CapacityMatch: compare job.volume_band with factory.capabilities.capacity_band
-   *   - GeographyAndLogistics: use distance scoring from Geo service (TODO: call)
-   *   - MarketAccess: use market intelligence from Market service (TODO: call)
-   *   - EvidenceConfidence: aggregate confidence of all evidence items
+   * Evaluates process match, material match, capacity match, logistics feasibility,
+   * market access signals, and evidence confidence.
    */
-  private computeComponentScore(component: keyof typeof SCORING_WEIGHTS, job: Job, factory: Factory, evidence: EvidenceItem[]): number {
-    // Return -1 to indicate missing data for this component
+  private async computeComponentScore(component: keyof typeof SCORING_WEIGHTS, job: Job, factory: Factory, evidence: EvidenceItem[]): Promise<number> {
     try {
       switch (component as string) {
         case 'process_match':
@@ -292,14 +271,27 @@ export class CoreIntelligence {
         case 'capacity_match':
           if (!job.volume_band || !factory.capacity_band) return -1;
           return job.volume_band === factory.capacity_band ? 100 : 50;
-        case 'geography_and_logistics':
-          if (!job.location || !factory.locations) return -1;
-          // Simple geography heuristic: same country -> 100, else 50
-          const sameCountry = factory.locations.some((location: { country: string }) => location.country === job.location.country);
-          return sameCountry ? 100 : 50;
-        case 'market_access':
-          // Market access heuristic: active factories score higher
-          return factory.active ? 80 : 20;
+        case 'geography_and_logistics': {
+          if (!job.location || !factory.locations || factory.locations.length === 0) return -1;
+          try {
+            const geoLogistics = getGeoLogistics();
+            const assessment = await geoLogistics.assessLogistics(job, factory);
+            return geoLogistics.computeLogisticsFeasibilityScore(job, assessment);
+          } catch {
+            const sameCountry = factory.locations.some((location: { country: string }) => location.country === job.location.country);
+            return sameCountry ? 100 : 50;
+          }
+        }
+        case 'market_access': {
+          try {
+            const marketIntel = getMarketIntelligence();
+            const productType = job.process_type || 'Generic Manufacturing';
+            const signals = await marketIntel.getMarketSignals(factory, productType);
+            return marketIntel.computeMarketAccessScore(signals);
+          } catch {
+            return factory.active ? 80 : 20;
+          }
+        }
         case 'evidence_confidence':
           if (!evidence || evidence.length === 0) return 0;
           const avg = evidence.reduce((s, e) => s + (e.confidence || 0), 0) / evidence.length;

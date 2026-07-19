@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getMarketIntelligence, MarketIntelligence, MarketSignals } from './market-intelligence';
+import { MarketIntelligence, MarketSignals } from './market-intelligence';
 import type { Factory } from '@dfn/shared/types';
 import { getRedisClient } from './redis-client';
 
@@ -50,12 +50,14 @@ describe('MarketIntelligence Service', () => {
     });
   });
 
-  it('throws an error when external sources are unavailable', async () => {
+  it('degrades gracefully with baseline signals when external sources are unavailable', async () => {
     delete process.env.COMTRADE_API_KEY;
     mockFetch.mockRejectedValueOnce(new Error('network down'));
 
     const mockFactory = { id: 'factory-fallback' } as Factory;
-    await expect(service.getMarketSignals(mockFactory, 'Textiles')).rejects.toThrow();
+    const signals = await service.getMarketSignals(mockFactory, 'Textiles');
+    expect(signals.demand_confidence).toBeLessThanOrEqual(50);
+    expect(signals.product_demand_trend).toBeDefined();
   });
 
   describe('computeMarketAccessScore', () => {
@@ -115,10 +117,12 @@ describe('MarketIntelligence Service', () => {
       expect(result.confidence).toBeLessThanOrEqual(94);
     });
 
-    it('real getMarketOutlook throws when market data is unavailable', async () => {
+    it('real getMarketOutlook degrades gracefully when market data is unavailable', async () => {
       delete process.env.COMTRADE_API_KEY;
       mockFetch.mockRejectedValueOnce(new Error('network down'));
-      await expect(service.getMarketOutlook('Plastics')).rejects.toThrow();
+      const result = await service.getMarketOutlook('Plastics');
+      expect(result.confidence).toBeLessThanOrEqual(50);
+      expect(result.outlook).toBeTypeOf('string');
     });
   });
 });

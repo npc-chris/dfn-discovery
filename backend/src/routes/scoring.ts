@@ -132,7 +132,7 @@ export async function getComponentAnalysis(
   };
 }
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * POST /scoring/score-job

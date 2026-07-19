@@ -22,7 +22,7 @@ import { Router, Request, Response } from 'express';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { enqueueJob } from '../workers/queue';
 
-const router = Router();
+const router: Router = Router();
 
 // ---------------------------------------------------------------------------
 // Helpers

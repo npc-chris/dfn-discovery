@@ -1,13 +1,13 @@
 // API Routes for Jobs
 // Public endpoints for job submission and retrieval
 
-import express from 'express';
+import express, { Router } from 'express';
 import * as jobIntake from '../services/job-intake';
 import { enqueueJob } from '../workers/queue';
 import { QueueJobType } from '../types/queue';
 import { AppError } from '../middleware/error';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Create a new job (draft)
 router.post('/', async (req, res, next) => {

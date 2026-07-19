@@ -40,12 +40,14 @@ export async function filterModels(options: ModelFilterOptions = {}): Promise<AI
   }
 
   if (options.minContextWindow != null) {
-    filtered = filtered.filter((m) => (m.contextWindow || 0) >= options.minContextWindow);
+    const minWin = options.minContextWindow;
+    filtered = filtered.filter((m) => (m.contextWindow || 0) >= minWin);
   }
 
   if (options.maxCostPer1kTokens != null) {
+    const maxCost = options.maxCostPer1kTokens;
     filtered = filtered.filter(
-      (m) => !m.costPer1kInputTokens || m.costPer1kInputTokens <= options.maxCostPer1kTokens,
+      (m) => !m.costPer1kInputTokens || m.costPer1kInputTokens <= maxCost,
     );
   }
 

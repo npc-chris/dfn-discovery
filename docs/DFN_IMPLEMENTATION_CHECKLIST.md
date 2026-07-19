@@ -1,7 +1,7 @@
 # DFN Discovery - Implementation Checklist
 
-**Status:** Phase 6 Complete ✅ - Ready for Phase 7 Security Hardening  
-**Last Updated:** July 4, 2026  
+**Status:** Phase 6 Complete ✅ - Phase 6.9 (Analytics) Completion & Freeze  
+**Last Updated:** July 19, 2026  
 
 ---
 
@@ -985,6 +985,47 @@
 
 ---
 
+## Phase 6.9: Analytics & Persona Gap Closure (Pre-Freeze)
+
+**Goal:** Close persona analytics gaps via separate Express sub-app (`/api/v1/analytics/*`) with real database aggregations.
+
+### Task 6.9.1: Express Sub-App & Endpoints Implementation
+
+- [x] Create `backend/src/routes/analytics.ts` Express sub-app
+- [x] Mount sub-app at `/api/v1/analytics` in `backend/src/index.ts`
+- [x] Implement `GET /api/v1/analytics/regions` (regional stats)
+- [x] Implement `GET /api/v1/analytics/regions/:regionId/processes` (regional process capabilities)
+- [x] Implement `GET /api/v1/analytics/regions/:regionId/gaps` (regional process gaps with threshold)
+- [x] Implement `GET /api/v1/analytics/clusters` (LGA & state cluster aggregation)
+- [x] Implement `GET /api/v1/analytics/process-coverage` (national process coverage map & strength ratings)
+- [x] Implement `GET /api/v1/analytics/gaps` (national process gaps with limit & threshold)
+
+### Task 6.9.2: Test Verification & Design Freeze
+
+- [x] Create unit & integration tests in `backend/src/routes/analytics.test.ts` and `analytics.integration.test.ts`
+- [x] Verify test suite passes with real DB aggregations and live PostgreSQL container
+- [x] Document Phase 6.9 acceptance in `docs/19-07-2026/DFN_DESIGN_FREEZE-19-07-2026-Phase6.9-Analytics-Acceptance.md`
+
+### Task 6.9.3: Discovery Gap Analysis Closure
+
+- [x] Connect `CoreIntelligence` scoring engine (`core-intelligence.ts`) to real `GeoLogistics` and `MarketIntelligence` enrichment services
+- [x] Implement strict LGA coordinate lookups in `geo-logistics.ts` with explicit error handling on missing/unrecognized LGAs
+- [x] Implement graceful third-party API key fallbacks in `market-intelligence.ts`, `upkeep.ts`, and `safetyculture.ts`
+- [x] Verify zero dead/stale worker stub files remain in codebase
+
+### Phase 6.9 Validation
+
+- [x] All 6 analytics endpoints return real database aggregations (no mock Returns `{}`)
+- [x] Query latency < 200ms
+- [x] Gap identification correctly handles processes with 0 matched factories (`critical` severity)
+- [x] `threshold` and `limit` query parameters respected
+- [x] Error responses follow `{ error: string }` contract
+- [x] TypeScript compilation passes with zero errors (`corepack pnpm run type-check`)
+
+**Acceptance:** Manufacturing market intelligence, process gap aggregations, and core scoring pipeline fully verified and frozen.
+
+---
+
 ## Phase 7: Security Hardening (Week 6)
 
 **Goal:** Implement auth middleware, org-level data isolation, quota enforcement, and the hardening checklist from [DFN_SECURITY.md](DFN_SECURITY.md) before any public-facing deployment.
@@ -1513,7 +1554,8 @@
 | 3: Queue | Week 2 | Async processing, workers | ✅ DONE |
 | 4: Enrichment | Week 3 | Geo, market, site services | ✅ DONE |
 | 5: Batch Coordination | Week 4 | Bulk orchestration, aggregation | ✅ DONE |
-| 6: Presentation | Week 5 | Formatting, reports | 🔄 |
+| 6: Presentation | Week 5 | Formatting, reports | ✅ DONE |
+| 6.9: Analytics | Pre-Freeze | Persona gap closure, 6 endpoints & engine integration | ✅ DONE |
 | 7: Security Hardening | Week 6 | Auth, org isolation, hardening | 🔄 |
 | 8: Frontend | Week 7 | UI components, pages | 🔄 |
 | 9: Testing & Polish | Week 8 | Tests, errors, deploy | 🔄 |
@@ -1537,5 +1579,5 @@
 ---
 
 **Created:** May 8, 2026  
-**Last Updated:** June 27, 2026  
-**Status:** Phase 5 Complete - Ready for Phase 6 Presentation Layer
+**Last Updated:** July 19, 2026  
+**Status:** Phase 6.9 Complete ✅ - Design Freeze Accepted & Gap Analysis Closed

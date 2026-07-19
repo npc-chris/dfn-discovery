@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { db } from '../db/client';
-import { batch_manifests, jobs, job_queue } from '../db/schema';
+import { jobs, job_queue } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { createBatch, getBatchStatus, getBatchProgress, replayBatch } from './batch-coordination';
 import type { JobInput, JobStatus } from '@dfn/shared';

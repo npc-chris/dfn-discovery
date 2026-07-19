@@ -12,7 +12,7 @@ import {
   getQueueStats,
 } from '../workers/queue';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * GET /queue/job/:jobId
