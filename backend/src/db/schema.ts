@@ -1,24 +1,28 @@
 // Drizzle schema for DFN Discovery
 // Matches the canonical entities defined in DFN_LLD.md
 
-import { pgTable, text, integer, boolean, timestamp, uuid, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, boolean, timestamp, uuid, jsonb, index } from 'drizzle-orm/pg-core';
 
 // Batch manifests table
 export const batch_manifests = pgTable('batch_manifests', {
   id: uuid('id').primaryKey().defaultRandom(),
-  org_id: text('org_id'),
+  org_id: text('org_id').notNull(),
   status: text('status').notNull().default('pending'), // pending, processing, completed, failed
   idempotency_key: text('idempotency_key').unique(),
   metadata: jsonb('metadata'),
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => {
+  return {
+    orgIdIdx: index('batch_manifests_org_id_idx').on(table.org_id)
+  }
 });
 
 // Jobs table
 export const jobs = pgTable('jobs', {
   id: uuid('id').primaryKey().defaultRandom(),
-  org_id: text('org_id'),
-  created_by: text('created_by'),
+  org_id: text('org_id').notNull(),
+  created_by: text('created_by').notNull(),
   batch_id: uuid('batch_id').references(() => batch_manifests.id),
   company_name: text('company_name').notNull(),
   product_name: text('product_name').notNull(),
@@ -31,12 +35,16 @@ export const jobs = pgTable('jobs', {
   metadata: jsonb('metadata'),
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => {
+  return {
+    orgIdIdx: index('jobs_org_id_idx').on(table.org_id)
+  }
 });
 
 // Factory profiles table
 export const factories = pgTable('factories', {
   id: uuid('id').primaryKey().defaultRandom(),
-  org_id: text('org_id'),
+  org_id: text('org_id').notNull(),
   factory_name: text('factory_name').notNull(),
   capabilities: jsonb('capabilities').notNull(),
   materials: jsonb('materials').notNull(),
@@ -47,6 +55,10 @@ export const factories = pgTable('factories', {
   active: boolean('active').notNull().default(true),
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => {
+  return {
+    orgIdIdx: index('factories_org_id_idx').on(table.org_id)
+  }
 });
 
 // Recommendations table
@@ -54,7 +66,7 @@ export const recommendations = pgTable('recommendations', {
   id: uuid('id').primaryKey().defaultRandom(),
   job_id: uuid('job_id').notNull().references(() => jobs.id),
   factory_id: uuid('factory_id').notNull().references(() => factories.id),
-  org_id: text('org_id'),
+  org_id: text('org_id').notNull(),
   fit_score: integer('fit_score').notNull(),
   feasibility_score: integer('feasibility_score').notNull(),
   confidence_score: integer('confidence_score').notNull(),
@@ -64,18 +76,26 @@ export const recommendations = pgTable('recommendations', {
   caveats: jsonb('caveats'),
   generated_at: timestamp('generated_at').notNull().defaultNow(),
   version: integer('version').notNull().default(1),
+}, (table) => {
+  return {
+    orgIdIdx: index('recommendations_org_id_idx').on(table.org_id)
+  }
 });
 
 // Attachments table
 export const attachments = pgTable('attachments', {
   id: uuid('id').primaryKey().defaultRandom(),
   job_id: uuid('job_id').notNull().references(() => jobs.id),
-  org_id: text('org_id'),
+  org_id: text('org_id').notNull(),
   filename: text('filename').notNull(),
   mime_type: text('mime_type').notNull(),
   size_bytes: integer('size_bytes').notNull(),
   source_type: text('source_type').notNull(),
   uploaded_at: timestamp('uploaded_at').notNull().defaultNow(),
+}, (table) => {
+  return {
+    orgIdIdx: index('attachments_org_id_idx').on(table.org_id)
+  }
 });
 
 // Job queue for async workers

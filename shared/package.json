@@ -17,7 +17,8 @@
     "./constants/scoring": {
       "import": "./dist/constants/scoring.js",
       "types": "./dist/constants/scoring.d.ts"
-    }
+    },
+    "./schemas/*": "./schemas/*"
   },
   "scripts": {
     "build": "tsc",

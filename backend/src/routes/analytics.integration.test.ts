@@ -45,6 +45,7 @@ beforeEach(async () => {
   const [f1] = await db
     .insert(factories)
     .values({
+      org_id: 'test-org',
       factory_name: 'Southwest Plastics Ltd',
       capabilities: { processes: ['injection-molding', 'extrusion'] },
       materials: ['polyethylene'],
@@ -58,6 +59,8 @@ beforeEach(async () => {
   const [j1] = await db
     .insert(jobs)
     .values({
+      org_id: 'test-org',
+      created_by: 'test-user',
       company_name: 'Lagos Consumer Goods',
       product_name: 'Bottles Batch A',
       process_type: 'injection-molding',
@@ -70,6 +73,7 @@ beforeEach(async () => {
 
   await db.insert(recommendations).values([
     {
+      org_id: 'test-org',
       job_id: j1.id,
       factory_id: f1.id,
       fit_score: 88,

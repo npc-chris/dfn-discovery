@@ -28,7 +28,7 @@ describe('Job State Transitions - Task 3.4', () => {
   let testJobId: string;
 
   beforeEach(async () => {
-    const job = await createJob(mockJobInput);
+    const job = await createJob(mockJobInput, 'test-org', 'test-user');
     testJobId = job.id;
   });
 

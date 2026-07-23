@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fabnetwork.com.ng/schemas/batch-and-integration.schema.json",
+  "title": "BatchAndIntegrationAPI",
+  "description": "Schemas for batch manifests, platform webhooks, and main repo Prism report imports",
+  "type": "object",
+  "$defs": {
+    "BatchManifest": {
+      "type": "object",
+      "required": [
+        "id",
+        "org_id",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "processing",
+            "completed",
+            "failed"
+          ]
+        },
+        "idempotency_key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metadata": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "CreateBatchRequest": {
+      "type": "object",
+      "required": [
+        "orgId",
+        "jobs"
+      ],
+      "properties": {
+        "orgId": {
+          "type": "string"
+        },
+        "idempotencyKey": {
+          "type": "string"
+        },
+        "jobs": {
+          "type": "array",
+          "items": {
+            "$ref": "job.schema.json#/$defs/JobInput"
+          }
+        }
+      }
+    },
+    "PrismReportManifest": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "orgId",
+        "reportId",
+        "generatedAt",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "enum": [
+            "1.0.0"
+          ],
+          "description": "Prism report schema version. Discovery enforces strictly range [1.0.0]"
+        },
+        "orgId": {
+          "type": "string"
+        },
+        "reportId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "WebhookEvent": {
+      "type": "object",
+      "required": [
+        "event",
+        "orgId",
+        "timestamp"
+      ],
+      "properties": {
+        "event": {
+          "type": "string",
+          "enum": [
+            "org.upgraded",
+            "org.downgraded",
+            "job.status_changed",
+            "recommendation.generated"
+          ]
+        },
+        "orgId": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "data": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

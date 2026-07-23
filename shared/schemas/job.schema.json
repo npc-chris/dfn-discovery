@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fabnetwork.com.ng/schemas/job.schema.json",
+  "title": "Job",
+  "description": "Canonical manufacturing job definition for DFN Discovery platform intake, scoring, and recommendation",
+  "type": "object",
+  "required": [
+    "id",
+    "company_name",
+    "product_name",
+    "location",
+    "attachments",
+    "status",
+    "version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for the job"
+    },
+    "org_id": {
+      "type": "string",
+      "description": "Organization ID associated with the job"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "User ID of the creator"
+    },
+    "company_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Name of the requesting company"
+    },
+    "product_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Name of the product or component to be manufactured"
+    },
+    "process_type": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Manufacturing process classification (e.g. injection_molding, CNC_machining, sheet_metal_stamping)"
+    },
+    "material_type": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Material required (e.g. polypropylene, stainless_steel_316, aluminum_6061)"
+    },
+    "volume_band": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Required production volume band (e.g. 1-500, 500-5000, 5000-50000, 50000+)"
+    },
+    "location": {
+      "$ref": "#/$defs/Location"
+    },
+    "delivery_location": {
+      "$ref": "#/$defs/Location"
+    },
+    "target_price_max": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "description": "Maximum target price per unit or batch"
+    },
+    "requirements": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true,
+      "description": "Detailed technical, tolerance, or quality requirements"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Attachment"
+      },
+      "description": "List of CAD, technical spec, or survey file attachments"
+    },
+    "status": {
+      "$ref": "#/$defs/JobStatus"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1,
+      "description": "Job entity schema version"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Job creation timestamp ISO-8601"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Job last update timestamp ISO-8601"
+    },
+    "metadata": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true,
+      "description": "Arbitrary metadata for custom integrations"
+    }
+  },
+  "$defs": {
+    "JobStatus": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "normalized",
+        "analyzing",
+        "scored",
+        "recommended",
+        "published",
+        "archived",
+        "validation_failed",
+        "analysis_failed",
+        "scoring_failed",
+        "stale_data"
+      ],
+      "description": "Current lifecycle status of the job in Discovery"
+    },
+    "Location": {
+      "type": "object",
+      "required": [
+        "country"
+      ],
+      "properties": {
+        "latitude": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": -90,
+          "maximum": 90
+        },
+        "longitude": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": -180,
+          "maximum": 180
+        },
+        "address": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "country": {
+          "type": "string"
+        },
+        "region": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Geographic zone (e.g. Southwest, Northcentral, Southeast)"
+        },
+        "state": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "State (e.g. Lagos, Ogun, Kano)"
+        },
+        "lga": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Local Government Area (e.g. Ikeja, Sagamu)"
+        }
+      }
+    },
+    "Attachment": {
+      "type": "object",
+      "required": [
+        "id",
+        "filename",
+        "mime_type",
+        "size_bytes",
+        "source_type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "mime_type": {
+          "type": "string"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "uploaded_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "form",
+            "file",
+            "survey"
+          ]
+        }
+      }
+    },
+    "JobInput": {
+      "type": "object",
+      "required": [
+        "company_name",
+        "product_name",
+        "location"
+      ],
+      "properties": {
+        "company_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "product_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "process_type": {
+          "type": "string"
+        },
+        "material_type": {
+          "type": "string"
+        },
+        "volume_band": {
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/Location"
+        },
+        "delivery_location": {
+          "$ref": "#/$defs/Location"
+        },
+        "target_price_max": {
+          "type": "number",
+          "minimum": 0
+        },
+        "requirements": {
+          "type": "object"
+        },
+        "metadata": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

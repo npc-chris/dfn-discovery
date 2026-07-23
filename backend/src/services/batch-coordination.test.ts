@@ -22,6 +22,8 @@ describe('Batch Coordination Service - Phase 5', () => {
   it('should create a batch successfully with correct child jobs', async () => {
     const manifest = await createBatch({
       idempotencyKey: 'idemp-1',
+      orgId: 'test-org',
+      createdBy: 'test-user',
       jobs: mockValidJobs,
       metadata: { source: 'unit-test' },
     });
@@ -44,6 +46,8 @@ describe('Batch Coordination Service - Phase 5', () => {
     // Test idempotency
     const manifest2 = await createBatch({
       idempotencyKey: 'idemp-1',
+      orgId: 'test-org',
+      createdBy: 'test-user',
       jobs: mockValidJobs,
     });
     expect(manifest2.id).toBe(manifest.id);
@@ -66,6 +70,8 @@ describe('Batch Coordination Service - Phase 5', () => {
     await expect(
       createBatch({
         idempotencyKey: 'idemp-invalid',
+        orgId: 'test-org',
+        createdBy: 'test-user',
         jobs: invalidJobs,
       })
     ).rejects.toThrow('company_name is required');
@@ -74,6 +80,8 @@ describe('Batch Coordination Service - Phase 5', () => {
   it('should roll up status rollup counts correctly', async () => {
     const manifest = await createBatch({
       idempotencyKey: 'idemp-status',
+      orgId: 'test-org',
+      createdBy: 'test-user',
       jobs: mockValidJobs,
     });
 
@@ -110,6 +118,8 @@ describe('Batch Coordination Service - Phase 5', () => {
   it('should roll up progress and stages correctly', async () => {
     const manifest = await createBatch({
       idempotencyKey: 'idemp-progress',
+      orgId: 'test-org',
+      createdBy: 'test-user',
       jobs: mockValidJobs,
     });
 
@@ -145,6 +155,8 @@ describe('Batch Coordination Service - Phase 5', () => {
   it('should replay failed child jobs in a batch correctly', async () => {
     const manifest = await createBatch({
       idempotencyKey: 'idemp-replay',
+      orgId: 'test-org',
+      createdBy: 'test-user',
       jobs: mockValidJobs,
     });
 

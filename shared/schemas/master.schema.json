@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fabnetwork.com.ng/schemas/master.schema.json",
+  "title": "DFNDiscoveryMasterSchemas",
+  "description": "Master bundle of all DFN Discovery JSON Schemas for Frontend, API integration, and contract validation",
+  "schemas": {
+    "job": "https://fabnetwork.com.ng/schemas/job.schema.json",
+    "factory": "https://fabnetwork.com.ng/schemas/factory.schema.json",
+    "recommendation": "https://fabnetwork.com.ng/schemas/recommendation.schema.json",
+    "scoringApi": "https://fabnetwork.com.ng/schemas/scoring-api.schema.json",
+    "analyticsApi": "https://fabnetwork.com.ng/schemas/analytics-api.schema.json",
+    "batchAndIntegration": "https://fabnetwork.com.ng/schemas/batch-and-integration.schema.json"
+  }
+}

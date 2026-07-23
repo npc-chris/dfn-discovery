@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fabnetwork.com.ng/schemas/scoring-api.schema.json",
+  "title": "ScoringAPI",
+  "description": "API request and response schemas for Discovery scoring and recommendation endpoints",
+  "type": "object",
+  "$defs": {
+    "ScoreJobRequest": {
+      "type": "object",
+      "required": [
+        "jobId"
+      ],
+      "properties": {
+        "jobId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "factoryIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "description": "Optional list of target factory IDs. If omitted, scores against all active factories."
+        }
+      }
+    },
+    "RankRecommendationsRequest": {
+      "type": "object",
+      "required": [
+        "jobId"
+      ],
+      "properties": {
+        "jobId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "factoryIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "topN": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 5
+        }
+      }
+    },
+    "ComponentAnalysisResponse": {
+      "type": "object",
+      "required": [
+        "jobId",
+        "factoryId",
+        "fitScore",
+        "feasibilityScore",
+        "confidenceScore",
+        "gatePassed",
+        "componentScores"
+      ],
+      "properties": {
+        "jobId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "factoryId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "recommendationId": {
+          "type": "string"
+        },
+        "fitScore": {
+          "type": "number"
+        },
+        "feasibilityScore": {
+          "type": "number"
+        },
+        "confidenceScore": {
+          "type": "number"
+        },
+        "confidencePenalty": {
+          "type": "number"
+        },
+        "gatePassed": {
+          "type": "boolean"
+        },
+        "gateFailureReason": {
+          "type": "string"
+        },
+        "evidenceCount": {
+          "type": "integer"
+        },
+        "componentScores": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

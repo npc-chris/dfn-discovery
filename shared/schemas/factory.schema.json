@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fabnetwork.com.ng/schemas/factory.schema.json",
+  "title": "FactoryProfile",
+  "description": "Canonical factory profile schema for DFN Discovery platform supplier intelligence and matching",
+  "type": "object",
+  "required": [
+    "id",
+    "factory_name",
+    "capabilities",
+    "materials",
+    "capacity_band",
+    "locations",
+    "verified_sources",
+    "active",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "org_id": {
+      "type": "string"
+    },
+    "factory_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "description": "Alias for factory_name"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FactoryCapability"
+      }
+    },
+    "materials": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "capacity_band": {
+      "type": "string",
+      "description": "Factory capacity classification (e.g. low, medium, high, enterprise)"
+    },
+    "locations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FactoryLocation"
+      }
+    },
+    "location": {
+      "$ref": "#/$defs/FactoryLocation"
+    },
+    "certifications": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Certification"
+      }
+    },
+    "verified_sources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/VerifiedSource"
+      }
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "FactoryLocation": {
+      "type": "object",
+      "required": [
+        "latitude",
+        "longitude",
+        "country"
+      ],
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "longitude": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "address": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "lga": {
+          "type": "string"
+        }
+      }
+    },
+    "FactoryCapability": {
+      "type": "object",
+      "required": [
+        "process"
+      ],
+      "properties": {
+        "process": {
+          "type": "string",
+          "description": "Process name e.g. CNC_machining, injection_molding"
+        },
+        "machine_class": {
+          "type": "string",
+          "description": "Specific machinery specs e.g. 5-axis_milling, 250t_press"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "Certification": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Certification name e.g. ISO_9001, MAN_accredited"
+        },
+        "verified_by": {
+          "type": "string"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "VerifiedSource": {
+      "type": "object",
+      "required": [
+        "source_type",
+        "reference",
+        "verified_at"
+      ],
+      "properties": {
+        "source_type": {
+          "type": "string",
+          "description": "Source category e.g. physical_audit, government_registry, survey"
+        },
+        "reference": {
+          "type": "string",
+          "description": "Audit document or reference code"
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "FactoryInput": {
+      "type": "object",
+      "required": [
+        "factory_name",
+        "capabilities",
+        "materials",
+        "capacity_band",
+        "locations"
+      ],
+      "properties": {
+        "factory_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FactoryCapability"
+          }
+        },
+        "materials": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "capacity_band": {
+          "type": "string"
+        },
+        "locations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FactoryLocation"
+          }
+        },
+        "certifications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Certification"
+          }
+        }
+      }
+    }
+  }
+}

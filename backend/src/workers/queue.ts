@@ -676,9 +676,11 @@ async function extractEvidenceHandler(jobId: string, _payload: Record<string, un
   }
 
   // Store extracted evidence into existing recommendations (if any) or job metadata
-  const existingRecs = await getRecommendationsForJob(jobId);
+  const [jobRow] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
+  const orgId = jobRow?.org_id || 'unknown';
+  const existingRecs = await getRecommendationsForJob(jobId, orgId);
   for (const rec of existingRecs) {
-    await updateRecommendation(jobId, rec.factory_id, { evidence: evidenceItems });
+    await updateRecommendation(jobId, rec.factory_id, orgId, { evidence: evidenceItems });
   }
 
   await transitionJobStatus(jobId, 'analyzing', 'queue-worker');
@@ -745,7 +747,7 @@ async function enrichLogisticsHandler(jobId: string, _payload: Record<string, un
     target_price_max: targetPriceMax,
   } as Job;
 
-  const existingRecs = await getRecommendationsForJob(jobId);
+  const existingRecs = await getRecommendationsForJob(jobId, jobRecord.org_id);
   let enrichedCount = 0;
 
   for (const rec of existingRecs) {
@@ -753,7 +755,7 @@ async function enrichLogisticsHandler(jobId: string, _payload: Record<string, un
     try {
       const assessment = await geoLogistics.assessLogistics(job, factory);
       const existingScores = (rec.component_scores ?? {}) as Record<string, unknown>;
-      await updateRecommendation(jobId, rec.factory_id, {
+      await updateRecommendation(jobId, rec.factory_id, jobRecord.org_id, {
         component_scores: { ...existingScores, logistics_assessment: assessment },
       });
       enrichedCount++;
@@ -782,7 +784,7 @@ async function refreshMarketSignalsHandler(jobId: string, _payload: Record<strin
     ?? jobRecord.process_type
     ?? 'Generic Manufacturing';
 
-  const existingRecs = await getRecommendationsForJob(jobId);
+  const existingRecs = await getRecommendationsForJob(jobId, jobRecord.org_id);
   let enrichedCount = 0;
 
   for (const rec of existingRecs) {
@@ -790,7 +792,7 @@ async function refreshMarketSignalsHandler(jobId: string, _payload: Record<strin
     try {
       const signals = await marketIntel.getMarketSignals(factory, productType);
       const existingScores = (rec.component_scores ?? {}) as Record<string, unknown>;
-      await updateRecommendation(jobId, rec.factory_id, {
+      await updateRecommendation(jobId, rec.factory_id, jobRecord.org_id, {
         component_scores: { ...existingScores, market_signals: signals },
       });
       enrichedCount++;
@@ -812,7 +814,9 @@ async function refreshMarketSignalsHandler(jobId: string, _payload: Record<strin
 async function refreshSiteBriefHandler(jobId: string, _payload: Record<string, unknown>): Promise<Record<string, unknown>> {
   const siteRealEstate = getSiteRealEstate();
 
-  const existingRecs = await getRecommendationsForJob(jobId);
+  const [jobRow] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
+  const orgId = jobRow?.org_id || 'unknown';
+  const existingRecs = await getRecommendationsForJob(jobId, orgId);
   let enrichedCount = 0;
 
   for (const rec of existingRecs) {
@@ -820,7 +824,7 @@ async function refreshSiteBriefHandler(jobId: string, _payload: Record<string, u
     try {
       const brief = await siteRealEstate.generateSiteBrief(factory);
       const existingScores = (rec.component_scores ?? {}) as Record<string, unknown>;
-      await updateRecommendation(jobId, rec.factory_id, {
+      await updateRecommendation(jobId, rec.factory_id, orgId, {
         component_scores: { ...existingScores, site_brief: brief },
       });
       enrichedCount++;
@@ -845,7 +849,8 @@ async function generateRecommendationBriefHandler(jobId: string, _payload: Recor
   if (!jobRow) throw new Error(`Job not found: ${jobId}`);
 
   const presentationLayer = getPresentationLayer();
-  const existingRecs = await getRecommendationsForJob(jobId);
+  const orgId = jobRow.org_id || 'unknown';
+  const existingRecs = await getRecommendationsForJob(jobId, orgId);
 
   if (existingRecs.length === 0) {
     throw new Error(`No recommendations found for job ${jobId} — run score-fit first`);

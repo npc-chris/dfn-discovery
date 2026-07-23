@@ -12,7 +12,10 @@ const router: Router = express.Router();
 // Create a new job (draft)
 router.post('/', async (req, res, next) => {
   try {
-    const job = await jobIntake.createJob(req.body);
+    const auth = res.locals.auth;
+    const orgId = auth?.orgId || 'unknown';
+    const createdBy = auth?.userId || 'unknown';
+    const job = await jobIntake.createJob(req.body, orgId, createdBy);
     res.status(201).json(job);
   } catch (error) {
     next(error);

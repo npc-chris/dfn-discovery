@@ -9,7 +9,7 @@
  * - Task 3.6: Webhooks
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   enqueueJob,
   getQueueJobStatus,
@@ -29,6 +29,25 @@ import {
 import { createJob, submitJob } from '../services/job-intake';
 import type { JobInput } from '@dfn/shared';
 
+// Mock AI analysis workers for queue tests
+vi.mock('../services/ai-analysis-workers', () => ({
+  createAIAnalysisWorkers: vi.fn().mockReturnValue({
+    extractJobData: vi.fn().mockResolvedValue({
+      extracted: {
+        company_name: 'Test Company',
+        product_name: 'Test Product',
+        process_type: 'CNC Machining',
+        material_type: 'Aluminum',
+        volume_band: 'Medium',
+      },
+      confidence: 0.9,
+    }),
+  }),
+}));
+
+process.env.OPENAI_API_KEY = 'test-mock-key';
+process.env.AI_MODEL = 'gpt-4o';
+
 // Mock job data for testing
 const mockJobInput: JobInput = {
   company_name: 'Test Company',
@@ -41,7 +60,7 @@ describe('Queue Worker - Task 3.1: Database Operations', () => {
 
   beforeEach(async () => {
     // Create and submit a test job
-    const job = await createJob(mockJobInput);
+    const job = await createJob(mockJobInput, 'test-org', 'test-user');
     const submitted = await submitJob(job.id);
     testJobId = submitted.id;
   });
@@ -196,7 +215,7 @@ describe('Queue Worker - Task 3.2: Worker Dispatch & Execution', () => {
   let testJobId: string;
 
   beforeEach(async () => {
-    const job = await createJob(mockJobInput);
+    const job = await createJob(mockJobInput, 'test-org', 'test-user');
     const submitted = await submitJob(job.id);
     testJobId = submitted.id;
   });
@@ -302,7 +321,7 @@ describe('Queue Worker - Task 3.6: Webhooks', () => {
   let testJobId: string;
 
   beforeEach(async () => {
-    const job = await createJob(mockJobInput);
+    const job = await createJob(mockJobInput, 'test-org', 'test-user');
     const submitted = await submitJob(job.id);
     testJobId = submitted.id;
   });
@@ -365,7 +384,7 @@ describe('Queue Worker - Integration Tests', () => {
   let testJobId: string;
 
   beforeEach(async () => {
-    const job = await createJob(mockJobInput);
+    const job = await createJob(mockJobInput, 'test-org', 'test-user');
     const submitted = await submitJob(job.id);
     testJobId = submitted.id;
   });

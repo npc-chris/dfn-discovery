@@ -10,7 +10,10 @@ const router: Router = Router();
 router.post('/', async (req, res, next) => {
   try {
     const { idempotencyKey, jobs, metadata } = req.body;
-    const manifest = await createBatch({ idempotencyKey, jobs, metadata });
+    const auth = res.locals.auth;
+    const orgId = auth?.orgId || 'unknown';
+    const createdBy = auth?.userId || 'unknown';
+    const manifest = await createBatch({ idempotencyKey, orgId, createdBy, jobs, metadata });
     res.status(201).json(manifest);
   } catch (error) {
     next(error);

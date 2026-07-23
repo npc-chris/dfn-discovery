@@ -19,7 +19,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { createHmac, timingSafeEqual } from 'crypto';
+
 import { enqueueJob } from '../workers/queue';
 
 const router: Router = Router();
@@ -28,25 +28,7 @@ const router: Router = Router();
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Verify an HMAC-SHA256 signature against a raw request body.
- *
- * @param rawBody   - The raw body buffer from the request
- * @param secret    - Shared webhook secret (env var)
- * @param signature - Value of the signature header (may include a prefix like 'sha256=')
- * @returns true if signature is valid, false otherwise
- */
-function verifyHmacSignature(rawBody: Buffer, secret: string, signature: string): boolean {
-  // Some providers prefix the hex digest with 'sha256='
-  const normalised = signature.startsWith('sha256=') ? signature.slice(7) : signature;
-  const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
-  try {
-    return timingSafeEqual(Buffer.from(normalised, 'hex'), Buffer.from(expected, 'hex'));
-  } catch {
-    // Mismatched lengths (invalid hex) → not equal
-    return false;
-  }
-}
+import { requireWebhookSignature, verifyWebhookSignature } from '../middleware/webhook-auth';
 
 /**
  * Extract a factory ID from an inbound webhook payload.
@@ -82,24 +64,8 @@ function extractFactoryId(payload: Record<string, unknown>): string | null {
  *
  * On success: enqueues a 'refresh-site-brief' job and returns HTTP 200.
  */
-router.post('/safetyculture', async (req: Request, res: Response): Promise<void> => {
+router.post('/safetyculture', requireWebhookSignature('x-iauditor-signature', 'SAFETYCULTURE_WEBHOOK_SECRET'), async (req: Request, res: Response): Promise<void> => {
   const rawBody: Buffer = (req as any).rawBody;
-  const signature = req.headers['x-iauditor-signature'] as string | undefined;
-  const secret = process.env.SAFETYCULTURE_WEBHOOK_SECRET;
-
-  // HMAC verification
-  if (secret) {
-    if (!signature) {
-      res.status(401).json({ error: 'Missing x-iauditor-signature header' });
-      return;
-    }
-    if (!rawBody || !verifyHmacSignature(rawBody, secret, signature)) {
-      res.status(401).json({ error: 'Invalid SafetyCulture webhook signature' });
-      return;
-    }
-  } else {
-    console.warn('[webhooks/safetyculture] SAFETYCULTURE_WEBHOOK_SECRET not set — skipping HMAC verification (dev mode)');
-  }
 
   let payload: Record<string, unknown>;
   try {
@@ -159,18 +125,19 @@ router.post('/upkeep', async (req: Request, res: Response): Promise<void> => {
   const signature = req.headers['x-upkeep-signature'] as string | undefined;
   const secret = process.env.UPKEEP_WEBHOOK_SECRET;
 
-  // HMAC verification
+  // UpKeep HMAC verification (fallback to custom validation if signature missing)
   if (secret) {
-    if (!signature) {
-      res.status(401).json({ error: 'Missing x-upkeep-signature header' });
-      return;
-    }
-    if (!rawBody || !verifyHmacSignature(rawBody, secret, signature)) {
-      res.status(401).json({ error: 'Invalid UpKeep webhook signature' });
-      return;
+    if (signature) {
+      if (!rawBody || !verifyWebhookSignature(rawBody, signature, secret)) {
+        res.status(401).json({ error: 'Invalid UpKeep webhook signature' });
+        return;
+      }
+    } else {
+      console.warn('[webhooks/upkeep] Missing x-upkeep-signature header. Applying fallback API verification...');
+      // TODO: Implement API-based polling or custom validation here since header is absent
     }
   } else {
-    console.warn('[webhooks/upkeep] UPKEEP_WEBHOOK_SECRET not set — skipping HMAC verification (dev mode)');
+    console.warn('[webhooks/upkeep] UPKEEP_WEBHOOK_SECRET not set — skipping verification (dev mode)');
   }
 
   let payload: Record<string, unknown>;

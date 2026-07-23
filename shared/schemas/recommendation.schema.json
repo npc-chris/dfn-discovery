@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fabnetwork.com.ng/schemas/recommendation.schema.json",
+  "title": "Recommendation",
+  "description": "Canonical recommendation, scoring results, and decision brief schemas",
+  "type": "object",
+  "required": [
+    "id",
+    "job_id",
+    "factory_id",
+    "fit_score",
+    "feasibility_score",
+    "confidence_score",
+    "evidence",
+    "generated_at",
+    "version"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "job_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "factory_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "org_id": {
+      "type": "string"
+    },
+    "fit_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Primary fit score derived from process, material, capacity, geo, and certification alignment"
+    },
+    "feasibility_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Supporting feasibility score evaluating technical capability execution risk"
+    },
+    "confidence_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Data confidence score based on verification freshness and evidence breadth"
+    },
+    "component_scores": {
+      "$ref": "#/$defs/ComponentScores"
+    },
+    "rank": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/EvidenceItem"
+      }
+    },
+    "caveats": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1
+    }
+  },
+  "$defs": {
+    "EvidenceItem": {
+      "type": "object",
+      "required": [
+        "id",
+        "source_type",
+        "source_ref",
+        "claim",
+        "confidence",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "survey",
+            "file",
+            "database",
+            "external_feed"
+          ]
+        },
+        "source_ref": {
+          "type": "string"
+        },
+        "claim": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "ComponentScores": {
+      "type": "object",
+      "properties": {
+        "process_compatibility": {
+          "$ref": "#/$defs/ComponentScoreDetail"
+        },
+        "material_match": {
+          "$ref": "#/$defs/ComponentScoreDetail"
+        },
+        "capacity_band_alignment": {
+          "$ref": "#/$defs/ComponentScoreDetail"
+        },
+        "geographic_proximity": {
+          "$ref": "#/$defs/ComponentScoreDetail"
+        },
+        "certification_overlap": {
+          "$ref": "#/$defs/ComponentScoreDetail"
+        }
+      }
+    },
+    "ComponentScoreDetail": {
+      "type": "object",
+      "required": [
+        "score",
+        "weight"
+      ],
+      "properties": {
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "RecommendationBrief": {
+      "type": "object",
+      "required": [
+        "recommendation",
+        "summary",
+        "next_steps"
+      ],
+      "properties": {
+        "recommendation": {
+          "$ref": "#"
+        },
+        "summary": {
+          "type": "string",
+          "description": "Human-readable synthesis explaining the recommendation decision"
+        },
+        "next_steps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "explainer": {
+          "type": "string",
+          "description": "Deep-dive technical breakdown of gate rules and feature weights"
+        }
+      }
+    },
+    "ScoringResult": {
+      "type": "object",
+      "required": [
+        "jobId",
+        "factoryId",
+        "fitScore",
+        "feasibilityScore",
+        "confidenceScore",
+        "gatePassed",
+        "rank"
+      ],
+      "properties": {
+        "recommendationId": {
+          "type": "string"
+        },
+        "jobId": {
+          "type": "string"
+        },
+        "factoryId": {
+          "type": "string"
+        },
+        "fitScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "feasibilityScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "confidenceScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "confidencePenalty": {
+          "type": "number"
+        },
+        "gatePassed": {
+          "type": "boolean"
+        },
+        "gateFailureReason": {
+          "type": "string"
+        },
+        "rank": {
+          "type": "integer"
+        },
+        "evidenceCount": {
+          "type": "integer"
+        },
+        "componentScores": {
+          "$ref": "#/$defs/ComponentScores"
+        }
+      }
+    }
+  }
+}

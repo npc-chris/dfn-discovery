@@ -45,7 +45,7 @@ function normalizeJobInput(input: JobInput): Record<string, unknown> {
   };
 }
 
-export async function createJob(input: JobInput): Promise<Job> {
+export async function createJob(input: JobInput, orgId: string, createdBy: string): Promise<Job> {
   // Validate input
   const validation = validateJobInput(input);
   if (!validation.valid) {
@@ -61,6 +61,8 @@ export async function createJob(input: JobInput): Promise<Job> {
   const [createdJob] = await db
     .insert(jobs)
     .values({
+      org_id: orgId,
+      created_by: createdBy,
       company_name: normalized.company_name as string,
       product_name: normalized.product_name as string,
       process_type: normalized.process_type as string | null,

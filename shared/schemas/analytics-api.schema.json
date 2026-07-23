@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fabnetwork.com.ng/schemas/analytics-api.schema.json",
+  "title": "AnalyticsAPI",
+  "description": "API response schemas for Phase 6.9 Manufacturing Market Intelligence analytics endpoints",
+  "type": "object",
+  "$defs": {
+    "RegionalCoverageResponse": {
+      "type": "object",
+      "required": [
+        "data",
+        "count"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "region",
+              "jobCount",
+              "factoryCount"
+            ],
+            "properties": {
+              "region": {
+                "type": "string"
+              },
+              "jobCount": {
+                "type": "integer"
+              },
+              "factoryCount": {
+                "type": "integer"
+              },
+              "avgFitScore": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "count": {
+          "type": "integer"
+        }
+      }
+    },
+    "RegionalProcessesResponse": {
+      "type": "object",
+      "required": [
+        "region",
+        "processes"
+      ],
+      "properties": {
+        "region": {
+          "type": "string"
+        },
+        "processes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "process",
+              "factoryCount",
+              "jobDemand"
+            ],
+            "properties": {
+              "process": {
+                "type": "string"
+              },
+              "factoryCount": {
+                "type": "integer"
+              },
+              "jobDemand": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "RegionalGapsResponse": {
+      "type": "object",
+      "required": [
+        "region",
+        "unmetDemandProcesses"
+      ],
+      "properties": {
+        "region": {
+          "type": "string"
+        },
+        "unmetDemandProcesses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "process",
+              "unmetJobs",
+              "availableFactories"
+            ],
+            "properties": {
+              "process": {
+                "type": "string"
+              },
+              "unmetJobs": {
+                "type": "integer"
+              },
+              "availableFactories": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ClustersResponse": {
+      "type": "object",
+      "required": [
+        "clusters"
+      ],
+      "properties": {
+        "clusters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "state",
+              "lga",
+              "factoryCount"
+            ],
+            "properties": {
+              "state": {
+                "type": "string"
+              },
+              "lga": {
+                "type": "string"
+              },
+              "factoryCount": {
+                "type": "integer"
+              },
+              "primaryProcesses": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "NationalGapsResponse": {
+      "type": "object",
+      "required": [
+        "nationalGaps"
+      ],
+      "properties": {
+        "nationalGaps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "process",
+              "jobDemand",
+              "factorySupply",
+              "deficitRatio"
+            ],
+            "properties": {
+              "process": {
+                "type": "string"
+              },
+              "jobDemand": {
+                "type": "integer"
+              },
+              "factorySupply": {
+                "type": "integer"
+              },
+              "deficitRatio": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

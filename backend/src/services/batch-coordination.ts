@@ -14,6 +14,8 @@ import { validateJobInput } from './job-intake';
 
 export interface BatchRequestPayload {
   idempotencyKey?: string;
+  orgId: string;
+  createdBy: string;
   jobs: JobInput[];
   metadata?: Record<string, unknown>;
 }
@@ -56,7 +58,7 @@ export interface BatchProgressResponse {
  * Uses idempotencyKey to prevent duplicate batch submission.
  */
 export async function createBatch(payload: BatchRequestPayload): Promise<BatchManifest> {
-  const { idempotencyKey, jobs: childJobInputs, metadata = {} } = payload;
+  const { idempotencyKey, orgId, createdBy, jobs: childJobInputs, metadata = {} } = payload;
 
   if (idempotencyKey) {
     const existing = await db
@@ -94,6 +96,7 @@ export async function createBatch(payload: BatchRequestPayload): Promise<BatchMa
     .insert(batch_manifests)
     .values({
       id: batchId,
+      org_id: orgId,
       idempotency_key: idempotencyKey || null,
       status: 'processing',
       metadata,
@@ -107,6 +110,8 @@ export async function createBatch(payload: BatchRequestPayload): Promise<BatchMa
     const jobId = randomUUID();
     await db.insert(jobs).values({
       id: jobId,
+      org_id: orgId,
+      created_by: createdBy,
       batch_id: batchId,
       company_name: jobInput.company_name.trim(),
       product_name: jobInput.product_name.trim(),

@@ -389,10 +389,12 @@ Based on validation, implementation can proceed with confidence. The scaffolded 
 4. **Phase 4 (Week 3):** Implement Enrichment services
 5. **Phase 5 (Week 4):** Implement Batch Coordination
 6. **Phase 6 (Week 5):** Implement Presentation Layer
-7. **Phase 7 (Week 6):** Build Frontend UI
-8. **Phase 8 (Week 7):** Testing & polish
+7. **Phase 6.9 (Pre-Freeze):** Analytics & Persona Gap Closure
+8. **Phase 7 (Week 6):** Security Hardening
+9. **Phase 8 (Week 7):** Frontend Development
+10. **Phase 9 (Week 8):** Testing & Polish
 
-**Total Timeline:** 7 weeks to production-ready system
+**Total Timeline:** 8 weeks to production-ready system
 
 ---
 
@@ -414,7 +416,7 @@ Based on validation, implementation can proceed with confidence. The scaffolded 
    - Approval for implementation
 
 3. **DFN_IMPLEMENTATION_CHECKLIST.md**
-   - 7 phases, 40+ tasks
+   - 9 phases, 50+ tasks
    - Detailed acceptance criteria for each task
    - Estimated week assignments
    - Dependency tracking

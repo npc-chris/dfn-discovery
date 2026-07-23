@@ -35,6 +35,8 @@ export interface Attachment {
 
 export interface Job {
   id: string;
+  org_id: string;
+  created_by: string;
   company_name: string;
   product_name: string;
   process_type: string;

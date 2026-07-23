@@ -38,6 +38,7 @@ describe('Recommendations Route Handlers', () => {
     };
 
     mockRes = {
+      locals: { auth: { orgId: 'test-org' } },
       status: vi.fn().mockReturnThis(),
       json: vi.fn().mockReturnThis(),
       send: vi.fn().mockReturnThis(),
@@ -86,8 +87,8 @@ describe('Recommendations Route Handlers', () => {
 
       await getRecommendationsHandler(mockReq as Request, mockRes as Response, nextMock);
 
-      expect(getRecommendationsForJob).toHaveBeenCalledWith('job-123');
-      expect(getJobById).toHaveBeenCalledWith('job-123');
+      expect(getRecommendationsForJob).toHaveBeenCalledWith('job-123', 'test-org');
+      expect(getJobById).toHaveBeenCalledWith('job-123', 'test-org');
       expect(mockPresentationLayer.formatRecommendation).toHaveBeenCalled();
       expect(mockPresentationLayer.formatRecommendationSummary).toHaveBeenCalled();
       expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ jobId: 'job-123' }));

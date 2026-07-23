@@ -9,20 +9,25 @@ import { getCoreIntelligence } from '../services/core-intelligence';
 import { getJob } from '../services/job-intake';
 import { db } from '../db/client';
 import { factories, recommendations } from '../db/schema';
-import { desc, eq, inArray } from 'drizzle-orm';
+import { desc, eq, inArray, and } from 'drizzle-orm';
 import type { EvidenceItem } from '@dfn/shared';
 import type { ScoringResult } from '../services/core-intelligence';
 
 type DbClient = typeof db;
 
-export async function loadFactories(factoryIds?: string[], database: DbClient = db) {
-  let query = database.select().from(factories);
-
+export async function loadFactories(factoryIds?: string[], orgId?: string, database: DbClient = db) {
+  const conditions = [];
+  if (orgId) conditions.push(eq(factories.org_id, orgId));
   if (Array.isArray(factoryIds) && factoryIds.length > 0) {
-    query = query.where(inArray(factories.id, factoryIds));
+    conditions.push(inArray(factories.id, factoryIds));
   }
 
-  return (await query) as any[];
+  if (conditions.length > 0) {
+    const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions);
+    return (await database.select().from(factories).where(whereClause)) as any[];
+  }
+
+  return (await database.select().from(factories)) as any[];
 }
 
 export async function buildEvidenceMap(factoryRows: { id: string }[]): Promise<Record<string, EvidenceItem[]>> {
@@ -49,7 +54,7 @@ export async function scoreJobAgainstFactories(
     throw error;
   }
 
-  const factoryRows = await loadFactories(factoryIds, database);
+  const factoryRows = await loadFactories(factoryIds, (job as any).org_id, database);
   const evidenceMap = await buildEvidenceMap(factoryRows);
 
   return scorer.scoreJob({ jobId, job, factories: factoryRows as any, evidence: evidenceMap });
@@ -58,19 +63,22 @@ export async function scoreJobAgainstFactories(
 export async function persistRecommendations(
   jobId: string,
   scoringResults: ScoringResult[],
+  orgId: string,
   database: DbClient = db,
 ): Promise<void> {
-  await database.delete(recommendations).where(eq(recommendations.job_id, jobId as any));
+  await database.delete(recommendations).where(and(eq(recommendations.job_id, jobId as any), eq(recommendations.org_id, orgId)));
 
   if (scoringResults.length === 0) return;
 
   await database.insert(recommendations).values(
     scoringResults.map((result) => ({
       job_id: jobId as any,
+      org_id: orgId,
       factory_id: result.factoryId as any,
       fit_score: result.fitScore,
       feasibility_score: result.feasibilityScore,
       confidence_score: result.confidenceScore,
+      component_scores: result.componentScores,
       rank: result.rank > 0 ? result.rank : null,
       evidence: [],
       caveats: result.gatePassed ? [] : [result.gateFaiureReason || 'Recommendation did not pass gate rules'],
@@ -79,11 +87,11 @@ export async function persistRecommendations(
   );
 }
 
-export async function getStoredRecommendations(jobId: string, database: DbClient = db) {
+export async function getStoredRecommendations(jobId: string, orgId: string, database: DbClient = db) {
   return database
     .select()
     .from(recommendations)
-    .where(eq(recommendations.job_id, jobId as any))
+    .where(and(eq(recommendations.job_id, jobId as any), eq(recommendations.org_id, orgId)))
     .orderBy(desc(recommendations.rank), desc(recommendations.fit_score));
 }
 
@@ -194,7 +202,8 @@ router.post('/rank-recommendations', async (req: Request, res: Response, next: N
     const scored = await scoreJobAgainstFactories(jobId, factoryIds, getJob, db, scorer);
     const ranked = (await scorer.rankRecommendations(scored)).slice(0, Number(topN) || 5);
 
-    await persistRecommendations(jobId, ranked);
+    const orgId = res.locals.auth?.orgId || 'unknown';
+    await persistRecommendations(jobId, ranked, orgId);
 
     return res.json(ranked);
   } catch (error) {
@@ -215,7 +224,8 @@ router.post('/rank-recommendations', async (req: Request, res: Response, next: N
 router.get('/job-score/:jobId', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { jobId } = req.params;
-    const rows = await getStoredRecommendations(jobId);
+    const orgId = res.locals.auth?.orgId || 'unknown';
+    const rows = await getStoredRecommendations(jobId, orgId);
 
     if (!rows.length) {
       return res.status(404).json({ error: 'No recommendations found for job' });

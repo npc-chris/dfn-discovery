@@ -18,19 +18,20 @@ export async function getRecommendationsHandler(req: Request, res: Response, nex
     const { jobId } = req.params;
     const topN = Math.min(Number(req.query.topN ?? 5), 10);
 
+    const orgId = res.locals.auth?.orgId || 'unknown';
     // Load raw DB records
-    const dbRecs = await getRecommendationsForJob(jobId);
+    const dbRecs = await getRecommendationsForJob(jobId, orgId);
     if (!dbRecs || dbRecs.length === 0) {
       return res.status(404).json({ error: 'No recommendations found for this job' });
     }
 
     // Load the associated factories
     const factoryIds = [...new Set(dbRecs.map((r: any) => r.factory_id as string))];
-    const factories = await getFactoriesByIds(factoryIds);
+    const factories = await getFactoriesByIds(factoryIds, orgId);
     const factoryMap = Object.fromEntries(factories.map((f: any) => [f.id, f]));
 
     // Reconstruct ScoringResult shapes for the presentation layer
-    const jobRecord = await getJobById(jobId);
+    const jobRecord = await getJobById(jobId, orgId);
     if (!jobRecord) {
       return res.status(404).json({ error: 'Job not found' });
     }
@@ -56,16 +57,17 @@ export async function getTopRecommendationHandler(req: Request, res: Response, n
   try {
     const { jobId } = req.params;
 
-    const dbRecs = await getRecommendationsForJob(jobId);
+    const orgId = res.locals.auth?.orgId || 'unknown';
+    const dbRecs = await getRecommendationsForJob(jobId, orgId);
     if (!dbRecs || dbRecs.length === 0) {
       return res.status(404).json({ error: 'No recommendations found for this job' });
     }
 
     const top = dbRecs[0] as any;
-    const factories = await getFactoriesByIds([top.factory_id]);
+    const factories = await getFactoriesByIds([top.factory_id], orgId);
     const factory = factories[0];
 
-    const jobRecord = await getJobById(jobId);
+    const jobRecord = await getJobById(jobId, orgId);
     if (!jobRecord) {
       return res.status(404).json({ error: 'Job not found' });
     }
@@ -88,16 +90,17 @@ export async function getDetailedReportHandler(req: Request, res: Response, next
     const { jobId } = req.params;
     const format = (req.query.format as 'html' | 'json') ?? 'html';
 
-    const dbRecs = await getRecommendationsForJob(jobId);
+    const orgId = res.locals.auth?.orgId || 'unknown';
+    const dbRecs = await getRecommendationsForJob(jobId, orgId);
     if (!dbRecs || dbRecs.length === 0) {
       return res.status(404).json({ error: 'No recommendations found for this job' });
     }
 
     const factoryIds = [...new Set(dbRecs.map((r: any) => r.factory_id as string))];
-    const factories = await getFactoriesByIds(factoryIds);
+    const factories = await getFactoriesByIds(factoryIds, orgId);
     const factoryMap = Object.fromEntries(factories.map((f: any) => [f.id, f]));
 
-    const jobRecord = await getJobById(jobId);
+    const jobRecord = await getJobById(jobId, orgId);
     if (!jobRecord) {
       return res.status(404).json({ error: 'Job not found' });
     }
@@ -129,16 +132,17 @@ export async function getComparisonTableHandler(req: Request, res: Response, nex
     const { jobId } = req.params;
     const topN = Math.min(Number(req.query.topN ?? 3), 5);
 
-    const dbRecs = await getRecommendationsForJob(jobId);
+    const orgId = res.locals.auth?.orgId || 'unknown';
+    const dbRecs = await getRecommendationsForJob(jobId, orgId);
     if (!dbRecs || dbRecs.length === 0) {
       return res.status(404).json({ error: 'No recommendations found for this job' });
     }
 
     const factoryIds = [...new Set(dbRecs.map((r: any) => r.factory_id as string))];
-    const factories = await getFactoriesByIds(factoryIds);
+    const factories = await getFactoriesByIds(factoryIds, orgId);
     const factoryMap = Object.fromEntries(factories.map((f: any) => [f.id, f]));
 
-    const jobRecord = await getJobById(jobId);
+    const jobRecord = await getJobById(jobId, orgId);
     if (!jobRecord) {
       return res.status(404).json({ error: 'Job not found' });
     }
@@ -163,7 +167,8 @@ export async function getExplanationHandler(req: Request, res: Response, next: N
     const { jobId, factoryId } = req.params;
     const style = (req.query.style as 'executive' | 'technical' | 'detailed') ?? 'technical';
 
-    const dbRecs = await getRecommendationsForJob(jobId);
+    const orgId = res.locals.auth?.orgId || 'unknown';
+    const dbRecs = await getRecommendationsForJob(jobId, orgId);
     const dbRec = dbRecs?.find((r: any) => r.factory_id === factoryId);
     if (!dbRec) {
       return res
@@ -171,10 +176,10 @@ export async function getExplanationHandler(req: Request, res: Response, next: N
         .json({ error: 'No recommendation found for this job / factory combination' });
     }
 
-    const factories = await getFactoriesByIds([factoryId]);
+    const factories = await getFactoriesByIds([factoryId], orgId);
     const factory = factories[0];
 
-    const jobRecord = await getJobById(jobId);
+    const jobRecord = await getJobById(jobId, orgId);
     if (!jobRecord) {
       return res.status(404).json({ error: 'Job not found' });
     }
