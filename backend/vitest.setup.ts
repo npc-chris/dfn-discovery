@@ -65,10 +65,13 @@ export async function initializeTestDatabase() {
     // Create tables if they don't exist
     await testPool.query(`
       CREATE EXTENSION IF NOT EXISTS pgcrypto;
+      DROP TABLE IF EXISTS project_activities CASCADE;
+      DROP TABLE IF EXISTS quotes CASCADE;
       DROP TABLE IF EXISTS recommendations CASCADE;
       DROP TABLE IF EXISTS job_queue CASCADE;
       DROP TABLE IF EXISTS attachments CASCADE;
       DROP TABLE IF EXISTS jobs CASCADE;
+      DROP TABLE IF EXISTS projects CASCADE;
       DROP TABLE IF EXISTS factories CASCADE;
       DROP TABLE IF EXISTS batch_manifests CASCADE;
     `);
@@ -86,11 +89,29 @@ export async function initializeTestDatabase() {
     `);
 
     await testPool.query(`
+      CREATE TABLE projects (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        status TEXT NOT NULL DEFAULT 'active',
+        budget_ceiling_ngn INTEGER,
+        target_delivery_date TIMESTAMP,
+        delivery_location JSONB,
+        created_by TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await testPool.query(`
       CREATE TABLE jobs (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         org_id TEXT,
         created_by TEXT,
+        project_id UUID REFERENCES projects(id),
         batch_id UUID REFERENCES batch_manifests(id),
+        rfq_code TEXT,
         company_name TEXT NOT NULL,
         product_name TEXT NOT NULL,
         process_type TEXT,
@@ -98,6 +119,8 @@ export async function initializeTestDatabase() {
         volume_band TEXT,
         location JSONB NOT NULL,
         status TEXT NOT NULL DEFAULT 'draft',
+        procurement_stage TEXT NOT NULL DEFAULT 'draft',
+        target_ceiling_ngn INTEGER,
         version INTEGER NOT NULL DEFAULT 1,
         metadata JSONB,
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -137,6 +160,40 @@ export async function initializeTestDatabase() {
         caveats JSONB,
         generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
         version INTEGER NOT NULL DEFAULT 1
+      );
+    `);
+
+    await testPool.query(`
+      CREATE TABLE quotes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        job_id UUID NOT NULL REFERENCES jobs(id),
+        factory_id UUID NOT NULL REFERENCES factories(id),
+        org_id TEXT NOT NULL,
+        unit_price_ngn INTEGER NOT NULL,
+        total_price_ngn INTEGER NOT NULL,
+        lead_time_days INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'submitted',
+        terms TEXT,
+        notes TEXT,
+        submitted_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        valid_until TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await testPool.query(`
+      CREATE TABLE project_activities (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        project_id UUID REFERENCES projects(id),
+        job_id UUID REFERENCES jobs(id),
+        org_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        severity TEXT NOT NULL DEFAULT 'info',
+        metadata JSONB,
+        actor TEXT,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
     `);
 
@@ -184,10 +241,13 @@ export async function cleanupTestDatabase() {
 
   try {
     // Drop all data in reverse order of dependencies
+    await testPool.query('TRUNCATE TABLE project_activities CASCADE;');
+    await testPool.query('TRUNCATE TABLE quotes CASCADE;');
     await testPool.query('TRUNCATE TABLE recommendations CASCADE;');
     await testPool.query('TRUNCATE TABLE job_queue CASCADE;');
     await testPool.query('TRUNCATE TABLE attachments CASCADE;');
     await testPool.query('TRUNCATE TABLE jobs CASCADE;');
+    await testPool.query('TRUNCATE TABLE projects CASCADE;');
     await testPool.query('TRUNCATE TABLE factories CASCADE;');
     await testPool.query('TRUNCATE TABLE batch_manifests CASCADE;');
   } catch (error) {

@@ -2,38 +2,34 @@
 
 ## Product Goal
 
-DFN Discovery helps product companies decide whether a manufacturing job can be routed to a Nigerian factory with acceptable cost, lead time, capability fit, and operational risk.
+DFN Discovery helps product companies decide whether a manufacturing job can be routed to a Nigerian factory or multi-factory cluster with acceptable cost, lead time, capability fit, standard compliance, and operational risk.
 
-This is not a general chat product. The system should ingest structured and semi-structured inputs, compute scores, and return decision-ready outputs.
+This is not a general chat product. The system ingests structured and semi-structured inputs, evaluates multi-stage process DAGs, checks SDO standards compliance, computes deterministic scores, and returns decision-ready outputs.
 
 ## System Shape
 
-The product should be built as a small set of cooperating services with one thin presentation layer.
+The product is built as a set of cooperating backend services with one thin presentation layer.
 
 ## Main Repo Integration Boundary
 
-DFN Discovery should remain a standalone runtime and data boundary.
+DFN Discovery remains a standalone runtime and data boundary.
 
-It may integrate with the main DFN repo through versioned contracts and identity, but it should not share live application state, local databases, or unversioned internal modules.
+It integrates with the main DFN repo through versioned contracts and identity, but does not share live application state, local databases, or unversioned internal modules.
 
 Shared between repos:
 
-- authentication identity and role claims through a common identity provider
+- authentication identity and role claims through a common identity provider (JWT via JWKS)
 - versioned API contracts and client types
-- optional shared design tokens or UI primitives when they are published as a package
+- optional shared design tokens or UI primitives when published as a package
 
 Not shared between repos:
 
 - database tables or migrations
 - session storage or local user state
-- direct runtime imports from the main repo application code
+- direct runtime imports from main repo application code
 - queue state or worker state
 
-Integration should happen through explicit interfaces:
-
-- authenticated API calls from one app to the other
-- webhook or event payloads for asynchronous updates
-- a versioned shared package for types, constants, and client helpers
+---
 
 ## Mermaid Views
 
@@ -42,10 +38,11 @@ Integration should happen through explicit interfaces:
 ```mermaid
 flowchart LR
  U[Product Company]
- IF[Third-Party Inspector/Factory]
+ IF[Third-Party Inspector/Auditor]
+ SDO_Feeds[25 Open SDO Portals<br/>ISO, SON, ASTM, ASME, API, etc.]
 
  subgraph P[Presentation Layer]
-  UI[Dashboards / Reports / Exports]
+  UI[Dashboards / Reports / Exports / Multi-Stage Visualizer]
  end
 
  subgraph I[Ingestion And Analysis]
@@ -54,19 +51,29 @@ flowchart LR
   CI[Core Intelligence]
  end
 
- subgraph B[Batch Coordination]
-  BC[Batch Coordination]
+ subgraph SDO[Standards & Compliance]
+  SE[Standards & SDO Ingestion Engine]
+  IAF_Val[IAF CertSearch Real-time Validator]
  end
 
- subgraph D[Decision Support] <!-- This is needs to be broken down further -->
+ subgraph MSR[Multi-Stage Orchestration]
+  DAG[Multi-Stage Process Routing Solver]
+  WIP[Inter-Fab WIP & Degradation Rules]
+ end
+
+ subgraph B[Batch Coordination]
+  BC[Software Async Batch Coordination]
+ end
+
+ subgraph D[Decision Support]
   MI[Market Intelligence]
   SR[Site and Real Estate Intelligence]
  end
 
-    subgraph H[Geo Adapters]
-        HR[HERE Adapters: Routing/Matrix/Geocode/Isoline]
-        PR[Optional PrismReport Input]
-    end
+ subgraph H[Geo & Logistics Adapters]
+  HR[HERE Adapters: Routing/Matrix/Geocode/Isoline]
+  PR[Optional PrismReport Input]
+ end
 
  subgraph E[External SaaS Proxies]
   UK[UpKeep CMMS]
@@ -77,18 +84,20 @@ flowchart LR
  U --> UI
  UI --> JI
  JI --> AI
- JI --> CI
+ JI --> DAG
+ SDO_Feeds --> SE
+ IAF_Val --> SE
+ SE --> CI
+ DAG --> WIP
+ WIP --> HR
+ DAG --> CI
  AI --> CI
-CI --> HR
-PR --> CI
-CI --> GL
-CI --> MI
-CI --> SR
-CI --> BC
-GL --> BC
-MI --> BC
-SR --> BC
-BC --> UI
+ CI --> HR
+ PR --> CI
+ CI --> MI
+ CI --> SR
+ CI --> BC
+ BC --> UI
  
  IF -- Submit Field Audit --> SC
  SC -- Webhook --> API
@@ -96,292 +105,86 @@ BC --> UI
  SR -- Write Work Orders --> UK
 ```
 
-### Request Flow
+### Request Flow (Multi-Stage & Single-Stage)
 
 ```mermaid
 flowchart TB
- A[Submit job] --> B[Validate and normalize]
- B --> C[Extract structured fields with AI]
- C --> D[Score capability and fit]
- D --> E[Add logistics, market, and site context]
- E --> F[Generate recommendation brief]
- F --> G[User reviews evidence and confidence]
+ A[Submit Manufacturing Job] --> B[Validate and Normalize Job / Process DAG]
+ B --> C[Extract Technical Fields with AI]
+ C --> D[Resolve Standards & Material Cross-References]
+ D --> E[Match Capabilities & Filter Mandatory SDO Gates]
+ E --> F{Single-Stage or Multi-Stage DAG?}
+ F -- Single Stage --> G[Score Single Factory Candidates]
+ F -- Multi-Stage DAG --> H[Solve Multi-Factory Cluster Chains & Inter-Fab WIP Routing]
+ G --> I[Compute HERE Logistics, Market & Site Context]
+ H --> I
+ I --> J[Generate Headline Fit Score & Detailed Node Breakdown]
+ J --> K[User Reviews Evidence, SDO Compliance & Confidence]
  
- H[Third-party Submits SafetyCulture Audit] --> I[Webhook hits Integration API]
- I --> J[Validate standardized capacity metrics]
- J --> K[Enqueue async task]
- K --> L[Update Database & map to Site Brief]
- L --> M{Did Audit Fail?}
- M -- Yes --> N[Open UpKeep Work Order]
- M -- No --> O[Audit Logged]
+ L[Third-party Submits SafetyCulture Audit] --> M[Webhook hits Integration API]
+ M --> N[Validate standardized capacity metrics]
+ N --> O[Enqueue async task]
+ O --> P[Update Database & map to Site Brief]
+ P --> Q{Did Audit Fail?}
+ Q -- Yes --> R[Open UpKeep Work Order]
+ Q -- No --> S[Audit Logged & Factory Trust Updated]
 ```
 
-### Core Services
+---
+
+## Core Services
 
 | Service | Owns | Main Inputs | Main Outputs |
 |---|---|---|---|
-| Job Intake | New job submissions, validation, normalization | Product requirements, files, form inputs, survey data | Canonical job record, validation errors |
-| Core Intelligence | Process taxonomy, capability scoring, fit analysis | Canonical job record, factory profiles, market signals | Fit score, constraints, recommendation candidates |
-| AI Analysis Workers | Extraction, summarization, explanation, anomaly flagging | Sanitized structured payloads | Structured fields, briefs, evidence summaries |
-| Geo and Logistics | Travel distance, route costs, reachability, accessibility context | Job location, factory location, logistics constraints | Route options, travel time, isolines, geocoded locations, cost estimates (via HERE Routing/Matrix/Geocoding/Isoline adapters) |
-| Geo Adapters | Thin HTTP adapters and cache layer for HERE services | Coordinates, profile opts, cached keys | Normalized route/matrix/geocode/isoline shapes; cache-aware responses |
-| Market Intelligence | Demand signals, pricing signals, capacity signals | Research feeds, survey data, partner data | Market score, trend signals, risk notes (via UN Comtrade/World Bank) |
-| Site and Real Estate Intelligence | Facility briefs, location suitability, access context | Candidate sites, proximity data, property data | Site briefs, site scores, notes (via UpKeep & SafetyCulture) |
-| Batch Coordination | Bulk request orchestration, grouped calculations, aggregate status | Batch manifests, child job outputs, service results | Batch status, rollups, partial-failure summaries |
-| Presentation Layer | Dashboards, reports, exports, filters | All upstream service outputs | User-facing views, downloadable reports |
+| **Job Intake** | New job submissions, validation, normalization, DAG parsing | Product requirements, CAD/BOM files, form inputs, survey data | Canonical job record, process stage graph, validation errors |
+| **Core Intelligence** | Process taxonomy, capability scoring, fit analysis, cluster chain solving | Canonical job record, process stages, factory profiles, market signals | Fit score, feasibility score, confidence metrics, recommendation candidates |
+| **Standards & SDO Engine** | Open SDO ingestion (25 sources), SON OPAC sync, international cross-references, IAF validation | SDO metadata feeds, NIS/NCP bulk CSVs, factory certification numbers | `standards_catalog`, `standard_cross_references`, verified accreditation status |
+| **Multi-Stage Process Routing** | Manufacturing DAG decomposition, tooling parameters, substrate constraints, cluster composition | Process stages, tolerances, machine classes, feed/speed limits | Factory cluster routing, inter-fab transit legs, stage-by-stage engineering breakdown |
+| **AI Analysis Workers** | Extraction, summarization, explanation, anomaly flagging | Sanitized structured payloads, uploaded technical specs | Structured fields, briefs, evidence summaries |
+| **Geo and Logistics** | Travel distance, route costs, reachability, accessibility context, inter-fab transit | Job location, factory locations, transit preservation rules | Route options, transit matrices, road vibration risk, isolines (via HERE Adapters) |
+| **Geo Adapters** | Thin HTTP adapters and cache layer for HERE services | Coordinates, profile opts, cached keys | Normalized route/matrix/geocode/isoline shapes; cache-aware responses |
+| **Market Intelligence** | Demand signals, pricing signals, capacity signals | Research feeds, survey data, trade stats (UN Comtrade/World Bank) | Market score, trend signals, risk notes |
+| **Site and Real Estate Intelligence** | Facility briefs, location suitability, access context | Candidate sites, proximity data, property data | Site briefs, site scores, notes (via UpKeep & SafetyCulture) |
+| **Batch Coordination** | Bulk API request orchestration, grouped calculations, aggregate status | Batch manifests, child job outputs, service results | Batch status, rollups, partial-failure summaries (software async execution plane) |
+| **Presentation Layer** | Dashboards, reports, exports, filters, DAG visualizer | All upstream service outputs | User-facing views, downloadable reports, interactive multi-fab chain maps |
+
+---
 
 ## Service Boundaries
 
 ### 1. Job Intake Service
-
-This service should accept messy input from product teams and turn it into a single canonical job record.
-
-Owns:
-
-- form validation
-- file ingestion
-- survey ingestion
-- deduplication
-- source tracking
-
-Does not own:
-
-- scoring
-- recommendation logic
-- AI interpretation
+Accepts messy input from product teams and creates a canonical job record and optional process graph.
+- Owns: Form validation, file ingestion, DAG structure validation, deduplication, source tracking.
+- Does not own: Scoring, recommendation ranking, standards compliance decisions.
 
 ### 2. Core Intelligence Service
-
-This is the decision engine.
-
-Owns:
-
-- manufacturing process taxonomy
-- material compatibility rules
-- manufacturing capability model
-- fit scoring
-- confidence scoring
-- recommendation ranking
-
-Should be explicitly deterministic, with AI assisting only where the input or explanation needs structure.
-
-### 3. AI Analysis Workers
-
-These jobs should run in isolation and receive sanitized inputs only.
-
-They should not chat with users.
-
-Use cases:
-
-- classify a job into process and material buckets
-- extract entities from documents and surveys
-- summarize a factory or site into a brief
-- explain why one option ranks higher than another
-- flag missing, conflicting, or low-confidence data
-
-### 4. Geo and Logistics Service
-
--Owns:
-
-- provider adapters for HERE Routing, Matrix Routing, Geocoding & Search, and Isoline APIs (implemented under `backend/src/services/integrations/here/`)
-- route estimation
-- proximity analysis
-- travel time and cost estimation
-- reachability and service-area analysis
-- DFN logistics policy that converts provider outputs into logistics_context
-- map overlays
-
-This service should stay separate because it will evolve on different data, performance needs, and vendor dependencies.
-
-See [HERE Location Services Usage Contract](HERE_LOCATION_SERVICES.md) for the call patterns, inputs, outputs, and DFN usage rules.
-
-### 5. Market Intelligence Service
-
-Owns:
-
-- demand signals
-- pricing signals
-- capacity signals
-- access-to-market indicators
-
-This service feeds the core engine and the final reports.
-
-### 6. Site and Real Estate Intelligence Service
-
-Owns:
-
-- site briefs
-- facility fit analysis
-- access context
-- rent/lease and infrastructure notes where data is available
-
-This should be a distinct module because site selection is a different buying question from factory matching.
-
-### 7. Presentation Layer
-
-Owns:
-
-- dashboards
-- saved comparisons
-- exports
-- report generation
-- filters and search
-
-This layer should be thin. It should render and orchestrate, not decide.
-
-### 8. Batch Coordination Service
-
-Owns:
-
-- batch submission and manifest tracking
-- splitting bulk requests into child jobs
-- fan-out/fan-in aggregation
-- grouped retry and partial-failure semantics
-- consolidated batch progress and results
-
-This service should coordinate existing backend services and queue jobs. It should not own UI behavior or business scoring rules.
-
-### 9. Main Repo Integration Layer
-
-This is not a separate business service. It is the boundary that keeps DFN Discovery decoupled while still allowing it to consume upstream identity, contracts, and optional shared UI assets from the main DFN repository.
-
-Owns:
-
-- contract validation for inbound and outbound integration payloads
-- adapter code for shared identity and upstream data fetches
-- version checks for shared package compatibility
-
-Does not own:
-
-- persistent business data
-- user-facing decision logic
-- schema definitions for the main repo
-
-## Primary Data Flow
-
-1. Product company submits a manufacturing job.
-2. Job Intake validates and normalizes the request.
-3. AI Analysis Workers extract structure from messy text and attachments.
-4. Core Intelligence scores fit against factory and process data.
-5. Geo and Logistics adds route and access context through HERE-backed provider adapters and DFN logistics policy.
-6. Market Intelligence adds demand and market context.
-7. Site and Real Estate Intelligence adds location suitability.
-8. Batch Coordination groups bulk or multi-check work and aggregates the outputs.
-9. Presentation Layer combines the outputs into a decision brief.
-
-If the main DFN repo needs to participate, it should do so before or after these steps through the integration boundary above, not by embedding its logic inside the Discovery service stack.
-
-The user should see a recommendation, supporting evidence, and confidence level.
-
-## HLD Decisions
-
-These need to be locked before low-level design starts.
-
-1. What is the canonical job schema?
-2. What is the canonical factory profile schema?
-3. Which score is primary, fit score or feasibility score?
-4. What is the minimum evidence required before a recommendation can be shown?
-5. What is computed synchronously, and what runs asynchronously?
-6. Which outputs can be generated by rules, and which need AI?
-
-## LLD Workstreams
-
-These are the first low-level design slices to define.
-
-### Job Intake
-
-- request payload
-- validation rules
-- file types and limits
-- idempotency
-- job status states
-
-### Core Intelligence
-
-- scoring formula
-- feature weights
-- confidence calculation
-- ranking tie-breakers
-- fallback behavior when data is incomplete
-
-### AI Workers
-
-- prompt contract
-- sanitized input schema
-- output schema
-- retry policy
-- refusal policy for missing data
-
-### Geo and Logistics
-
-- route request schema
-- location normalization
-- provider abstraction for HERE Routing, Matrix Routing, Geocoding & Search, and Isoline APIs
-- caching rules
-- logistics policy for lead time, cost, and reachability
-- fallback behavior when provider data is partial
-
-### Market Intelligence
-
-- signal source model
-- freshness rules
-- confidence levels
-- source provenance
-
-### Site and Real Estate Intelligence
-
-- site brief schema
-- proximity scoring
-- site ranking inputs
-- missing-data handling
-
-### Batch Coordination
-
-- batch request and manifest schema
-- child job correlation and idempotency rules
-- aggregate progress model
-- partial-failure and retry semantics
-- consolidated result schema for bulk checks and calculations
-
-## AI Rules
-
-AI should be used in isolation, with minimal sanitized prompting from the user.
-
-Preferred modes:
-
-- structured extraction
-- summarization from verified data
-- ranking explanation
-- anomaly detection
-- brief generation
-
-Avoid:
-
-- freeform chatbot UI
-- long conversational back-and-forth
-- ungrounded answers
-- prompt chains that depend on the user explaining everything manually
-
-## Suggested First Release Shape
-
-The first release should focus on one narrow flow:
-
-1. Submit a manufacturing job.
-2. Normalize and classify it.
-3. Score it against known factories and capabilities.
-4. Return a recommendation brief with evidence.
-
-Everything else should support that flow.
-
-## Open Questions
-
-1. What is the canonical factory profile?
-2. What data do we trust enough to score against on day one?
-3. What are the minimum fields required for a useful recommendation?
-4. Which outputs must be explainable to the user from the start?
-
-## Planning Pack
-
-- [High-Level Design](DFN_HLD.md)
-- [Low-Level Design](DFN_LLD.md)
-- [Sequence Diagrams](DFN_SEQUENCE_DIAGRAMS.md)
+The deterministic decision engine.
+- Owns: Manufacturing process taxonomy, material compatibility rules, capability scoring, cluster chain optimization, confidence scoring.
+- Incorporates standards adherence as hard feasibility gates and confidence multipliers.
+
+### 3. Standards & SDO Engine
+Maintains the engineering standards catalog and accreditation registries.
+- Owns: Ingestion pipelines for 25 open SDOs, SON OPAC scheduled scraper, admin bulk NIS imports, cross-reference mapping (e.g. NIS 102 $\leftrightarrow$ ASTM A36), and real-time IAF CertSearch validation.
+- Does not own: Factory scoring formulas.
+
+### 4. Multi-Stage Process Routing Service
+Deconstructs multi-step manufacturing workflows into Directed Acyclic Graphs.
+- Owns: Substrate and alloy temper modeling, tooling & machine kinematics constraints, thermal/surface treatment rules, inter-stage WIP transitions, Maximum Allowable Queue Times (MQT), and tropical corrosion preservation policies.
+- Does not own: Direct map rendering.
+
+### 5. Geo and Logistics Service
+Calculates spatial and physical transit metrics.
+- Owns: Provider adapters for HERE Routing, Matrix Routing, Geocoding, and Isoline APIs; inter-fab transit matrices; road roughness risk; buffer warehouse staging estimates.
+
+### 6. AI Analysis Workers
+Isolated background workers operating on sanitized inputs.
+- Owns: Classifying jobs into process/material buckets, extracting technical clauses from drawings, summarizing factory briefs, explaining ranking differences, flagging missing or contradictory requirements.
+
+### 7. Batch Coordination Service (Software Control Plane)
+Coordinates bulk API submissions and async queue worker sets.
+- Owns: Batch manifests, idempotency keys, progress rollups, partial failure/retry handling for bulk requests.
+- Does not own: Physical manufacturing batch/lot sizing or production planning.
+
+### 8. Presentation Layer
+Thin UI layer rendering dashboards, reports, and interactive multi-fab process maps.
+- Owns: User views, exports, comparisons, stage-by-stage node visualizers.

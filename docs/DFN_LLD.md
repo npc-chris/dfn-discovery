@@ -66,6 +66,57 @@ This document defines the first implementation slices for the frozen DFN archite
 | confidence | number | Weight or trust level |
 | created_at | timestamp | Audit metadata |
 
+### Process Stage (DAG Node)
+
+| Field | Type | Notes |
+|---|---|---|
+| id | string | UUID or equivalent |
+| job_id | string | Linked job |
+| stage_order | number | Sequential index or topological order |
+| operation_type | string | Forming, 3/5-axis CNC, vacuum heat treat, anodizing, NDT, etc. |
+| substrate_spec | object | Alloy grade, temper (e.g. 6061-T6), form factor, MTC requirement |
+| tooling_spec | object | Machine kinematics, feeds, speeds, custom fixtures |
+| tolerances | object | Dimensional limits (e.g. ±0.012mm), surface roughness Ra |
+| standard_ids | array | Linked mandatory standard UUIDs from `standards_catalog` |
+
+### Process Transition (DAG Edge / WIP Transfer)
+
+| Field | Type | Notes |
+|---|---|---|
+| id | string | UUID or equivalent |
+| job_id | string | Linked job |
+| from_stage_id | string | Source stage UUID |
+| to_stage_id | string | Destination stage UUID |
+| transition_type | string | `internal_transfer`, `inter_fab_transit` |
+| preservation_rule | string | VCI wrap, oil dip, nitrogen blanket, desiccant crating |
+| max_queue_time_hours | number | Maximum allowable delay before material degradation |
+
+### Standard Reference
+
+| Field | Type | Notes |
+|---|---|---|
+| id | string | UUID or equivalent |
+| sdo | string | ISO, SON, ASTM, ASME, API, DIN, BSI, NACE, AWS, etc. |
+| standard_code | string | Official identifier (e.g., NIS 102:2006, API 5L, ASTM A36) |
+| title | string | Full title of standard |
+| category | string | Materials, welding, quality, piping, coatings |
+| status | string | active, withdrawn, under_revision |
+
+### Factory Cluster Recommendation (Multi-Fab Chain)
+
+| Field | Type | Notes |
+|---|---|---|
+| id | string | UUID or equivalent |
+| job_id | string | Linked job |
+| org_id | string | Owning organisation |
+| headline_fit_score | number | Weighted geometric mean of stage fit scores penalised by logistics friction (0-100) |
+| chain_feasibility_score | number | Combined operational feasibility (0-100) |
+| total_landed_cost_ngn | number | Cumulative operation costs + freight + preservation + buffer storage |
+| total_lead_time_days | number | Cumulative processing days + inter-fab transit latency |
+| stage_assignments | array | Array of stage UUIDs mapped to selected factory UUIDs and individual stage scores |
+| inter_fab_logistics | array | Breakdown of transit legs (distance, travel time, route risk, preservation cost) |
+| generated_at | timestamp | Audit metadata |
+
 ## State Machine
 
 Job lifecycle:
@@ -130,18 +181,23 @@ See [Security Architecture](DFN_SECURITY.md) for the full specification.
 
 | Method | Route | Purpose |
 |---|---|---|
-| POST | /jobs | Create a job |
+| POST | /jobs | Create a job (supports flat or multi-stage DAG payload) |
 | GET | /jobs/:id | Fetch a job and current status |
 | POST | /jobs/:id/submit | Submit a draft job for intake |
 | POST | /jobs/:id/analyze | Start analysis and scoring |
-| GET | /jobs/:id/recommendation | Fetch the recommendation bundle |
+| GET | /jobs/:id/recommendation | Fetch single-factory recommendations |
+| GET | /jobs/:id/cluster-recommendations | Fetch multi-factory cluster chain recommendations |
 | GET | /factories/:id | Fetch a factory profile |
 | POST | /factories | Create or import a factory profile |
+| GET | /standards | Search standards catalog (ISO, SON, ASTM, API, etc.) |
+| GET | /standards/:id/cross-references | Get international/local equivalent standards |
+| POST | /admin/standards/bulk-import | Bulk upload verified NIS/NCP standards (admin role) |
 | POST | /webhooks/safetyculture | Receive site audit webhook (enqueues processing) |
 
 ### Enrichment API contract
 
 - `POST /enrichment/logistics-assessment` — Accepts `{ jobId?, factoryId?, prismReport? }`. If `jobId`/`factoryId` are provided the service will resolve canonical records; if not, callers may POST full `job` and `factory` shapes. Optional `prismReport` (JSON) is accepted and passed to the logistics policy for transport/profile selection. Returns `LogisticsAssessment`.
+- `POST /enrichment/inter-fab-logistics` — Accepts `{ stageFromFactoryId, stageToFactoryId, preservationRule, maxQueueTimeHours }`. Computes point-to-point transit matrix, road quality risk, and preservation cost. Returns `InterFabLogisticsAssessment`.
 
 Enrich-logistics handler specifics:
 
@@ -154,6 +210,7 @@ Enrich-logistics handler specifics:
 |---|---|---|
 | POST | /internal/jobs/:id/extract | Run AI extraction |
 | POST | /internal/jobs/:id/score | Run scoring |
+| POST | /internal/jobs/:id/score-clusters | Run multi-factory cluster chain solver |
 | POST | /internal/jobs/:id/enrich | Run context enrichment |
 
 ## Queue Jobs
@@ -161,11 +218,15 @@ Enrich-logistics handler specifics:
 1. classify-job
 2. extract-evidence
 3. score-fit
-4. enrich-logistics
-5. refresh-market-signals
-6. refresh-site-brief
-7. generate-recommendation-brief
-8. sync-audit-webhook (handles inbound SafetyCulture/UpKeep state mutations)
+4. score-process-chain (orchestrates multi-stage DAG cluster matching)
+5. enrich-logistics
+6. refresh-market-signals
+7. refresh-site-brief
+8. generate-recommendation-brief
+9. sync-audit-webhook (handles inbound SafetyCulture/UpKeep state mutations)
+10. sync-son-standards (periodic scheduled crawler for `library.son.gov.ng`)
+11. sync-sdo-catalog (periodic open data sync for ISO, IEC, etc.)
+12. verify-iaf-certifications (real-time validation against IAF CertSearch API)
 
 Rules:
 

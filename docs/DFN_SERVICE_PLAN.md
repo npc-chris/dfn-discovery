@@ -2,7 +2,7 @@
 
 ## Product Wedge
 
-The product should answer one question first: can a Nigerian factory or supply chain realistically take this manufacturing job, at what cost, in what time, and with what risk?
+The product should answer one question first: can a Nigerian factory or multi-factory supply chain cluster realistically take this manufacturing job, at what cost, in what time, with what standard compliance, and with what operational risk?
 
 Everything else should support that decision.
 
@@ -10,30 +10,30 @@ Everything else should support that decision.
 
 ### Keep As Core
 
-1. Cluster analysis for low-volume manufacturing processes.
-2. Survey and research-backed insights.
-3. Market metrics and demand/access signals.
-4. Mapping for factory, supplier, and logistics context.
-5. Structured AI analysis and recommendation layer.
+1. **Multi-Stage Process Routing & Cluster Analysis**: Deconstructing manufacturing jobs into Directed Acyclic Graphs (DAGs) to route complex multi-operation jobs across specialized factory clusters (forming, CNC machining, heat treat, surface finishing).
+2. **Standards & SDO Compliance Engine**: Ingesting metadata across 25 open SDOs (ISO, SON/NIS, ARSO, ASTM, ASME, API, etc.) and verifying active accreditations via IAF CertSearch.
+3. **Survey and research-backed insights**: Data provenance and verified facility profiles.
+4. **Market metrics and demand/access signals**: Aggregated trade and capacity data.
+5. **Mapping for factory, supplier, and inter-fab logistics context**: HERE provider adapters for matrix routing, road condition risk, and WIP preservation during transit.
+6. **Structured AI analysis and recommendation layer**: Deterministic scoring augmented by structured extraction and evidence explanation.
 
 These are the spine of the product. They directly help a product team, operator, or investor decide where work should go.
 
 ### Keep, But Split Into Separate Modules
 
-1. Logistics route optimization.
-2. Real estate briefs.
-3. Access and network intelligence.
+1. **Logistics route optimization & Inter-Fab WIP matrices**: Separatable HERE provider adapters.
+2. **Real estate briefs & Field Auditing Proxies**: UpKeep CMMS and SafetyCulture integration layer.
+3. **Access and network intelligence**: Cluster density and regional manufacturing gap analysis.
 
-These are useful, but they should not sit inside the same service as the core matching engine. They are decision-support modules that consume the core data, not the core itself.
+These are decision-support modules that consume core data and should not pollute core matching.
 
 ### Defer For Later Phases
 
 1. Partner dashboards.
 2. Automated outreach and CRM-like workflows.
-3. Advanced scenario planning and forecasting.
-4. Deep operational workflow management for factories.
-
-These are good ideas for supporting features, but they are not the first wedge. They add surface area fast and do not prove the core value faster.
+3. Advanced scenario planning and predictive forecasting.
+4. Deep operational workflow management (MES) for internal factory floors.
+5. Commercial full-text standard aggregators (Accuris, Total Materia) until scale mandates them.
 
 ### Drop Or Avoid For Now
 
@@ -42,172 +42,71 @@ These are good ideas for supporting features, but they are not the first wedge. 
 3. Unrelated admin tooling.
 4. Social/community features that do not improve matching, routing, or site selection.
 
-If a feature does not help a user decide, route, source, price, or de-risk a manufacturing job, it is noise right now and should be moved to a standalone product or avoided entirely.
+---
 
 ## Proposed Service Boundaries
 
 ### 1. Core Intelligence Service
+The central decision engine.
+- Owns: Manufacturing process taxonomy, material compatibility rules, capability scoring, confidence scoring, single-factory and multi-factory recommendation ranking.
 
-Owns:
+### 2. Standards & SDO Ingestion Service
+Maintains the engineering specifications and trust baseline.
+- Owns: Ingestion pipelines for 25 open SDOs, SON OPAC automated scraper (`library.son.gov.ng`), administrative bulk NIS imports, cross-reference mapping (e.g., NIS 102 $\leftrightarrow$ ASTM A36), and real-time IAF CertSearch validation.
 
-- manufacturing process taxonomy
-- material compatibility rules
-- capability scoring
-- confidence scores
-- recommendation generation
+### 3. Multi-Stage Process Routing Service
+Orchestrates complex manufacturing workflows.
+- Owns: Process DAG parsing, substrate/temper constraints, tooling & feed/speed limits, thermal/surface treatment rules, inter-stage WIP transitions, Maximum Allowable Queue Times (MQT), and tropical humidity preservation rules.
 
-This is the brain of the product.
+### 4. Data Ingestion Service
+- Owns: Survey collection, research imports, partner uploads, normalization, and source provenance.
 
-### 2. Data Ingestion Service
+### 5. Geo And Logistics Service
+- Owns: Provider adapters for HERE Routing, Matrix Routing, Geocoding & Search, and Isoline APIs; inter-fab transit matrix calculation; road vibration risk scoring; buffer warehouse sizing; logistics policy.
 
-Owns:
+### 6. Market Intelligence Service
+- Owns: Demand metrics, pricing signals, capacity signals, access-to-market scoring (UN Comtrade / World Bank).
 
-- survey collection
-- research imports
-- partner data uploads
-- normalization and deduping
-- source provenance
+### 7. Site And Real-Estate Intelligence Service
+- Owns: Location briefs, facility fit analysis, field audit webhook ingestion (UpKeep & SafetyCulture).
 
-This keeps messy input out of the core logic.
+### 8. Software Batch Coordination Service
+- Owns: Batch manifests, API bulk submission splitting, async queue worker fan-out/fan-in, idempotency keys, progress rollups (software execution control plane).
 
-### 3. Geo And Logistics Service
+### 9. Presentation And Workflow Layer
+- Owns: Dashboards, reports, exports, saved comparisons, multi-stage DAG chain visualizers.
 
-Owns:
-
-- provider adapters for HERE Routing, Matrix Routing, Geocoding & Search, and Isoline APIs
-- map layers and route overlays for the presentation layer
-- route optimization inputs and outputs
-- travel time and distance estimates
-- reachability and service-area analysis
-- facility proximity analysis
-- logistics policy that translates provider outputs into DFN scoring context
-
-Notes on adapters and Prism:
-
-- Implement provider adapters for HERE services under `backend/src/services/integrations/here/` (Routing v8, Matrix v8, Geocoding v7, Isoline v8). Keep adapters thin and focused on normalizing external shapes to DFN types.
-- Logistics policy (in `Geo And Logistics`) accepts optional `PrismReport` JSON to refine transport profile selection and packaging/weight assumptions. The Prism report is optional and the policy must fall back to heuristics when it is absent.
-
-This should be separable because it will evolve on different data and different performance needs.
-
-See [HERE Location Services Usage Contract](HERE_LOCATION_SERVICES.md) for service-by-service usage guidance.
-
-### 4. Market Intelligence Service
-
-Owns:
-
-- demand metrics
-- pricing signals
-- capacity signals
-- access-to-market scoring
-- API Integrations: UN Comtrade & World Bank (preferred), SerpApi/GDELT (fallback)
-
-This can feed the core engine and the user-facing briefs.
-
-### 5. Site And Real-Estate Intelligence Service
-
-Owns:
-
-- location briefs
-- facility fit analysis
-- rent/lease and access context
-- zoning or power proximity notes if available
-- Field Auditing Integrations: UpKeep CMMS & SafetyCulture (preferred)
-
-This is a distinct buyer conversation from product matching.
-
-### 6. Presentation And Workflow Layer
-
-Owns:
-
-- dashboards
-- reports
-- exports
-- saved comparisons
-- alerting
-
-This should stay thin. It should not make business decisions itself.
-
-## What To Remove If It Exists Today
-
-If the current product includes any of these, cut them:
-
-- a single monolithic AI agent that tries to do everything
-- duplicated scoring logic in multiple places
-- one-off dashboards that reimplement the same filters
-- premature multi-tenant enterprise controls
-- complex workflow automation before the data is trustworthy
+---
 
 ## Recommended Build Order
 
-1. Core intelligence service.
-2. Data ingestion and provenance.
-3. One usable matching experience.
-4. Market intelligence and map context.
-5. Logistics and site briefs.
-6. Reporting and exports.
+1. **Core Intelligence Service & Canonical Schemas**: Establish deterministic scoring for single-stage and multi-stage DAG jobs.
+2. **Standards & SDO Ingestion Engine**: Index open SDO metadata (ISO, SON OPAC, ASTM, API) and IAF CertSearch factory verification.
+3. **Data Ingestion & Provenance**: Canonical job and factory profile intake.
+4. **Geo & Logistics Service with HERE Adapters**: Single-route and multi-stop inter-fab matrix transit calculation.
+5. **Multi-Stage Process Routing & Cluster Matching**: Solve end-to-end multi-factory production chains with WIP logistics penalties.
+6. **Market & Site Intelligence**: Ingest UN Comtrade signals and SafetyCulture/UpKeep audit webhooks.
+7. **Presentation Layer & Reports**: Render headline chain fit scores, stage-by-stage engineering breakdowns, and exportable briefs.
 
-That sequence gets to a real user outcome fastest. It also keeps the architecture honest.
+---
 
 ## Integration Decision
 
-DFN Discovery, though a core product in the lineup of Digital Fabrication Network, is being implemented as a standalone application, due to its open-source nature.
+DFN Discovery is implemented as a standalone application and service boundary.
 
-It should integrate with the main DFN repository only through explicit contracts:
-
-- shared authentication identity and role claims
+It integrates with the main DFN repository only through explicit contracts:
+- shared authentication identity and role claims (JWT via JWKS)
 - versioned API clients and type definitions
 - webhook or event payloads for async updates
-- optional shared UI tokens or primitives if they are packaged separately
+- optional shared UI tokens or primitives if packaged separately
 
-It should not depend on the main repo's live database, session store, or internal application modules.
-
-Implementation rule:
-
-- if code must be reused across both repos, publish it as a versioned shared package
-- if data must cross the boundary, use an authenticated API or event contract
-- if a feature requires direct imports from the main repo, it belongs in the shared package or should be refactored into a contract first
-
-## Decision Rule
-
-Keep a service only if it improves one of these outcomes:
-
-- find the right factory
-- score whether the job fits
-- reduce time or cost to route the job
-- explain why the recommendation is trustworthy
-
-If it does not move one of those, it is probably scope creep.
+---
 
 ## AI Strategy
 
-AI should not be the product surface. It should be the engine that turns messy inputs into structured decisions.
-
-That means:
-
-- minimal sanitized prompts from the user
-- structured inputs, not open-ended chat
-- isolated jobs that return schemas, scores, and briefs
-- evidence links and confidence levels with every output
-- human review where the risk is real
-
-### Best Uses For AI
-
-1. Classify manufacturing requests into process, material, complexity, and feasibility buckets.
-2. Extract signals from surveys, research notes, and partner submissions.
-3. Summarize a factory, route, or site into a decision brief.
-4. Compare options and explain tradeoffs in plain language.
-5. Generate a recommendation only after the scoring layer has done the hard work.
-
-### Good AI Patterns
-
-1. Structured extraction, where AI turns raw text into fields.
-2. Evidence-backed summarization, where AI writes a brief from known data.
-3. Ranking and explanation, where AI explains why one option beats another.
-4. Exception handling, where AI flags gaps, conflicts, or missing data.
-
-### Bad AI Patterns
-
-1. Freeform chatbot Q&A as the main UI.
-2. Letting the model invent facts or fill missing data without provenance.
-3. Using AI for every step when deterministic logic is enough.
-4. Prompting the user for long explanations just to get started.
+AI is not the product surface; it is the worker that turns messy technical documents and drawings into structured fields:
+1. Classify manufacturing requests into process, material, and complexity buckets.
+2. Extract technical clauses and tolerances from drawings and specifications.
+3. Summarize factory capabilities and site briefs into decision briefs.
+4. Explain multi-factory chain tradeoffs in plain engineering language.
+5. Generate recommendations only after the deterministic scoring and standards gating layers have evaluated the data.

@@ -38,14 +38,16 @@ The system is made of a small set of services that cooperate through explicit co
 ### Service Responsibilities
 
 | Service | Responsibility | Interaction Style |
-|---|---|---|
-| Job Intake | Validate, normalize, version job submissions | Mostly synchronous |
-| Core Intelligence | Compute fit, feasibility, and recommendation ranking | Mostly synchronous |
+| --- | --- | --- |
+| Job Intake | Validate, normalize, version job submissions (single-stage and multi-stage DAGs) | Mostly synchronous |
+| Core Intelligence | Compute fit, feasibility, multi-stage chain routing, and recommendation ranking | Mostly synchronous |
+| Standards & SDO Engine | Ingest open SDO metadata (ISO, SON, ASTM, API, etc.), map cross-references, and verify factory accreditations | Asynchronous ingestion & sync |
+| Multi-Stage Process Routing | Orchestrate manufacturing DAGs, tooling parameters, substrate constraints, and factory cluster formation | Mixed (Sync graph solver + async matrix lookups) |
 | AI Analysis Workers | Extract structure, summarize, explain, flag anomalies | Asynchronous jobs |
-| Geo and Logistics | Produce provider-backed distance, routing, reachability, and access context | Mixed, provider-adapter driven |
+| Geo and Logistics | Produce provider-backed distance, routing, reachability, and inter-fab WIP transit context | Mixed, provider-adapter driven |
 | Market Intelligence | Produce demand, pricing, and capacity signals | Mostly asynchronous ingestion |
 | Site and Real Estate Intelligence | Produce site briefs and fit context | Mixed |
-| Batch Coordination | Orchestrate bulk requests, grouped calculations, and fan-out/fan-in job sets | Asynchronous control plane |
+| Batch Coordination | Orchestrate software bulk requests, grouped calculations, and fan-out/fan-in queue sets | Asynchronous control plane |
 | Presentation Layer | Render dashboards, exports, and reports | Synchronous read path |
 
 ## Primary Decisions
@@ -130,20 +132,64 @@ Three decisions are frozen at the HLD level:
 
 See [Security Architecture](DFN_SECURITY.md) for the full specification.
 
+### 7. Multi-Stage Process DAGs vs Point-to-Point Matching
+
+Manufacturing in physical reality is rarely a single-shot operation. A complex part (e.g. machined casting or fabricated pressure vessel) requires a multi-stage sequence of discrete operations:
+
+- **Substrate & Raw Material Prep**: Alloy tempers, form factors, Mill Test Certificates (MTCs), etc.
+- **Subtractive / Forming Machining**: 3/5-axis CNC, tooling, feeds, speeds, cycle times.
+- **Thermal & Surface Treatments**: Vacuum heat treatment, stress relief, anodizing, plating, passivation.
+- **Inter-Fab Work-In-Progress (WIP) Logistics**: Environmental degradation risks (corrosion, oxidation in tropical climates), maximum allowable queue times (MQT), intermediate buffer storage, and inter-facility transit routing via HERE services.
+
+Discovery supports both simple point-to-point single-stage matching and **Multi-Stage Process Directed Acyclic Graphs (DAGs)**. Recommendations can be generated for single facilities or **Multi-Factory Clusters** where specialized fabs handle specific stages in the production graph.
+
+See [Multi-Stage Process Routing Architecture](DFN_MULTI_STAGE_PROCESS_ROUTING.md) for the full specification.
+
+### 8. Software Async Batching vs Manufacturing Batch / Lot Planning
+
+To prevent domain confusion:
+
+- **Batch Coordination (`batch_manifests`)**: Operates as a software control-plane and async queuing mechanism (fan-out/fan-in) for bulk API job submissions, worker idempotency, and aggregate progress rollups.
+- **Manufacturing Batch / Lot Planning**: Operates inside the Core Intelligence and Process Routing engines to model physical production batching: Minimum Order Quantities (MOQs), machine changeover hours, tooling amortisation, and raw material stock yield optimization.
+
+### 9. Standards & SDO Compliance Engine
+
+Compliance with Standards Development Organizations (SDOs) is a primary gating dimension in manufacturing feasibility:
+
+- **Open SDO Catalog Ingestion**: Indexing metadata across 25 open sources (ISO, IEC, SON/NIS, ARSO, ASTM, ASME, API, DIN, BSI, NACE/AMPP, AWS, etc.).
+- **Dual-Track Nigerian Ingestion**: Automated scraping of the Standards Organisation of Nigeria (SON) OPAC catalog (`library.son.gov.ng`) combined with administrative bulk CSV/JSON imports of verified NIS and NCP standards.
+- **Commercial Aggregator Roadmap**: Phased integration of paid APIs (Total Materia for materials equivalence across 74 SDOs, Nimonik for EHS compliance, Accuris Engineering Workbench for full-text standards).
+- **IAF CertSearch Validation**: Real-time verification of active factory accreditations (ISO 9001, ISO 14001).
+
+See [Standards & SDO Architecture](DFN_STANDARDS_AND_SDO_ARCHITECTURE.md) for the full specification.
+
 ## Data Ownership
 
 ### Job Intake Owns
 
 - canonical job record
+- multi-stage process graph definitions (DAG nodes and transition edges)
 - attachments and source metadata
 - validation status
 
 ### Core Intelligence Owns
 
-- scoring outputs
-- fit and feasibility dimensions
-- ranking results
-- confidence model
+- scoring outputs (single-facility and multi-facility cluster scores)
+- fit, feasibility, and confidence models
+- ranking and chain optimization results
+
+### Standards & SDO Engine Owns
+
+- standards catalog metadata (ISO, SON, ASTM, ASME, API, etc.)
+- standard equivalence and cross-reference mappings
+- factory certification verification state (IAF CertSearch data)
+
+### Multi-Stage Process Routing Owns
+
+- manufacturing DAG resolution and stage decomposition
+- tooling, substrate, feed, and thermal/surface constraint models
+- inter-fab WIP transfer rules, environmental preservation constraints, and queue time limits
+- cluster chain composition and total landed cost rollups
 
 ### AI Workers Own
 

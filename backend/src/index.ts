@@ -2,8 +2,12 @@
 // Express server with all services and routes configured
 
 import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
 import { errorHandler } from './middleware/error';
 import jobsRouter from './routes/jobs';
+import projectsRouter from './routes/projects';
+import quotesRouter from './routes/quotes';
 import modelsRouter from './routes/models';
 import extractionRouter from './routes/extraction';
 import scoringRouter from './routes/scoring';
@@ -43,9 +47,33 @@ app.use(
 );
 
 // ---------------------------------------------------------------------------
-// Global middleware
+// Global middleware & CORS
 // ---------------------------------------------------------------------------
-import helmet from 'helmet';
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, or same-origin)
+      if (!origin) return callback(null, true);
+      // Allow localhost dev servers, extension schemes, and production domains
+      const isAllowed =
+        /^http:\/\/localhost(:\d+)?$/.test(origin) ||
+        /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin) ||
+        origin.startsWith('chrome-extension://') ||
+        origin.endsWith('.fabnetwork.com.ng') ||
+        origin === 'https://fabnetwork.com.ng';
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Permissive in development
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'X-Requested-With', 'X-Prism-Key'],
+  }),
+);
+
 app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -58,9 +86,26 @@ app.get('/health', (_req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// Core API routes — organized by service domain
+// API v1 Routes (Standard API path used by dfn-ui and @dfn/api-client)
+// ---------------------------------------------------------------------------
+app.use('/api/v1/jobs', jobsRouter);
+app.use('/api/v1/projects', projectsRouter);
+app.use('/api/v1/quotes', quotesRouter);
+app.use('/api/v1/recommendations', recommendationsRouter);
+app.use('/api/v1/models', modelsRouter);
+app.use('/api/v1/extraction', extractionRouter);
+app.use('/api/v1/scoring', scoringRouter);
+app.use('/api/v1/enrichment', enrichmentRouter);
+app.use('/api/v1/queue', queueRouter);
+app.use('/api/v1/batch', batchRouter);
+app.use('/api/v1/analytics', analyticsApp);
+
+// ---------------------------------------------------------------------------
+// Root aliases for backward compatibility
 // ---------------------------------------------------------------------------
 app.use('/jobs', jobsRouter);
+app.use('/projects', projectsRouter);
+app.use('/quotes', quotesRouter);
 app.use('/models', modelsRouter);
 app.use('/extraction', extractionRouter);
 app.use('/scoring', scoringRouter);
@@ -68,13 +113,6 @@ app.use('/enrichment', enrichmentRouter);
 app.use('/recommendations', recommendationsRouter);
 app.use('/queue', queueRouter);
 app.use('/batch', batchRouter);
-
-// ---------------------------------------------------------------------------
-// Phase 6.9 Analytics — separate sub-app at /api/v1/analytics
-// Isolated from the core recommendation routes so it can be independently
-// versioned, rate-limited, or open-sourced.
-// ---------------------------------------------------------------------------
-app.use('/api/v1/analytics', analyticsApp);
 
 // Error handler (must be last)
 app.use(errorHandler);
@@ -84,3 +122,4 @@ app.listen(PORT, () => {
   console.log(`DFN Discovery Backend listening on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
 });
+
