@@ -1,0 +1,53 @@
+$schema: https://api.gitbook.com/gitbook-docs.yaml
+site:
+  title: DFN Discovery
+  structure:
+    - type: section
+      key: section-docs
+      title: Documentation
+      path: docs
+      default: true
+      children:
+        - type: space
+          key: space-docs
+          title: Planning and Design
+          path: planning
+          default: true
+          content:
+            directory: ./docs
+    - type: section
+      key: section-backend
+      title: Backend
+      path: backend
+      children:
+        - type: space
+          key: space-backend
+          title: API and Services
+          path: api
+          default: true
+          content:
+            directory: ./backend
+    - type: section
+      key: section-frontend
+      title: Frontend
+      path: frontend
+      children:
+        - type: space
+          key: space-frontend
+          title: Web Application
+          path: app
+          default: true
+          content:
+            directory: ./frontend
+    - type: section
+      key: section-shared
+      title: Shared
+      path: shared
+      children:
+        - type: space
+          key: space-shared
+          title: Types and Utilities
+          path: types
+          default: true
+          content:
+            directory: ./shared
