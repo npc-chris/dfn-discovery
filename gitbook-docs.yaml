@@ -3,47 +3,78 @@ site:
   title: DFN Discovery
   structure:
     - type: section
-      key: section-docs
-      title: Documentation
-      path: docs
-      description: Repository-wide architecture, planning, and high-level specifications.
+      key: section-general
+      title: General
+      path: general
+      description: General overview, system boundaries, and architectural principles.
       default: true
       children:
         - type: space
-          key: space-docs-overview
-          title: Repository Overview
-          path: overview
-          default: true
-          content:
-            directory: ./docs
-    - type: section
-      key: section-backend
-      title: Backend
-      path: backend
-      description: Backend service boundaries, architecture, development guides, and operations.
-      children:
-        - type: space
-          key: space-backend-overview
+          key: space-general-overview
           title: Overview
           path: overview
           default: true
           content:
             directory: null
         - type: space
-          key: space-backend-architecture
+          key: space-general-architecture
           title: Architecture
           path: architecture
           content:
             directory: null
         - type: space
-          key: space-backend-development
+          key: space-general-development
           title: Development Guides
           path: development
           content:
             directory: null
         - type: space
-          key: space-backend-operations
+          key: space-general-operations
           title: Operations
           path: operations
           content:
             directory: null
+    - type: section
+      key: section-services
+      title: Services & Logic
+      path: services
+      description: Core backend services, API routes, endpoints, and business logic.
+      children:
+        - type: space
+          key: space-services-logic
+          title: Services & Logic
+          path: logic
+          default: true
+          content:
+            directory: null
+        - type: space
+          key: space-services-routes
+          title: Routes & Endpoints
+          path: routes
+          content:
+            directory: null
+        - type: space
+          key: space-services-workers
+          title: Workers & Queue
+          path: workers
+          content:
+            directory: null
+        - type: space
+          key: space-services-db
+          title: Database & Schema
+          path: database
+          content:
+            directory: null
+    - type: section
+      key: section-docs
+      title: Documentation
+      path: docs
+      description: Repository-wide architecture, planning, and high-level specifications.
+      children:
+        - type: space
+          key: space-docs
+          title: Repository Docs
+          path: repository
+          default: true
+          content:
+            directory: ./docs
