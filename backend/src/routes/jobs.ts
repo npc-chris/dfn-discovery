@@ -9,8 +9,10 @@ import { AppError } from '../middleware/error';
 import { listJobsByOrg, getRecommendationsForJob, getQuotesForJob } from '../db/queries';
 import { getJobQuotes, getProjectSourcingMetrics } from '../services/sourcing-service';
 import { getFormattedActivities, recordActivity } from '../services/activity-service';
+import dagRoutingRouter from './dag-routing';
 
 const router: Router = express.Router();
+
 
 // List all jobs / RFQ pipeline with stage filters and pagination
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
@@ -120,7 +122,9 @@ router.post('/', async (req, res, next) => {
 // Get a job by ID
 router.get('/:jobId', async (req, res, next) => {
   try {
-    const job = await jobIntake.getJob(req.params.jobId);
+    const auth = res.locals.auth;
+    const orgId = auth?.orgId;
+    const job = await jobIntake.getJob(req.params.jobId, orgId);
     if (!job) {
       throw new AppError(404, 'Job not found');
     }
@@ -129,6 +133,7 @@ router.get('/:jobId', async (req, res, next) => {
     next(error);
   }
 });
+
 
 // Submit a job for intake and analysis
 router.post('/:jobId/submit', async (req, res, next) => {
@@ -194,14 +199,22 @@ router.get('/:jobId/sourcing-metrics', async (req, res, next) => {
     const orgId = auth?.orgId || 'unknown';
     const job = await jobIntake.getJob(req.params.jobId);
     if (!job) {
-      throw new AppError(404, 'Job not found');
+      const metrics = await getProjectSourcingMetrics(req.params.jobId, orgId);
+      res.json(metrics);
+      return;
     }
     const metrics = await getProjectSourcingMetrics(job.project_id || job.id, orgId);
     res.json(metrics);
+    return;
   } catch (error) {
     next(error);
   }
 });
 
+// Mount DAG Routing routes (/:jobId/routing-dag and /:jobId/routing-dag/simulate)
+router.use('/', dagRoutingRouter);
+
 export default router;
+
+
 

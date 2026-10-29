@@ -5,9 +5,10 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
 
-function requireIntegerEnv(name: string): number {
+function requireIntegerEnv(name: string, defaultValue?: number): number {
   const value = process.env[name];
   if (!value) {
+    if (defaultValue !== undefined) return defaultValue;
     throw new Error(`${name} is required`);
   }
 
@@ -30,8 +31,8 @@ function requireStringEnv(name: string): string {
 
 const pool = new Pool({
   connectionString: requireStringEnv('DATABASE_URL'),
-  max: requireIntegerEnv('DATABASE_POOL_MAX'),
-  min: requireIntegerEnv('DATABASE_POOL_MIN'),
+  max: requireIntegerEnv('DATABASE_POOL_MAX', 10),
+  min: requireIntegerEnv('DATABASE_POOL_MIN', 1),
 });
 
 export const db = drizzle(pool, { schema });

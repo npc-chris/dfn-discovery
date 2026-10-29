@@ -41,3 +41,6 @@ dump_*
 # Misc
 .cache/
 .turbopack
+
+# TypeScript
+*.tsbuildinfo
