@@ -6,6 +6,7 @@ export interface FactoryLocation {
   address?: string;
   country: string;
   region?: string;
+  state?: string;
 }
 
 export interface FactoryCapability {
