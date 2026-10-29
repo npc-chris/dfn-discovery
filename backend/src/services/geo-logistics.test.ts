@@ -14,7 +14,7 @@ describe('GeoLogistics Service', () => {
   beforeEach(() => {
     service = new GeoLogistics();
     vi.clearAllMocks();
-    process.env.HERE_API_KEY = 'test-here-key';
+    process.env.GOOGLE_MAPS_API_KEY = 'test-google-key';
     vi.stubGlobal('fetch', mockFetch);
     
     // Mock redis client
@@ -29,17 +29,19 @@ describe('GeoLogistics Service', () => {
       json: async () => ({
         routes: [
           {
-            sections: [
-              { summary: { length: 620000 } },
-            ],
+            distanceMeters: 620000,
+            duration: '21000s',
+            description: 'Lagos to Abuja corridor',
+            polyline: { encodedPolyline: 'mockPolyline' },
           },
         ],
       }),
     });
   });
 
-  it('falls back to deterministic routing when HERE is unavailable', async () => {
-    delete process.env.HERE_API_KEY;
+  it('falls back to deterministic routing when Google routing is unavailable', async () => {
+    delete process.env.GOOGLE_MAPS_API_KEY;
+    delete process.env.GOOGLE_API_KEY;
 
     const mockJob = {
       id: 'job-2',

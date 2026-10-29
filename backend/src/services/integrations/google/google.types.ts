@@ -15,6 +15,7 @@ export interface MatrixResultEntry {
   destinationIndex: number;
   travelTimeSeconds?: number;
   distanceMeters?: number;
+  status?: string;
 }
 
 export interface GeocodeCandidate {
@@ -22,10 +23,13 @@ export interface GeocodeCandidate {
   address: unknown;
   position: { lat: number; lng: number };
   score?: number;
+  placeId?: string;
 }
 
 export interface IsolineResult {
-  polygon?: unknown;
+  polygon?: {
+    linestring: [number, number][];
+  };
   range?: number;
   rangeType?: 'time' | 'distance';
 }
