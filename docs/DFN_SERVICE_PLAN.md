@@ -14,14 +14,14 @@ Everything else should support that decision.
 2. **Standards & SDO Compliance Engine**: Ingesting metadata across 25 open SDOs (ISO, SON/NIS, ARSO, ASTM, ASME, API, etc.) and verifying active accreditations via IAF CertSearch.
 3. **Survey and research-backed insights**: Data provenance and verified facility profiles.
 4. **Market metrics and demand/access signals**: Aggregated trade and capacity data.
-5. **Mapping for factory, supplier, and inter-fab logistics context**: HERE provider adapters for matrix routing, road condition risk, and WIP preservation during transit.
+5. **Mapping for factory, supplier, and inter-fab logistics context**: Google Maps Platform provider adapters for matrix routing, road condition risk, and WIP preservation during transit.
 6. **Structured AI analysis and recommendation layer**: Deterministic scoring augmented by structured extraction and evidence explanation.
 
 These are the spine of the product. They directly help a product team, operator, or investor decide where work should go.
 
 ### Keep, But Split Into Separate Modules
 
-1. **Logistics route optimization & Inter-Fab WIP matrices**: Separatable HERE provider adapters.
+1. **Logistics route optimization & Inter-Fab WIP matrices**: Separatable Google Maps Platform provider adapters.
 2. **Real estate briefs & Field Auditing Proxies**: UpKeep CMMS and SafetyCulture integration layer.
 3. **Access and network intelligence**: Cluster density and regional manufacturing gap analysis.
 
@@ -62,7 +62,7 @@ Orchestrates complex manufacturing workflows.
 - Owns: Survey collection, research imports, partner uploads, normalization, and source provenance.
 
 ### 5. Geo And Logistics Service
-- Owns: Provider adapters for HERE Routing, Matrix Routing, Geocoding & Search, and Isoline APIs; inter-fab transit matrix calculation; road vibration risk scoring; buffer warehouse sizing; logistics policy.
+- Owns: Provider adapters for Google Routes, Routes Matrix, Geocoding, and Reachability/Isoline APIs; inter-fab transit matrix calculation; road vibration risk scoring; buffer warehouse sizing; logistics policy.
 
 ### 6. Market Intelligence Service
 - Owns: Demand metrics, pricing signals, capacity signals, access-to-market scoring (UN Comtrade / World Bank).
@@ -83,7 +83,7 @@ Orchestrates complex manufacturing workflows.
 1. **Core Intelligence Service & Canonical Schemas**: Establish deterministic scoring for single-stage and multi-stage DAG jobs.
 2. **Standards & SDO Ingestion Engine**: Index open SDO metadata (ISO, SON OPAC, ASTM, API) and IAF CertSearch factory verification.
 3. **Data Ingestion & Provenance**: Canonical job and factory profile intake.
-4. **Geo & Logistics Service with HERE Adapters**: Single-route and multi-stop inter-fab matrix transit calculation.
+4. **Geo & Logistics Service with Google Adapters**: Single-route and multi-stop inter-fab matrix transit calculation.
 5. **Multi-Stage Process Routing & Cluster Matching**: Solve end-to-end multi-factory production chains with WIP logistics penalties.
 6. **Market & Site Intelligence**: Ingest UN Comtrade signals and SafetyCulture/UpKeep audit webhooks.
 7. **Presentation Layer & Reports**: Render headline chain fit scores, stage-by-stage engineering breakdowns, and exportable briefs.

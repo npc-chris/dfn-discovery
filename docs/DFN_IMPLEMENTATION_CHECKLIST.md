@@ -649,13 +649,13 @@
 
 **Goal:** Implement Geo/Logistics, Market Intelligence, and Site/Real Estate services
 
-### Task 4.1: Geo Provider Adapters & Logistics Policy (HERE)
+### Task 4.1: Geo Provider Adapters & Logistics Policy (Google Maps Platform)
 
 - [x] Implement assessLogistics()
-  - [x] Integrate HERE Routing API v8 via adapter
-  - [x] Integrate HERE Matrix Routing API v8 for multi-origin comparisons via adapter layer
-  - [x] Integrate HERE Geocoding & Search API v7 via adapter
-  - [x] Integrate HERE Isoline Routing API v8 for reachability and service areas via adapter
+  - [x] Integrate Google Routes API v2 via adapter
+  - [x] Integrate Google Routes Matrix API v2 for multi-origin comparisons via adapter layer
+  - [x] Integrate Google Geocoding API via adapter
+  - [x] Integrate Google Isoline / Reachability via adapter
   - [x] Determine primary transport mode through logistics policy
   - [x] Estimate lead time through logistics policy
   - [x] Calculate routing cost from provider outputs
@@ -675,7 +675,7 @@
   - [x] Cache geocoding with 24-hour TTL
   - [x] Invalidate on factory data changes
 
-- [x] Add HERE adapter unit tests
+- [x] Add Google adapter unit tests
   - [x] Routing normalization and 4xx failure behavior
   - [x] Matrix flattening for candidate comparisons
   - [x] Geocode search and reverse lookup normalization
@@ -686,7 +686,7 @@
 **Acceptance Criteria:**
 
 - All methods implemented
-- HERE provider adapters and policy layer working
+- Google provider adapters and policy layer working
 - Transport mode selection logical
 - Lead time estimates reasonable
 - Caching functional
@@ -793,7 +793,7 @@
 ### Phase 4 Validation
 
 - [x] Geo/Logistics implemented and tested
-- [x] HERE adapters implemented and tested
+- [x] Google adapters implemented and tested
 - [x] Market Intelligence implemented and tested
 - [x] Site/Real Estate implemented and tested
 - [x] All enrichment routes working

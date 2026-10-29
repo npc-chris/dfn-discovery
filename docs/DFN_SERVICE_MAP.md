@@ -71,7 +71,7 @@ flowchart LR
  end
 
  subgraph H[Geo & Logistics Adapters]
-  HR[HERE Adapters: Routing/Matrix/Geocode/Isoline]
+  HR[Google Maps Platform Adapters: Routes/Matrix/Geocode/Isoline]
   PR[Optional PrismReport Input]
  end
 
@@ -116,7 +116,7 @@ flowchart TB
  E --> F{Single-Stage or Multi-Stage DAG?}
  F -- Single Stage --> G[Score Single Factory Candidates]
  F -- Multi-Stage DAG --> H[Solve Multi-Factory Cluster Chains & Inter-Fab WIP Routing]
- G --> I[Compute HERE Logistics, Market & Site Context]
+ G --> I[Compute Google Logistics, Market & Site Context]
  H --> I
  I --> J[Generate Headline Fit Score & Detailed Node Breakdown]
  J --> K[User Reviews Evidence, SDO Compliance & Confidence]
@@ -141,8 +141,8 @@ flowchart TB
 | **Standards & SDO Engine** | Open SDO ingestion (25 sources), SON OPAC sync, international cross-references, IAF validation | SDO metadata feeds, NIS/NCP bulk CSVs, factory certification numbers | `standards_catalog`, `standard_cross_references`, verified accreditation status |
 | **Multi-Stage Process Routing** | Manufacturing DAG decomposition, tooling parameters, substrate constraints, cluster composition | Process stages, tolerances, machine classes, feed/speed limits | Factory cluster routing, inter-fab transit legs, stage-by-stage engineering breakdown |
 | **AI Analysis Workers** | Extraction, summarization, explanation, anomaly flagging | Sanitized structured payloads, uploaded technical specs | Structured fields, briefs, evidence summaries |
-| **Geo and Logistics** | Travel distance, route costs, reachability, accessibility context, inter-fab transit | Job location, factory locations, transit preservation rules | Route options, transit matrices, road vibration risk, isolines (via HERE Adapters) |
-| **Geo Adapters** | Thin HTTP adapters and cache layer for HERE services | Coordinates, profile opts, cached keys | Normalized route/matrix/geocode/isoline shapes; cache-aware responses |
+| **Geo and Logistics** | Travel distance, route costs, reachability, accessibility context, inter-fab transit | Job location, factory locations, transit preservation rules | Route options, transit matrices, road vibration risk, isolines (via Google Adapters) |
+| **Geo Adapters** | Thin HTTP adapters and cache layer for Google Maps Platform services | Coordinates, profile opts, cached keys | Normalized route/matrix/geocode/isoline shapes; cache-aware responses |
 | **Market Intelligence** | Demand signals, pricing signals, capacity signals | Research feeds, survey data, trade stats (UN Comtrade/World Bank) | Market score, trend signals, risk notes |
 | **Site and Real Estate Intelligence** | Facility briefs, location suitability, access context | Candidate sites, proximity data, property data | Site briefs, site scores, notes (via UpKeep & SafetyCulture) |
 | **Batch Coordination** | Bulk API request orchestration, grouped calculations, aggregate status | Batch manifests, child job outputs, service results | Batch status, rollups, partial-failure summaries (software async execution plane) |
@@ -174,7 +174,7 @@ Deconstructs multi-step manufacturing workflows into Directed Acyclic Graphs.
 
 ### 5. Geo and Logistics Service
 Calculates spatial and physical transit metrics.
-- Owns: Provider adapters for HERE Routing, Matrix Routing, Geocoding, and Isoline APIs; inter-fab transit matrices; road roughness risk; buffer warehouse staging estimates.
+- Owns: Provider adapters for Google Routes, Routes Matrix, Geocoding, and Reachability/Isoline APIs; inter-fab transit matrices; road roughness risk; buffer warehouse staging estimates.
 
 ### 6. AI Analysis Workers
 Isolated background workers operating on sanitized inputs.

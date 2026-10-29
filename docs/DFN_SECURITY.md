@@ -533,7 +533,7 @@ Enterprise orgs are issued a single large shared quota pool, not per-user quotas
 | Attachments (design files, surveys) | Object storage (S3/R2) with signed URLs | High |
 | Recommendation scores and evidence | Postgres `recommendations` table | Medium |
 | Factory profiles | Postgres `factories` table | Low (industry-known data) |
-| API keys for external services (HERE, SafetyCulture, UpKeep, etc.) | Environment variables / secrets manager | Critical |
+| API keys for external services (Google Maps Platform, SafetyCulture, UpKeep, etc.) | Environment variables / secrets manager | Critical |
 | Webhook secrets (SafetyCulture + UpKeep) | Environment variables / secrets manager | Critical |
 | JWT signing keys | Never stored — fetched from IdP JWKS | N/A |
 | User passwords | Never stored | N/A |
@@ -656,7 +656,7 @@ DATABASE_URL=postgresql://dfn_discovery_app:...@host:5432/dfn_discovery
 REDIS_URL=redis://:password@host:6379
 
 # ─── External Provider Keys ──────────────────────────────────────────────────
-HERE_API_KEY=<HERE platform key>
+GOOGLE_MAPS_API_KEY=<Google Maps Platform key>
 GEOAPIFY_API_KEY=<Geoapify key>
 UPKEEP_API_KEY=<UpKeep API key>
 SAFETYCULTURE_API_KEY=<SafetyCulture API key>
