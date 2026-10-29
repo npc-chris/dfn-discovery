@@ -1,8 +1,20 @@
-import { and, desc, eq, inArray, sql, count, ne } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql, count, ne, ilike, or } from 'drizzle-orm';
 import type { Factory } from '@dfn/shared';
 import type { ScoringResult } from '../services/core-intelligence';
 import { db } from './client';
-import { factories, jobs, recommendations, projects, quotes, project_activities } from './schema';
+import {
+  factories,
+  jobs,
+  recommendations,
+  projects,
+  quotes,
+  project_activities,
+  standards_catalog,
+  standard_cross_references,
+  factory_certifications,
+  stage_compliance_specs,
+} from './schema';
+
 
 // ---------------------------------------------------------------------------
 // Projects
@@ -171,6 +183,10 @@ export async function getFactoriesByIds(factoryIds: string[] | undefined, orgId:
   const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions);
   const rows = await db.select().from(factories).where(whereClause);
   return rows as Factory[];
+}
+
+export async function getAllActiveFactories(orgId: string): Promise<Factory[]> {
+  return getFactoriesByIds(undefined, orgId);
 }
 
 // ---------------------------------------------------------------------------
@@ -381,4 +397,338 @@ export async function listActivities(
     .orderBy(desc(project_activities.created_at))
     .limit(limit);
 }
+
+// ---------------------------------------------------------------------------
+// Standards & SDO Catalog Queries
+// ---------------------------------------------------------------------------
+
+export async function upsertStandard(data: {
+  sdo: string;
+  standard_code: string;
+  title: string;
+  category: string;
+  status?: string;
+  scope_summary?: string | null;
+  ics_code?: string | null;
+  metadata?: any;
+  published_date?: Date | null;
+}) {
+  const [standard] = await db
+    .insert(standards_catalog)
+    .values({
+      sdo: data.sdo,
+      standard_code: data.standard_code,
+      title: data.title,
+      category: data.category,
+      status: data.status || 'active',
+      scope_summary: data.scope_summary ?? null,
+      ics_code: data.ics_code ?? null,
+      metadata: data.metadata ?? null,
+      published_date: data.published_date ?? null,
+    })
+    .onConflictDoUpdate({
+      target: standards_catalog.standard_code,
+      set: {
+        title: data.title,
+        category: data.category,
+        status: data.status || 'active',
+        scope_summary: data.scope_summary ?? null,
+        ics_code: data.ics_code ?? null,
+        metadata: data.metadata ?? null,
+        published_date: data.published_date ?? null,
+        updated_at: new Date(),
+      },
+    })
+    .returning();
+  return standard;
+}
+
+export async function getStandardById(id: string) {
+  const [standard] = await db
+    .select()
+    .from(standards_catalog)
+    .where(eq(standards_catalog.id, id as any));
+  return standard || null;
+}
+
+export async function getStandardByCode(code: string) {
+  const cleanCode = code.trim();
+  const [standard] = await db
+    .select()
+    .from(standards_catalog)
+    .where(
+      or(
+        eq(standards_catalog.standard_code, cleanCode),
+        ilike(standards_catalog.standard_code, cleanCode),
+      ),
+    );
+  return standard || null;
+}
+
+export async function searchStandardsCatalog(options?: {
+  sdo?: string;
+  category?: string;
+  status?: string;
+  q?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const conditions = [];
+
+  if (options?.sdo) {
+    conditions.push(eq(standards_catalog.sdo, options.sdo));
+  }
+
+  if (options?.category) {
+    conditions.push(eq(standards_catalog.category, options.category));
+  }
+
+  if (options?.status) {
+    conditions.push(eq(standards_catalog.status, options.status));
+  }
+
+  if (options?.q && options.q.trim().length > 0) {
+    const term = `%${options.q.trim()}%`;
+    conditions.push(
+      or(
+        ilike(standards_catalog.standard_code, term),
+        ilike(standards_catalog.title, term),
+        ilike(standards_catalog.scope_summary, term),
+      ),
+    );
+  }
+
+  const page = Math.max(1, options?.page ?? 1);
+  const limit = Math.min(100, Math.max(1, options?.limit ?? 50));
+  const offset = (page - 1) * limit;
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [totalRes, data] = await Promise.all([
+    db
+      .select({ count: count() })
+      .from(standards_catalog)
+      .where(whereClause),
+    db
+      .select()
+      .from(standards_catalog)
+      .where(whereClause)
+      .orderBy(standards_catalog.standard_code)
+      .limit(limit)
+      .offset(offset),
+  ]);
+
+  const total = Number(totalRes[0]?.count ?? 0);
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Standard Cross References (Equivalence Mappings)
+// ---------------------------------------------------------------------------
+
+export async function createCrossReference(data: {
+  source_standard_id: string;
+  target_standard_id: string;
+  equivalence_level: string;
+  technical_notes?: string | null;
+  property_mapping?: any;
+}) {
+  const [crossRef] = await db
+    .insert(standard_cross_references)
+    .values({
+      source_standard_id: data.source_standard_id as any,
+      target_standard_id: data.target_standard_id as any,
+      equivalence_level: data.equivalence_level,
+      technical_notes: data.technical_notes ?? null,
+      property_mapping: data.property_mapping ?? null,
+    })
+    .returning();
+  return crossRef;
+}
+
+export async function getCrossReferencesForStandard(standardId: string) {
+  // Query both directions (source -> target and target -> source)
+  const [asSource, asTarget] = await Promise.all([
+    db
+      .select({
+        crossRef: standard_cross_references,
+        linkedStandard: standards_catalog,
+      })
+      .from(standard_cross_references)
+      .innerJoin(
+        standards_catalog,
+        eq(standard_cross_references.target_standard_id, standards_catalog.id),
+      )
+      .where(eq(standard_cross_references.source_standard_id, standardId as any)),
+    db
+      .select({
+        crossRef: standard_cross_references,
+        linkedStandard: standards_catalog,
+      })
+      .from(standard_cross_references)
+      .innerJoin(
+        standards_catalog,
+        eq(standard_cross_references.source_standard_id, standards_catalog.id),
+      )
+      .where(eq(standard_cross_references.target_standard_id, standardId as any)),
+  ]);
+
+  return {
+    asSource,
+    asTarget,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Factory Certifications Queries
+// ---------------------------------------------------------------------------
+
+export async function createFactoryCertification(data: {
+  factory_id: string;
+  standard_id: string;
+  org_id: string;
+  certificate_number?: string | null;
+  certification_body: string;
+  iaf_certsearch_id?: string | null;
+  is_iaf_verified?: boolean;
+  issued_at?: Date | null;
+  expires_at?: Date | null;
+  verification_status?: string;
+}) {
+  const [cert] = await db
+    .insert(factory_certifications)
+    .values({
+      factory_id: data.factory_id as any,
+      standard_id: data.standard_id as any,
+      org_id: data.org_id,
+      certificate_number: data.certificate_number ?? null,
+      certification_body: data.certification_body,
+      iaf_certsearch_id: data.iaf_certsearch_id ?? null,
+      is_iaf_verified: data.is_iaf_verified ?? false,
+      issued_at: data.issued_at ?? null,
+      expires_at: data.expires_at ?? null,
+      verification_status: data.verification_status || 'unverified',
+    })
+    .returning();
+  return cert;
+}
+
+export async function getFactoryCertifications(factoryId: string, orgId: string) {
+  return db
+    .select({
+      certification: factory_certifications,
+      standard: standards_catalog,
+    })
+    .from(factory_certifications)
+    .innerJoin(
+      standards_catalog,
+      eq(factory_certifications.standard_id, standards_catalog.id),
+    )
+    .where(
+      and(
+        eq(factory_certifications.factory_id, factoryId as any),
+        eq(factory_certifications.org_id, orgId),
+      ),
+    )
+    .orderBy(desc(factory_certifications.created_at));
+}
+
+export async function getFactoryCertificationById(certId: string, orgId: string) {
+  const [cert] = await db
+    .select({
+      certification: factory_certifications,
+      standard: standards_catalog,
+    })
+    .from(factory_certifications)
+    .innerJoin(
+      standards_catalog,
+      eq(factory_certifications.standard_id, standards_catalog.id),
+    )
+    .where(
+      and(
+        eq(factory_certifications.id, certId as any),
+        eq(factory_certifications.org_id, orgId),
+      ),
+    );
+  return cert || null;
+}
+
+export async function updateFactoryCertification(
+  certId: string,
+  orgId: string,
+  updates: {
+    verification_status?: string;
+    is_iaf_verified?: boolean;
+    iaf_certsearch_id?: string | null;
+    expires_at?: Date | null;
+  },
+) {
+  const [updated] = await db
+    .update(factory_certifications)
+    .set({
+      ...updates,
+      updated_at: new Date(),
+    })
+    .where(
+      and(
+        eq(factory_certifications.id, certId as any),
+        eq(factory_certifications.org_id, orgId),
+      ),
+    )
+    .returning();
+  return updated;
+}
+
+// ---------------------------------------------------------------------------
+// Stage Compliance Specs Queries
+// ---------------------------------------------------------------------------
+
+export async function createStageComplianceSpec(data: {
+  job_id: string;
+  stage_id: string;
+  standard_id: string;
+  org_id: string;
+  is_mandatory?: boolean;
+  inspection_method?: string;
+}) {
+  const [spec] = await db
+    .insert(stage_compliance_specs)
+    .values({
+      job_id: data.job_id as any,
+      stage_id: data.stage_id,
+      standard_id: data.standard_id as any,
+      org_id: data.org_id,
+      is_mandatory: data.is_mandatory ?? true,
+      inspection_method: data.inspection_method || 'MTC',
+    })
+    .returning();
+  return spec;
+}
+
+export async function getStageComplianceSpecsForJob(jobId: string, orgId: string) {
+  return db
+    .select({
+      spec: stage_compliance_specs,
+      standard: standards_catalog,
+    })
+    .from(stage_compliance_specs)
+    .innerJoin(
+      standards_catalog,
+      eq(stage_compliance_specs.standard_id, standards_catalog.id),
+    )
+    .where(
+      and(
+        eq(stage_compliance_specs.job_id, jobId as any),
+        eq(stage_compliance_specs.org_id, orgId),
+      ),
+    );
+}
+
 

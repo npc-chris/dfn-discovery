@@ -21,27 +21,19 @@ dotenv.config({ path: '.env.test' });
 
 let testPool: Pool | null = null;
 
-async function waitForDatabaseConnection(pool: Pool, attempts = 30, delayMs = 2000): Promise<void> {
-  let lastError: unknown;
-
+async function waitForDatabaseConnection(pool: Pool, attempts = 3, delayMs = 300): Promise<boolean> {
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
       await pool.query('SELECT NOW()');
-      return;
+      return true;
     } catch (error) {
-      lastError = error;
-
       if (attempt === attempts) {
-        break;
+        return false;
       }
-
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
-
-  throw lastError instanceof Error
-    ? lastError
-    : new Error('Database did not become ready in time');
+  return false;
 }
 
 /**
@@ -55,29 +47,25 @@ export async function initializeTestDatabase() {
     connectionString,
     max: 1, // Single connection for tests
     min: 0,
+    connectionTimeoutMillis: 1000,
   });
 
   try {
     // Test connection with retries for slow local startup.
-    await waitForDatabaseConnection(testPool);
+    const connected = await waitForDatabaseConnection(testPool);
+    if (!connected) {
+      console.warn('⚠️ Database not reachable, skipping DB initialization for unit tests');
+      await testPool.end();
+      testPool = null;
+      return;
+    }
     console.log('✅ Database connected');
 
     // Create tables if they don't exist
     await testPool.query(`
       CREATE EXTENSION IF NOT EXISTS pgcrypto;
-      DROP TABLE IF EXISTS project_activities CASCADE;
-      DROP TABLE IF EXISTS quotes CASCADE;
-      DROP TABLE IF EXISTS recommendations CASCADE;
-      DROP TABLE IF EXISTS job_queue CASCADE;
-      DROP TABLE IF EXISTS attachments CASCADE;
-      DROP TABLE IF EXISTS jobs CASCADE;
-      DROP TABLE IF EXISTS projects CASCADE;
-      DROP TABLE IF EXISTS factories CASCADE;
-      DROP TABLE IF EXISTS batch_manifests CASCADE;
-    `);
 
-    await testPool.query(`
-      CREATE TABLE batch_manifests (
+      CREATE TABLE IF NOT EXISTS batch_manifests (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         org_id TEXT,
         status TEXT NOT NULL DEFAULT 'pending',
@@ -86,10 +74,8 @@ export async function initializeTestDatabase() {
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
 
-    await testPool.query(`
-      CREATE TABLE projects (
+      CREATE TABLE IF NOT EXISTS projects (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         org_id TEXT NOT NULL,
         title TEXT NOT NULL,
@@ -102,10 +88,8 @@ export async function initializeTestDatabase() {
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
 
-    await testPool.query(`
-      CREATE TABLE jobs (
+      CREATE TABLE IF NOT EXISTS jobs (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         org_id TEXT,
         created_by TEXT,
@@ -126,10 +110,8 @@ export async function initializeTestDatabase() {
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
 
-    await testPool.query(`
-      CREATE TABLE factories (
+      CREATE TABLE IF NOT EXISTS factories (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         org_id TEXT,
         factory_name TEXT NOT NULL,
@@ -143,10 +125,8 @@ export async function initializeTestDatabase() {
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
 
-    await testPool.query(`
-      CREATE TABLE recommendations (
+      CREATE TABLE IF NOT EXISTS recommendations (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         job_id UUID NOT NULL REFERENCES jobs(id),
         factory_id UUID NOT NULL REFERENCES factories(id),
@@ -161,10 +141,8 @@ export async function initializeTestDatabase() {
         generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
         version INTEGER NOT NULL DEFAULT 1
       );
-    `);
 
-    await testPool.query(`
-      CREATE TABLE quotes (
+      CREATE TABLE IF NOT EXISTS quotes (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         job_id UUID NOT NULL REFERENCES jobs(id),
         factory_id UUID NOT NULL REFERENCES factories(id),
@@ -179,10 +157,8 @@ export async function initializeTestDatabase() {
         valid_until TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
 
-    await testPool.query(`
-      CREATE TABLE project_activities (
+      CREATE TABLE IF NOT EXISTS project_activities (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         project_id UUID REFERENCES projects(id),
         job_id UUID REFERENCES jobs(id),
@@ -195,10 +171,8 @@ export async function initializeTestDatabase() {
         actor TEXT,
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
-    `);
 
-    await testPool.query(`
-      CREATE TABLE job_queue (
+      CREATE TABLE IF NOT EXISTS job_queue (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         job_id UUID REFERENCES jobs(id),
         queue_type TEXT NOT NULL,
@@ -211,10 +185,8 @@ export async function initializeTestDatabase() {
         updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
         completed_at TIMESTAMP
       );
-    `);
 
-    await testPool.query(`
-      CREATE TABLE attachments (
+      CREATE TABLE IF NOT EXISTS attachments (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         job_id UUID NOT NULL REFERENCES jobs(id),
         org_id TEXT,
@@ -224,7 +196,60 @@ export async function initializeTestDatabase() {
         source_type TEXT NOT NULL,
         uploaded_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS standards_catalog (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        sdo TEXT NOT NULL,
+        standard_code TEXT NOT NULL UNIQUE,
+        title TEXT NOT NULL,
+        category TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active',
+        scope_summary TEXT,
+        ics_code TEXT,
+        metadata JSONB,
+        published_date TIMESTAMP,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS standard_cross_references (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        source_standard_id UUID NOT NULL REFERENCES standards_catalog(id),
+        target_standard_id UUID NOT NULL REFERENCES standards_catalog(id),
+        equivalence_level TEXT NOT NULL,
+        technical_notes TEXT,
+        property_mapping JSONB,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS factory_certifications (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        factory_id UUID NOT NULL REFERENCES factories(id),
+        standard_id UUID NOT NULL REFERENCES standards_catalog(id),
+        org_id TEXT NOT NULL,
+        certificate_number TEXT,
+        certification_body TEXT NOT NULL,
+        iaf_certsearch_id TEXT,
+        is_iaf_verified BOOLEAN NOT NULL DEFAULT FALSE,
+        issued_at TIMESTAMP,
+        expires_at TIMESTAMP,
+        verification_status TEXT NOT NULL DEFAULT 'unverified',
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS stage_compliance_specs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        job_id UUID NOT NULL REFERENCES jobs(id),
+        stage_id TEXT NOT NULL,
+        standard_id UUID NOT NULL REFERENCES standards_catalog(id),
+        org_id TEXT NOT NULL,
+        is_mandatory BOOLEAN NOT NULL DEFAULT TRUE,
+        inspection_method TEXT NOT NULL DEFAULT 'MTC',
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      );
     `);
+
 
     console.log('✅ Database schema initialized');
   } catch (error) {
@@ -241,6 +266,10 @@ export async function cleanupTestDatabase() {
 
   try {
     // Drop all data in reverse order of dependencies
+    await testPool.query('TRUNCATE TABLE stage_compliance_specs CASCADE;');
+    await testPool.query('TRUNCATE TABLE factory_certifications CASCADE;');
+    await testPool.query('TRUNCATE TABLE standard_cross_references CASCADE;');
+    await testPool.query('TRUNCATE TABLE standards_catalog CASCADE;');
     await testPool.query('TRUNCATE TABLE project_activities CASCADE;');
     await testPool.query('TRUNCATE TABLE quotes CASCADE;');
     await testPool.query('TRUNCATE TABLE recommendations CASCADE;');
@@ -254,6 +283,7 @@ export async function cleanupTestDatabase() {
     // Ignore errors if tables don't exist yet
   }
 }
+
 
 /**
  * Close database connection

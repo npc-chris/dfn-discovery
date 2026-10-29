@@ -181,3 +181,83 @@ export const project_activities = pgTable('project_activities', {
   };
 });
 
+// Standards Catalog Table (ISO, SON, ASTM, ASME, API, DIN, BSI, IEC, AWS, NACE)
+export const standards_catalog = pgTable('standards_catalog', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sdo: text('sdo').notNull(), // 'SON', 'ISO', 'ASTM', 'ASME', 'API', 'DIN', 'BSI', 'IEC', 'AWS', 'NACE'
+  standard_code: text('standard_code').notNull().unique(), // 'NIS 102:2006', 'ISO 9001:2015'
+  title: text('title').notNull(),
+  category: text('category').notNull(), // materials, welding, pressure_vessels, quality, coatings, machining, electrical, structural, oil_and_gas, safety_environmental
+  status: text('status').notNull().default('active'), // active, withdrawn, under_revision
+  scope_summary: text('scope_summary'),
+  ics_code: text('ics_code'),
+  metadata: jsonb('metadata'),
+  published_date: timestamp('published_date'),
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => {
+  return {
+    sdoIdx: index('standards_catalog_sdo_idx').on(table.sdo),
+    categoryIdx: index('standards_catalog_category_idx').on(table.category),
+    codeIdx: index('standards_catalog_code_idx').on(table.standard_code),
+  };
+});
+
+// Standards Cross References (Equivalence mapping between NIS, ISO, ASTM, DIN)
+export const standard_cross_references = pgTable('standard_cross_references', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  source_standard_id: uuid('source_standard_id').notNull().references(() => standards_catalog.id),
+  target_standard_id: uuid('target_standard_id').notNull().references(() => standards_catalog.id),
+  equivalence_level: text('equivalence_level').notNull(), // identical, modified, equivalent_substitute, related
+  technical_notes: text('technical_notes'),
+  property_mapping: jsonb('property_mapping'),
+  created_at: timestamp('created_at').notNull().defaultNow(),
+}, (table) => {
+  return {
+    sourceIdx: index('std_cross_ref_source_idx').on(table.source_standard_id),
+    targetIdx: index('std_cross_ref_target_idx').on(table.target_standard_id),
+  };
+});
+
+// Factory Certifications Table (Accreditation tracking & IAF CertSearch validation)
+export const factory_certifications = pgTable('factory_certifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  factory_id: uuid('factory_id').notNull().references(() => factories.id),
+  standard_id: uuid('standard_id').notNull().references(() => standards_catalog.id),
+  org_id: text('org_id').notNull(),
+  certificate_number: text('certificate_number'),
+  certification_body: text('certification_body').notNull(), // e.g. 'SON', 'SGS', 'DNV', 'Bureau Veritas'
+  iaf_certsearch_id: text('iaf_certsearch_id'),
+  is_iaf_verified: boolean('is_iaf_verified').notNull().default(false),
+  issued_at: timestamp('issued_at'),
+  expires_at: timestamp('expires_at'),
+  verification_status: text('verification_status').notNull().default('unverified'), // verified, unverified, expired, revoked
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => {
+  return {
+    factoryIdx: index('factory_certs_factory_id_idx').on(table.factory_id),
+    standardIdx: index('factory_certs_standard_id_idx').on(table.standard_id),
+    orgIdIdx: index('factory_certs_org_id_idx').on(table.org_id),
+  };
+});
+
+// Stage Compliance Specs Table (Mandatory standards, MTC, NDT gates per job stage)
+export const stage_compliance_specs = pgTable('stage_compliance_specs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  job_id: uuid('job_id').notNull().references(() => jobs.id),
+  stage_id: text('stage_id').notNull(), // Matches ProcessStageNode.id
+  standard_id: uuid('standard_id').notNull().references(() => standards_catalog.id),
+  org_id: text('org_id').notNull(),
+  is_mandatory: boolean('is_mandatory').notNull().default(true), // True = hard gating constraint
+  inspection_method: text('inspection_method').notNull().default('MTC'), // MTC, NDT, dimensional_audit, third_party, visual
+  created_at: timestamp('created_at').notNull().defaultNow(),
+}, (table) => {
+  return {
+    jobIdx: index('stage_compliance_job_id_idx').on(table.job_id),
+    standardIdx: index('stage_compliance_standard_id_idx').on(table.standard_id),
+    orgIdIdx: index('stage_compliance_org_id_idx').on(table.org_id),
+  };
+});
+
+

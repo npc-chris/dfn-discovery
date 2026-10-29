@@ -163,7 +163,7 @@ erDiagram
         int total_landed_cost_ngn "Cumulative operations + freight + preservation"
         int total_lead_time_days "Processing time + inter-fab transit latency"
         jsonb stage_assignments "Array of stage IDs mapped to factory IDs & stage scores"
-        jsonb inter_fab_logistics "Transit legs, HERE route metrics, road risk, packaging"
+        jsonb inter_fab_logistics "Transit legs, Google route metrics, road risk, packaging"
         jsonb caveats
         timestamp generated_at
         int version
