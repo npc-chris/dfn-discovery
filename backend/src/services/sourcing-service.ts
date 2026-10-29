@@ -71,11 +71,11 @@ const STAGE_ORDER = ['draft', 'source', 'commit', 'build', 'accept'];
  * Compute Project-Level Sourcing Metrics for the 5-card KPI strip
  */
 export async function getProjectSourcingMetrics(
-  projectId: string,
-  orgId: string,
+  projectId?: string | null,
+  orgId: string = 'unknown',
 ): Promise<ProjectSourcingMetrics> {
-  const project = await getProjectById(projectId, orgId);
-  const jobsList = await listJobsByOrg(orgId, { projectId, limit: 100 });
+  const project = projectId ? await getProjectById(projectId, orgId) : null;
+  const jobsList = await listJobsByOrg(orgId, { ...(projectId ? { projectId } : {}), limit: 100 });
   const projectJobs = jobsList.data;
 
   // Derive highest/dominant procurement stage

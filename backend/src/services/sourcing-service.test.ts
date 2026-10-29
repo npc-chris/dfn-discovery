@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../db/client';
-import { projects, jobs, factories, quotes, recommendations, project_activities } from '../db/schema';
+import { projects, jobs, factories, quotes, recommendations } from '../db/schema';
 import { getProjectSourcingMetrics, getJobQuotes, awardQuote } from './sourcing-service';
 import { getFormattedActivities } from './activity-service';
 

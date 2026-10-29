@@ -1,6 +1,7 @@
 // Backend entry point
 // Express server with all services and routes configured
 
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -8,7 +9,9 @@ import { errorHandler } from './middleware/error';
 import jobsRouter from './routes/jobs';
 import projectsRouter from './routes/projects';
 import quotesRouter from './routes/quotes';
+import standardsRouter from './routes/standards';
 import modelsRouter from './routes/models';
+
 import extractionRouter from './routes/extraction';
 import scoringRouter from './routes/scoring';
 import enrichmentRouter from './routes/enrichment';
@@ -51,7 +54,7 @@ app.use(
 // ---------------------------------------------------------------------------
 app.use(
   cors({
-    origin: (origin, callback) => {
+    origin: (origin: any, callback: any) => {
       // Allow requests with no origin (like mobile apps, curl, or same-origin)
       if (!origin) return callback(null, true);
       // Allow localhost dev servers, extension schemes, and production domains
@@ -91,6 +94,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/v1/jobs', jobsRouter);
 app.use('/api/v1/projects', projectsRouter);
 app.use('/api/v1/quotes', quotesRouter);
+app.use('/api/v1/standards', standardsRouter);
 app.use('/api/v1/recommendations', recommendationsRouter);
 app.use('/api/v1/models', modelsRouter);
 app.use('/api/v1/extraction', extractionRouter);
@@ -106,6 +110,7 @@ app.use('/api/v1/analytics', analyticsApp);
 app.use('/jobs', jobsRouter);
 app.use('/projects', projectsRouter);
 app.use('/quotes', quotesRouter);
+app.use('/standards', standardsRouter);
 app.use('/models', modelsRouter);
 app.use('/extraction', extractionRouter);
 app.use('/scoring', scoringRouter);
@@ -113,6 +118,7 @@ app.use('/enrichment', enrichmentRouter);
 app.use('/recommendations', recommendationsRouter);
 app.use('/queue', queueRouter);
 app.use('/batch', batchRouter);
+
 
 // Error handler (must be last)
 app.use(errorHandler);

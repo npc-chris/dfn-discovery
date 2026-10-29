@@ -1,4 +1,4 @@
-﻿# DFN Frontend Architecture (`dfn-ui`)
+# DFN Frontend Architecture (`dfn-ui`)
 
 **Codespace:** `dfn-ui` (separate open-source repository)
 **Design Paradigm:** Palantir Gotham — Ontology-centric intelligence workspace
@@ -172,7 +172,7 @@ DFN-specific tokens on top.
 | `EvidenceDialog` | `<Dialog>` | `isCloseButtonShown`, `canOutsideClickClose` |
 | `ProcessSelect` | `<Select2>` | typed items from `/models/process-types` |
 | `MaterialSelect` | `<Select2>` | typed items |
-| `LocationSearch` | `<Suggest2>` | items from HERE geocode backend proxy |
+| `LocationSearch` | `<Suggest2>` | items from Google geocode backend proxy |
 | `DateRangeFilter` | `<DateRangePicker2>` | timeline view date range |
 | `QueueStatusPill` | `<Tag>` | `intent`, `rightIcon={IconNames.PULSE}` when active |
 | `ScoreBar` | `<ProgressBar>` | custom CSS class, no animation |
@@ -392,7 +392,7 @@ VirtualTable  (TanStack Table v8 + TanStack Virtual)
 
 ```
 MapView  bg: --dfn-canvas
-+-- HereMapContainer      (HERE Maps JS SDK dark basemap; render only)
++-- GoogleMapContainer    (Google Maps JS / @vis.gl/react-google-maps dark basemap; render only)
 +-- FactoryMarkerLayer    (radius = recommendation frequency, color = fit band)
 +-- IsolineLayer          (delivery reachability zone from job origin)
 +-- RouteLayer            (optimal route polyline for selected factory)
@@ -401,7 +401,7 @@ MapView  bg: --dfn-canvas
 +-- MapSidebar            (200px right strip: legend + visible factory list)
 ```
 
-> HERE API key is server-side only. All geocoding/routing runs via backend HERE adapters.
+> Google Maps API key is restricted or proxied server-side. All geocoding/routing runs via backend Google adapters.
 > The frontend receives pre-computed GeoJSON and renders it.
 
 ### 5.4 Timeline View
@@ -499,7 +499,7 @@ GapSection  (processes with no matched factory)
     items={[]}
     inputValueRenderer={(loc) => loc.formatted_address}
     itemRenderer={renderLocationItem}
-    onQueryChange={debouncedGeocode}   // calls backend HERE geocode proxy
+    onQueryChange={debouncedGeocode}   // calls backend Google geocode proxy
     onItemSelect={setLocation}
     popoverProps={{ minimal: true }}
   />
@@ -618,7 +618,7 @@ Uses the same workspace shell. Route prefix: `/intelligence`.
 +-- GapTable   sortable <HTMLTable condensed>, sorted by matchedFactories ASC
 
 /intelligence/clusters
-+-- BubbleMap   D3 bubble on HERE Maps base
++-- BubbleMap   D3 bubble on Google Maps base
     radius = jobCount, color = avgFitScore band
 
 /intelligence/process-coverage
@@ -691,7 +691,7 @@ Every object reference is a pivot point.
 | Data Fetch | **TanStack Query** | v5 | Stale-while-revalidate, pipeline polling |
 | Graph | **React Flow** | v12 | Force-directed graph, custom dark nodes |
 | Virtual Tables | **TanStack Table + Virtual** | v8 | 10k+ row virtual scrolling |
-| Maps | **HERE Maps JS SDK** | 3.x | Frontend render only; key stays server-side |
+| Maps | **Google Maps JavaScript API** | @vis.gl/react-google-maps | Frontend render only; keys restricted/proxied |
 | Charts | **D3.js** | v7 | Treemap, choropleth, bubble — full dark control |
 | Timeline | Custom SVG | — | Sparse events; no heavy library |
 | State | **Zustand** | v4 | Board, selected object, panel widths |
@@ -817,13 +817,13 @@ Resolved server-side from `GET /api/v1/orgs/:orgId/features`.
 | Stays in `dfn-discovery` (closed source) | Ships in `dfn-ui` (open source) |
 |---|---|
 | Scoring weights and algorithm | Score display components |
-| Enrichment service credentials | HERE Maps rendering layer |
+| Enrichment service credentials | Google Maps rendering layer |
 | Recommendation engine logic | Graph visualization (React Flow nodes) |
 | AI prompts and extraction instructions | Job intake form structure |
 | Factory database contents | Analytics chart components |
-| HERE API key | Blueprint design system wiring |
+| Google Maps API key | Blueprint design system wiring |
 
-- HERE API key is never in the frontend build
+- Google Maps API key is restricted by domain/IP or proxied server-side
 - Feature flags are resolved server-side — no client bypass possible
 - Analytics endpoints return aggregate counts only — no factory-level PII
 - `@dfn/shared` types package is the only formal interface between repos

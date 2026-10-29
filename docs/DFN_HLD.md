@@ -139,7 +139,7 @@ Manufacturing in physical reality is rarely a single-shot operation. A complex p
 - **Substrate & Raw Material Prep**: Alloy tempers, form factors, Mill Test Certificates (MTCs), etc.
 - **Subtractive / Forming Machining**: 3/5-axis CNC, tooling, feeds, speeds, cycle times.
 - **Thermal & Surface Treatments**: Vacuum heat treatment, stress relief, anodizing, plating, passivation.
-- **Inter-Fab Work-In-Progress (WIP) Logistics**: Environmental degradation risks (corrosion, oxidation in tropical climates), maximum allowable queue times (MQT), intermediate buffer storage, and inter-facility transit routing via HERE services.
+- **Inter-Fab Work-In-Progress (WIP) Logistics**: Environmental degradation risks (corrosion, oxidation in tropical climates), maximum allowable queue times (MQT), intermediate buffer storage, and inter-facility transit routing via Google Maps Platform services.
 
 Discovery supports both simple point-to-point single-stage matching and **Multi-Stage Process Directed Acyclic Graphs (DAGs)**. Recommendations can be generated for single facilities or **Multi-Factory Clusters** where specialized fabs handle specific stages in the production graph.
 
@@ -206,7 +206,7 @@ See [Standards & SDO Architecture](DFN_STANDARDS_AND_SDO_ARCHITECTURE.md) for th
 
 ### Geo And Logistics Service Own
 
-- provider adapters for HERE Routing, Matrix Routing, Geocoding & Search, and Isoline APIs
+- provider adapters for Google Routes, Routes Matrix, Geocoding, and Reachability/Isoline APIs
 - map layers and route overlays for the presentation layer
 - route optimization inputs and outputs
 - travel time and distance estimates

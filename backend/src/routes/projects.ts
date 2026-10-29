@@ -74,6 +74,18 @@ router.get('/:projectId', async (req: Request, res: Response, next: NextFunction
   }
 });
 
+// Get overall organization sourcing metrics (powers the 5 KPI cards when no specific project is selected)
+router.get('/metrics', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const auth = res.locals.auth;
+    const orgId = auth?.orgId || 'unknown';
+    const metrics = await getProjectSourcingMetrics(undefined, orgId);
+    res.json(metrics);
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Get project-level sourcing metrics (powers the 5 KPI cards in the dashboard)
 router.get('/:projectId/metrics', async (req: Request, res: Response, next: NextFunction) => {
   try {

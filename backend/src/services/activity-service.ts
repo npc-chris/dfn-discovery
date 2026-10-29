@@ -10,9 +10,13 @@ import { insertActivity, listActivities } from '../db/queries';
 export interface ActivityEntry {
   id?: string;
   projectId?: string | null;
+  project_id?: string | null;
   jobId?: string | null;
-  orgId: string;
-  eventType: string;
+  job_id?: string | null;
+  orgId?: string;
+  org_id?: string;
+  eventType?: string;
+  event_type?: string;
   title: string;
   description: string;
   severity?: 'info' | 'success' | 'warning' | 'danger';
@@ -70,11 +74,16 @@ export function formatRelativeTime(date: Date | string | null | undefined): stri
  * Record an activity event
  */
 export async function recordActivity(entry: ActivityEntry) {
+  const pId = entry.projectId ?? entry.project_id ?? null;
+  const jId = entry.jobId ?? entry.job_id ?? null;
+  const oId = entry.orgId ?? entry.org_id ?? 'unknown';
+  const eType = entry.eventType ?? entry.event_type ?? 'info';
+
   return insertActivity({
-    project_id: entry.projectId ?? null,
-    job_id: entry.jobId ?? null,
-    org_id: entry.orgId,
-    event_type: entry.eventType,
+    project_id: pId,
+    job_id: jId,
+    org_id: oId,
+    event_type: eType,
     title: entry.title,
     description: entry.description,
     severity: entry.severity ?? 'info',

@@ -4,7 +4,8 @@
 import { db } from '../db/client.ts';
 import { jobs } from '../db/schema.ts';
 import type { Job, JobInput, JobStatus } from '@dfn/shared';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
+
 
 // Validate job input fields
 export function validateJobInput(input: JobInput): { valid: boolean; errors: string[] } {
@@ -34,16 +35,33 @@ export function validateJobInput(input: JobInput): { valid: boolean; errors: str
 
 // Normalize job input data
 function normalizeJobInput(input: JobInput): Record<string, unknown> {
+  const metadata: Record<string, unknown> = { ...(input.metadata || {}) };
+  if (input.bop) {
+    metadata.bop = input.bop;
+  }
+  if (input.dag) {
+    metadata.dag = input.dag;
+  }
+
+  // Derive process_type from BOP if not explicitly passed
+  let processType = input.process_type?.trim() ?? null;
+  if (!processType && input.bop && input.bop.operations && input.bop.operations.length > 0) {
+    processType = input.bop.operations[0].process_id;
+  } else if (!processType && input.dag && input.dag.stages && input.dag.stages.length > 0) {
+    processType = input.dag.stages[0].process_id;
+  }
+
   return {
     company_name: input.company_name.trim(),
     product_name: input.product_name.trim(),
-    process_type: input.process_type?.trim() ?? null,
+    process_type: processType,
     material_type: input.material_type?.trim() ?? null,
     volume_band: input.volume_band?.trim() ?? null,
     location: input.location,
-    metadata: input.metadata ?? {},
+    metadata,
   };
 }
+
 
 export async function createJob(input: JobInput, orgId: string, createdBy: string): Promise<Job> {
   // Validate input
@@ -109,14 +127,19 @@ export async function submitJob(jobId: string): Promise<Job> {
   return transitionJobStatus(jobId, 'submitted', 'user');
 }
 
-export async function getJob(jobId: string): Promise<Job | null> {
+export async function getJob(jobId: string, orgId?: string): Promise<Job | null> {
   try {
-    const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId as any)).limit(1);
+    const conditions = [eq(jobs.id, jobId as any)];
+    if (orgId) {
+      conditions.push(eq(jobs.org_id, orgId));
+    }
+    const [job] = await db.select().from(jobs).where(and(...conditions)).limit(1);
     return (job as unknown as Job) || null;
   } catch {
     return null;
   }
 }
+
 
 export async function updateJobStatus(jobId: string, status: JobStatus): Promise<Job> {
   const [currentJob] = await db.select().from(jobs).where(eq(jobs.id, jobId as any)).limit(1);

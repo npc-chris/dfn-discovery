@@ -85,3 +85,16 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     return next(new AppError(401, `Unauthorized: ${error.message}`));
   }
 };
+
+/**
+ * Require admin or owner role for internal/administrative endpoints
+ */
+export const requireAdmin = (_req: Request, res: Response, next: NextFunction) => {
+  const auth = res.locals.auth;
+  const role = auth?.orgRole || auth?.role;
+  if (!auth || (role !== 'admin' && role !== 'owner')) {
+    return next(new AppError(403, 'Forbidden: Administrative privileges required'));
+  }
+  next();
+};
+

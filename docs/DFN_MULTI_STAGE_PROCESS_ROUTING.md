@@ -83,7 +83,7 @@ flowchart TD
     
     TransitRisk -->|"Rain / High Humidity"| OxidationRisk["Oxidation & Corrosion Risk<br/>Requires VCI Wrapping / Oil Dip"]
     TransitRisk -->|"Rough Road Vibrations"| MechanicalDamage["Surface Scratching / Edge Dents<br/>Requires Custom Dunnage / Crating"]
-    TransitRisk -->|"Interstate Checkpoints & Traffic"| TransitDelay["Lead Time Spikes<br/>HERE Matrix Latency Penalty"]
+    TransitRisk -->|"Interstate Checkpoints & Traffic"| TransitDelay["Lead Time Spikes<br/>Google Matrix Latency Penalty"]
 
     OxidationRisk --> IntermediateStorage["Buffer Staging / Climate-Controlled Storage"]
     MechanicalDamage --> IntermediateStorage
@@ -99,10 +99,10 @@ flowchart TD
   - *Desiccant packaging*
 - **Maximum Queue Time (MQT)**: Maximum allowable window between stages before intermediate degradation occurs (e.g., parts must be anodized within 48 hours of final machining to prevent passive oxide layer inconsistency; heat-treated parts must be stress-relieved within 4 hours of quenching).
 
-### 3.2 Inter-Fab Logistics Optimization via HERE Services
+### 3.2 Inter-Fab Logistics Optimization via Google Location Services
 The **Geo & Logistics Service** computes transit metrics for every edge in the process graph:
-- **HERE Matrix Routing v8**: Computes point-to-point transit times and toll/freight costs between Factory A and Factory B.
-- **HERE Routing v8**: Evaluates route road quality, avoiding unpaved corridors that induce mechanical vibration damage on delicate components.
+- **Google Routes Matrix API**: Computes point-to-point transit times and toll/freight costs between Factory A and Factory B.
+- **Google Routes API v2**: Evaluates route distance, traffic conditions, and transit corridors to minimize mechanical vibration and transit latency.
 - **Buffer Storage Sizing**: Recommends buffer warehouse staging if Factory B's intake capacity is out of sync with Factory A's output cycle.
 
 ---
@@ -119,7 +119,7 @@ flowchart LR
 
     subgraph ClusterEngine["Cluster Intelligence & Routing Engine"]
         MatchNodes["Stage-by-Stage Factory Matching"]
-        LogisticsMatrix["Inter-Fab HERE Matrix & Transit Scoring"]
+        LogisticsMatrix["Inter-Fab Google Matrix & Transit Scoring"]
         CostRollup["Cumulative Total Landed Cost & Lead Time"]
     end
 
@@ -181,10 +181,10 @@ $$P_{\text{logistics}, j} = \min\Big(0.35, \; P_{\text{distance}, j} + P_{\text{
 
 1. **Distance & Corridor Impedance ($P_{\text{distance}, j}$)**:
    $$P_{\text{distance}, j} = \min\left(0.12, \; \frac{d_j}{d_{\text{corridor\_ref}}} \times 0.08\right)$$
-   Where $d_j$ is the HERE Matrix Routing v8 haulage distance (km) and $d_{\text{corridor\_ref}} = 300\text{ km}$ is the baseline regional logistics corridor limit.
+   Where $d_j$ is the Google Routes Matrix API haulage distance (km) and $d_{\text{corridor\_ref}} = 300\text{ km}$ is the baseline regional logistics corridor limit.
 2. **Road Roughness & Vibration Damage Risk ($P_{\text{roughness}, j}$)**:
    $$P_{\text{roughness}, j} = 0.05 \times f_{\text{unpaved}, j} \times \chi_{\text{fragility}}$$
-   Where $f_{\text{unpaved}, j} \in [0, 1]$ is the fraction of unpaved or severely degraded road on route $j$ (from HERE Road Attributes API), and $\chi_{\text{fragility}} \in [0.5, 2.0]$ reflects part geometry vulnerability (e.g., thin-walled aerospace fins = 1.8, solid steel shafts = 0.6).
+   Where $f_{\text{unpaved}, j} \in [0, 1]$ is the fraction of unpaved or secondary feeder road on route $j$, and $\chi_{\text{fragility}} \in [0.5, 2.0]$ reflects part geometry vulnerability (e.g., thin-walled aerospace fins = 1.8, solid steel shafts = 0.6).
 3. **Environmental Degradation & Oxidation Risk ($P_{\text{degradation}, j}$)**:
    $$P_{\text{degradation}, j} = \mu_{\text{material}} \times \left( \frac{t_{\text{transit}, j}}{T_{\text{MQT}, j}} \right) \times (1 - \delta_{\text{preservation}})$$
    Where:
@@ -193,7 +193,7 @@ $$P_{\text{logistics}, j} = \min\Big(0.35, \; P_{\text{distance}, j} + P_{\text{
    - $\delta_{\text{preservation}} = 0.85$ when active preservation (VCI wrapping, oil dip, desiccant crates) is mandated on the edge.
 4. **Corridor Delay & Checkpoint Bottleneck Risk ($P_{\text{delay}, j}$)**:
    $$P_{\text{delay}, j} = \min\left(0.10, \; \frac{t_{\text{congested}} - t_{\text{free\_flow}}}{t_{\text{free\_flow}}} \times 0.04 + 0.02 \times N_{\text{state\_crossings}}\right)$$
-   Derived from HERE Traffic API real-time vs free-flow latency and number of inter-state transit checkpoints.
+   Derived from Google Routes API real-time traffic duration vs free-flow latency and number of inter-state transit checkpoints.
 
 ---
 

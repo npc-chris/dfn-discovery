@@ -15,8 +15,8 @@
 
 import type { Job, Factory } from '@dfn/shared/types';
 import { getRedisClient } from './redis-client';
-import { routing as hereRouting } from './integrations/here';
-import type { LatLng } from './integrations/here/here.types';
+import { routing as googleRouting } from './integrations/google';
+import type { LatLng } from './integrations/google/google.types';
 
 export interface LogisticsAssessment {
   distance_km: number;
@@ -120,8 +120,9 @@ export class GeoLogistics {
   private buildAssessmentFromDistance(distanceKm: number, feasibilityConfidence: number): LogisticsAssessment {
     const normalizedDistanceKm = Math.max(1, distanceKm);
     const transport_modes = normalizedDistanceKm > 500 ? ['road', 'air'] : ['road'];
-    const primary_mode = normalizedDistanceKm > 700 ? 'air' : 'road';
+    const primary_mode = 'road';
     const border_crossings = normalizedDistanceKm > 600 ? 1 : 0;
+
     const routing_cost_estimate_ngn = Math.round(normalizedDistanceKm * 1500);
 
     const partialAssessment: Omit<LogisticsAssessment, 'estimated_lead_days'> = {
@@ -188,13 +189,14 @@ export class GeoLogistics {
       }
     }
 
-    if (!process.env.HERE_API_KEY) {
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
       return cacheAssessment(this.buildAssessmentFromDistance(fallbackDistanceKm, 70));
     }
 
     try {
-      // Use the HERE routing adapter to get a normalized route result
-      const route = await hereRouting.getRoute(
+      // Use the Google Routes API v2 adapter to get a normalized route result
+      const route = await googleRouting.getRoute(
         { lat: origin.lat, lng: origin.lng },
         { lat: destination.lat, lng: destination.lng },
         { transportMode: 'truck' },
@@ -260,7 +262,7 @@ export class GeoLogistics {
    * @param assessment - Logistics assessment
    * @returns Lead time in business days
    *
-   * Calculates fallback lead time when HERE routing is unavailable.
+   * Calculates fallback lead time when Google routing is unavailable.
    * Speed baselines (conservative; gives supply-chain breathing room):
    *   - Road : 300 km/day  (Nigerian long-haul truck average)
    *   - Rail : 100 km/day  (Nigerian freight rail)
@@ -332,3 +334,6 @@ export function getGeoLogistics(): GeoLogistics {
   }
   return instance;
 }
+
+export const geoLogistics = new GeoLogistics();
+

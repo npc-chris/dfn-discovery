@@ -201,7 +201,7 @@ See [Security Architecture](DFN_SECURITY.md) for the full specification.
 
 Enrich-logistics handler specifics:
 
-- The `enrich-logistics` job should call the Geo/Logistics service which in turn invokes the HERE adapters (matrix -> routing -> isoline as needed). The handler may accept an optional `prismReport` payload; when present it must be forwarded to the logistics policy to influence transportMode, packaging assumptions, and customs flags.
+- The `enrich-logistics` job should call the Geo/Logistics service which in turn invokes the Google adapters (matrix -> routing -> isoline as needed). The handler may accept an optional `prismReport` payload; when present it must be forwarded to the logistics policy to influence transportMode, packaging assumptions, and customs flags.
 - Adapter calls must be idempotent and cache-aware: matrix results cached (1h), route results cached shorter (15–60m), geocoding cached longer (24h).
 
 ### Internal Worker APIs

@@ -1,11 +1,11 @@
 type RetryFn<T> = () => Promise<T>;
 
-export class NonRetryableHereError extends Error {
+export class NonRetryableGoogleError extends Error {
   retryable = false;
 
   constructor(message: string) {
     super(message);
-    this.name = 'NonRetryableHereError';
+    this.name = 'NonRetryableGoogleError';
   }
 }
 
@@ -25,8 +25,10 @@ export async function withRetry<T>(fn: RetryFn<T>, retries = 3): Promise<T> {
       if (attempt > retries) {
         break;
       }
+      // Exponential backoff: 100ms, 200ms, 400ms...
+      await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt - 1) * 100));
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error('HERE request failed after retries');
+  throw lastError instanceof Error ? lastError : new Error('Google request failed after retries');
 }
