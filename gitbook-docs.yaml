@@ -6,12 +6,13 @@ site:
       key: section-docs
       title: Documentation
       path: docs
+      description: Repository-wide architecture, planning, and high-level specifications.
       default: true
       children:
         - type: space
-          key: space-docs
-          title: Planning and Design
-          path: planning
+          key: space-docs-overview
+          title: Repository Overview
+          path: overview
           default: true
           content:
             directory: ./docs
@@ -19,35 +20,30 @@ site:
       key: section-backend
       title: Backend
       path: backend
+      description: Backend service boundaries, architecture, development guides, and operations.
       children:
         - type: space
-          key: space-backend
-          title: API and Services
-          path: api
+          key: space-backend-overview
+          title: Overview
+          path: overview
           default: true
           content:
-            directory: ./backend
-    - type: section
-      key: section-frontend
-      title: Frontend
-      path: frontend
-      children:
+            directory: null
         - type: space
-          key: space-frontend
-          title: Web Application
-          path: app
-          default: true
+          key: space-backend-architecture
+          title: Architecture
+          path: architecture
           content:
-            directory: ./frontend
-    - type: section
-      key: section-shared
-      title: Shared
-      path: shared
-      children:
+            directory: null
         - type: space
-          key: space-shared
-          title: Types and Utilities
-          path: types
-          default: true
+          key: space-backend-development
+          title: Development Guides
+          path: development
           content:
-            directory: ./shared
+            directory: null
+        - type: space
+          key: space-backend-operations
+          title: Operations
+          path: operations
+          content:
+            directory: null
