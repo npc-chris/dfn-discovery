@@ -19,16 +19,18 @@
  */
 
 import { Router, Request, Response } from 'express';
-
 import { enqueueJob } from '../workers/queue';
+import { requireWebhookSignature, verifyWebhookSignature } from '../middleware/webhook-auth';
+import { webhookRateLimiter } from '../middleware/rate-limiter';
 
 const router: Router = Router();
+
+// Protect webhook receivers from flooding / DoS attacks
+router.use(webhookRateLimiter);
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-import { requireWebhookSignature, verifyWebhookSignature } from '../middleware/webhook-auth';
 
 /**
  * Extract a factory ID from an inbound webhook payload.
@@ -64,7 +66,7 @@ function extractFactoryId(payload: Record<string, unknown>): string | null {
  *
  * On success: enqueues a 'refresh-site-brief' job and returns HTTP 200.
  */
-router.post('/safetyculture', requireWebhookSignature('x-iauditor-signature', 'SAFETYCULTURE_WEBHOOK_SECRET'), async (req: Request, res: Response): Promise<void> => {
+router.post('/safetyculture', webhookRateLimiter, requireWebhookSignature('x-iauditor-signature', 'SAFETYCULTURE_WEBHOOK_SECRET'), async (req: Request, res: Response): Promise<void> => {
   const rawBody: Buffer = (req as any).rawBody;
 
   let payload: Record<string, unknown>;
@@ -120,7 +122,7 @@ router.post('/safetyculture', requireWebhookSignature('x-iauditor-signature', 'S
  *
  * On success: enqueues a 'refresh-site-brief' job and returns HTTP 200.
  */
-router.post('/upkeep', async (req: Request, res: Response): Promise<void> => {
+router.post('/upkeep', webhookRateLimiter, async (req: Request, res: Response): Promise<void> => {
   const rawBody: Buffer = (req as any).rawBody;
   const signature = req.headers['x-upkeep-signature'] as string | undefined;
   const secret = process.env.UPKEEP_WEBHOOK_SECRET;

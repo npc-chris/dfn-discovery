@@ -6,6 +6,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenAI } from '@google/genai';
 import type { AIProviderConfig, AIExtractionRequest, AIExtractionResponse, AISummarizationRequest, AISummarizationResponse, AIExplanationRequest, AIExplanationResponse } from './types';
 
+// System prompt templates
+const SUMMARIZE_SYSTEM_PROMPT =
+  'You are a concise summarization expert. Create clear, factual summaries preserving key details.';
+
 // Retry configuration
 const RETRY_CONFIG = {
   maxRetries: 3,
@@ -94,16 +98,22 @@ Extract and return only valid JSON.`;
 
   async summarize(req: AISummarizationRequest): Promise<AISummarizationResponse> {
     return retryWithBackoff(async () => {
-      const maxLengthHint = req.maxLength ? ` Limit to ${req.maxLength} characters.` : '';
+      const userPrompt = req.maxLength
+        ? `Summarize (limit to ${req.maxLength} characters):
+
+${req.content}`
+        : `Summarize:
+
+${req.content}`;
 
       const response = await this.client.chat.completions.create({
         model: this.model,
         messages: [
           {
             role: 'system',
-            content: `You are a concise summarization expert. Create clear, factual summaries preserving key details.${maxLengthHint}`,
+            content: SUMMARIZE_SYSTEM_PROMPT,
           },
-          { role: 'user', content: `Summarize:\n\n${req.content}` },
+          { role: 'user', content: userPrompt },
         ],
         temperature: req.temperature ?? 0.5,
         max_tokens: req.maxLength ? Math.min(req.maxLength / 4, 500) : 300,
@@ -237,13 +247,19 @@ Extract and return only valid JSON.`;
 
   async summarize(req: AISummarizationRequest): Promise<AISummarizationResponse> {
     return retryWithBackoff(async () => {
-      const maxLengthHint = req.maxLength ? ` Limit to ${req.maxLength} characters.` : '';
+      const userPrompt = req.maxLength
+        ? `Summarize (limit to ${req.maxLength} characters):
+
+${req.content}`
+        : `Summarize:
+
+${req.content}`;
 
       const response = await this.client.messages.create({
         model: this.model,
         max_tokens: req.maxLength ? Math.min(req.maxLength / 4, 500) : 300,
-        system: `You are a concise summarization expert. Create clear, factual summaries preserving key details.${maxLengthHint}`,
-        messages: [{ role: 'user', content: `Summarize:\n\n${req.content}` }],
+        system: SUMMARIZE_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userPrompt }],
       });
 
       const summary = response.content[0].type === 'text' ? response.content[0].text : '';
@@ -375,11 +391,19 @@ Extract and return only valid JSON.`;
 
   async summarize(req: AISummarizationRequest): Promise<AISummarizationResponse> {
     return retryWithBackoff(async () => {
-      const maxLengthHint = req.maxLength ? ` Limit to ${req.maxLength} characters.` : '';
+      const userPrompt = req.maxLength
+        ? `Summarize (limit to ${req.maxLength} characters):
+
+${req.content}`
+        : `Summarize:
+
+${req.content}`;
 
       const response = await this.client.models.generateContent({
         model: this.model,
-        contents: `You are a concise summarization expert. Create clear, factual summaries preserving key details.${maxLengthHint}\n\nSummarize:\n\n${req.content}`,
+        contents: `${SUMMARIZE_SYSTEM_PROMPT}
+
+${userPrompt}`,
         config: {
           temperature: req.temperature ?? 0.5,
           maxOutputTokens: req.maxLength ? Math.min(req.maxLength / 4, 500) : 300,

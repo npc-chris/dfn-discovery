@@ -12,6 +12,7 @@ import { db } from '../db/client.ts';
 import { factories } from '../db/schema.ts';
 import { eq } from 'drizzle-orm';
 import { AppError } from '../middleware/error.ts';
+import { authRateLimiter } from '../middleware/rate-limiter.ts';
 
 type DbClient = typeof db;
 
@@ -210,7 +211,7 @@ router.get('/site-visit-report/:factoryId', async (req: Request, res: Response, 
  * POST /enrichment/check-availability
  * Check if factory has capacity and lead time availability
  */
-router.post('/check-availability', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/check-availability', authRateLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { factoryId, requiredCapacityPercent, requiredLeadDays } = req.body;
 

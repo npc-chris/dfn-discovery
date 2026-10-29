@@ -57,6 +57,18 @@ router.post('/:jobId/routing-dag/simulate', async (req: Request, res: Response, 
 
     const { customStages, customEdges, quantity } = req.body;
 
+    // Validate and bound custom arrays to prevent loop bound injection / DoS
+    if (customStages !== undefined) {
+      if (!Array.isArray(customStages) || customStages.length > 50) {
+        throw new AppError(400, 'customStages must be an array with at most 50 items');
+      }
+    }
+    if (customEdges !== undefined) {
+      if (!Array.isArray(customEdges) || customEdges.length > 100) {
+        throw new AppError(400, 'customEdges must be an array with at most 100 items');
+      }
+    }
+
     const baseDag = extractOrBuildDAG(job);
     const stages = customStages || baseDag.stages;
     const edges = customEdges || baseDag.edges;

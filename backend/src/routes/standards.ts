@@ -15,6 +15,7 @@ import {
 } from '../services/standards-service';
 import { getFactoryCertifications } from '../db/queries';
 import { AppError } from '../middleware/error';
+import { authRateLimiter } from '../middleware/rate-limiter';
 import { requireAdmin } from '../middleware/auth';
 
 const router: Router = express.Router();
@@ -192,6 +193,7 @@ router.post('/factories/:factoryId/certifications', async (req: Request, res: Re
 // Verify a factory certification (simulates IAF CertSearch / SON validation)
 router.patch(
   '/factories/:factoryId/certifications/:certId/verify',
+  authRateLimiter,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const auth = res.locals.auth;

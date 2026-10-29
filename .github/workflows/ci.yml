@@ -11,26 +11,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
-      - name: Install root dependencies
-        run: npm ci
+          node-version: 20
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
       - name: Build shared package
-        working-directory: shared
-        run: npm ci && npm run build
-      - name: Install backend dependencies
-        working-directory: backend
-        run: npm ci
+        run: pnpm --filter @dfn/shared build
       - name: Run backend adapter tests
         working-directory: backend
-        run: npm run test:adapters
+        run: pnpm run test:adapters
       - name: Run backend core tests
         working-directory: backend
-        run: npm run test:core
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
+        run: pnpm run test:core
       - name: Type check
-        run: npm run -w backend type-check
+        run: pnpm run type-check

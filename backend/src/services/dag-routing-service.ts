@@ -490,7 +490,11 @@ export function computeCompositeChainScore(
   let totalWeight = 0;
   let weightedLogSum = 0;
 
-  for (let i = 0; i < stageScores.length; i++) {
+  // Bound iterations to a constant upper limit to protect against loop bound injection (CWE-400 / CWE-770)
+  const MAX_STAGES = 50;
+  const stageCount = Math.min(stageScores.length, MAX_STAGES);
+
+  for (let i = 0; i < stageCount; i++) {
     const score = Math.max(1, stageScores[i]);
     const weight = weights[i] ?? 1.0;
     totalWeight += weight;
@@ -537,7 +541,8 @@ export function calculateTotalLandedCost(
   let toolingCostNgn = 0;
   let totalStageLeadDays = 0;
 
-  for (const stage of stages) {
+  const boundedStages = stages.slice(0, 50);
+  for (const stage of boundedStages) {
     const stageCost = stage.direct_stage_cost_ngn || 200000;
     directMachiningCostNgn += stageCost;
     toolingCostNgn += stage.tooling_cost_ngn || 25000;
@@ -551,7 +556,8 @@ export function calculateTotalLandedCost(
   let transitDays = 0;
   let totalDistanceKm = 0;
 
-  for (const edge of edges) {
+  const boundedEdges = edges.slice(0, 100);
+  for (const edge of boundedEdges) {
     freightCostNgn += edge.freight_cost_ngn;
     preservationCostNgn += edge.preservation_cost_ngn;
     totalDistanceKm += edge.distance_km;
