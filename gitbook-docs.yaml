@@ -15,25 +15,25 @@ site:
           path: overview
           default: true
           content:
-            directory: null
+            directory: ./docs/general/overview
         - type: space
           key: space-general-architecture
           title: Architecture
           path: architecture
           content:
-            directory: null
+            directory: ./docs/general/architecture
         - type: space
           key: space-general-development
           title: Development Guides
           path: development
           content:
-            directory: null
+            directory: ./docs/general/development
         - type: space
           key: space-general-operations
           title: Operations
           path: operations
           content:
-            directory: null
+            directory: ./docs/general/operations
     - type: section
       key: section-services
       title: Services & Logic
@@ -46,25 +46,25 @@ site:
           path: logic
           default: true
           content:
-            directory: null
+            directory: ./docs/services/logic
         - type: space
           key: space-services-routes
           title: Routes & Endpoints
           path: routes
           content:
-            directory: null
+            directory: ./docs/services/routes
         - type: space
           key: space-services-workers
           title: Workers & Queue
           path: workers
           content:
-            directory: null
+            directory: ./docs/services/workers
         - type: space
           key: space-services-db
           title: Database & Schema
           path: database
           content:
-            directory: null
+            directory: ./docs/services/database
     - type: section
       key: section-docs
       title: Documentation
