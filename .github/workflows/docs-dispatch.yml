@@ -1,0 +1,22 @@
+name: Dispatch Docs Sync
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'docs/**'
+      - 'shared/src/types/**'
+      - 'backend/src/routes/**'
+
+jobs:
+  notify-docs-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger dfn-docs Ingestion
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DFN_DOCS_DISPATCH_TOKEN || secrets.GITHUB_TOKEN }}
+          repository: npc-chris/dfn-docs
+          event-type: sync-ecosystem-docs
+          client-payload: '{"repo": "dfn-discovery", "branch": "main", "sha": "${{ github.sha }}"}'
+        continue-on-error: true
