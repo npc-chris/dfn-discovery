@@ -45,7 +45,7 @@ dfn-discovery/
 ├── frontend/            # Next.js 14 web application (App Router)
 │   ├── src/app/         # UI pages (Dashboard, Jobs, Factories, RFQ Explorer)
 │   └── src/components/  # Tailwind CSS & Radix UI design components
-└── docs/                # Architecture, design specifications, and GitBook docs
+└── docs/                # Architecture, design specifications, and Mintlify documentation
 ```
 
 ### Monorepo Boundaries & Responsibilities

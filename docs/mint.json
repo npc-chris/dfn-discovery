@@ -1,0 +1,107 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "DFN Discovery",
+  "logo": {
+    "dark": "https://mintlify.s3.us-west-1.amazonaws.com/dfn/logo/dark.svg",
+    "light": "https://mintlify.s3.us-west-1.amazonaws.com/dfn/logo/light.svg"
+  },
+  "favicon": "https://mintlify.s3.us-west-1.amazonaws.com/dfn/favicon.svg",
+  "colors": {
+    "primary": "#0D9488",
+    "light": "#14B8A6",
+    "dark": "#0F766E",
+    "background": {
+      "dark": "#0B0F17",
+      "light": "#F8FAFC"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Ecosystem Architecture",
+      "url": "https://github.com/npc-chris/dfn-docs"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "GitHub Repo",
+    "url": "https://github.com/npc-chris/dfn-gap-analyzer"
+  },
+  "anchors": [
+    {
+      "name": "Ecosystem Specs",
+      "icon": "book-open-cover",
+      "url": "https://github.com/npc-chris/dfn-docs"
+    },
+    {
+      "name": "CAD Engine (Prism)",
+      "icon": "cube",
+      "url": "https://huggingface.co/spaces/chris-u/dfn-prism"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "System Overview",
+      "pages": [
+        "README",
+        "general/overview/README",
+        "DFN_SERVICE_PLAN",
+        "DFN_SERVICE_MAP"
+      ]
+    },
+    {
+      "group": "Engineering Design",
+      "pages": [
+        "DFN_HLD",
+        "DFN_LLD",
+        "DFN_SEQUENCE_DIAGRAMS",
+        "DFN_MAIN_REPO_INTEGRATION",
+        "general/architecture/README"
+      ]
+    },
+    {
+      "group": "Domain & Routing Engines",
+      "pages": [
+        "DFN_MULTI_STAGE_PROCESS_ROUTING",
+        "DFN_STANDARDS_AND_SDO_ARCHITECTURE",
+        "GOOGLE_LOCATION_SERVICES",
+        "DFN_PHASE_6_9_ANALYTICS"
+      ]
+    },
+    {
+      "group": "Services & Subsystems",
+      "pages": [
+        "services/logic/README",
+        "services/routes/README",
+        "services/workers/README",
+        "services/database/README"
+      ]
+    },
+    {
+      "group": "Infrastructure & Security",
+      "pages": [
+        "DFN_SECURITY",
+        "DFN_IDP_DESIGN",
+        "DFN_DB_SCHEMA",
+        "DFN_FRONTEND_ARCHITECTURE"
+      ]
+    },
+    {
+      "group": "Operations & Development",
+      "pages": [
+        "general/development/README",
+        "general/operations/README",
+        "PHASE_3_IMPLEMENTATION_PLAN"
+      ]
+    },
+    {
+      "group": "Audit & Verification",
+      "pages": [
+        "DFN_IMPLEMENTATION_CHECKLIST",
+        "DFN_IMPLEMENTATION_VALIDATION",
+        "DFN_VALIDATION_SUMMARY"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/npc-chris/dfn-gap-analyzer"
+  }
+}

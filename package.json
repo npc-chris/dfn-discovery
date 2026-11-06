@@ -13,7 +13,9 @@
     "build": "corepack pnpm --filter @dfn/shared build && corepack pnpm --filter @dfn/backend build && corepack pnpm --filter @dfn/frontend build",
     "test": "corepack pnpm -r --if-present test",
     "lint": "corepack pnpm -r --if-present lint",
-    "type-check": "corepack pnpm -r --if-present type-check"
+    "type-check": "corepack pnpm -r --if-present type-check",
+    "docs:dev": "npx mintlify dev --dir docs",
+    "docs:broken-links": "npx mintlify broken-links --dir docs"
   },
   "devDependencies": {
     "concurrently": "^8.2.0"
