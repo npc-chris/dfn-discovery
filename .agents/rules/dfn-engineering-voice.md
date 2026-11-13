@@ -44,6 +44,16 @@ Never begin documentation, pull requests, or file headers with conversational fl
   - *"Plays a pivotal / crucial / vital role in..."*
   - *"Is designed to facilitate..."* (replace with direct verb: *"allows"* or *"enables"*)
   - *"In order to be able to..."* (replace with *"to"*)
+  - *"It is worth mentioning that..."*
+  - *"In summary / in conclusion / to conclude..."* (formulaic AI summary wrapper)
+  - *"A plethora of / a myriad of..."* (ornate quantitative fluff)
+  - *"Paves the way for / paving the way..."*
+  - *"Unlock the potential of..."*
+  - *"Seamlessly integrates..."* (marketing superlative)
+  - *"Robust and scalable..."* (formulaic buzzword pair)
+  - *"Meticulously designed / crafted..."* (boastful self-praise)
+  - *"Plays an integral role / part in..."*
+  - *"In today's world / in today's digital age..."*
 - ✅ State technical facts directly and imperatively.
 
 ---
@@ -51,9 +61,9 @@ Never begin documentation, pull requests, or file headers with conversational fl
 ## 3. Strict AI Buzzword & Trope Vocabulary Ban
 
 Reject empty, hyperbolic adjectives and overused AI transition verbs:
-- **Banned Verbs:** `delve`, `leverage`, `elevate`, `foster`, `cultivate`, `harness`, `unravel`, `unleash`, `streamline`, `orchestrate`, `bolster`, `underscore`, `encapsulate`, `demystify`, `spearhead`, `embark`, `navigate`, `empower`, `revolutionize`, `transform`, `illuminate`.
-- **Banned Adjectives/Adverbs:** `paramount`, `pivotal`, `crucial`, `robust`, `seamless` *(except literal material specs, e.g. seamless tubing)*, `comprehensive`, `holistic`, `nuanced`, `multifaceted`, `cutting-edge`, `state-of-the-art`, `game-changing`, `groundbreaking`, `quintessential`, `vibrant`, `bustling`, `bespoke`, `meticulous`, `profound`, `invaluable`.
-- **Banned Metaphorical Nouns:** `testament`, `tapestry`, `beacon`, `powerhouse`, `cornerstone`, `linchpin`, `realm`, `landscape`, `journey`, `paradigm`, `synergy`, `panacea`, `catalyst`, `symphony`.
+- **Banned Verbs:** `delve`, `leverage`, `elevate`, `foster`, `cultivate`, `harness`, `unravel`, `unleash`, `streamline`, `orchestrate`, `bolster`, `underscore`, `encapsulate`, `demystify`, `spearhead`, `embark`, `navigate`, `empower`, `revolutionize`, `transform`, `illuminate`, `reimagine`, `supercharge`.
+- **Banned Adjectives/Adverbs:** `paramount`, `pivotal`, `crucial`, `robust`, `seamless` *(except literal material specs, e.g. seamless tubing)*, `comprehensive`, `holistic`, `nuanced`, `multifaceted`, `cutting-edge`, `state-of-the-art`, `game-changing`, `groundbreaking`, `quintessential`, `vibrant`, `bustling`, `bespoke`, `meticulous`, `profound`, `invaluable`, `furthermore`, `moreover`, `unrivaled`, `unparalleled`, `frictionless`, `effortless`, `gamechanger`, `trailblazing`, `synergistic`.
+- **Banned Metaphorical Nouns:** `testament`, `tapestry`, `beacon`, `powerhouse`, `cornerstone`, `linchpin`, `realm`, `landscape`, `journey`, `paradigm`, `synergy`, `panacea`, `catalyst`, `symphony`, `plethora`, `myriad`.
 
 ---
 
