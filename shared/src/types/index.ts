@@ -3,3 +3,5 @@ export * from './job';
 export * from './factory';
 export type { FactoryProfile as Factory } from './factory';
 export * from './recommendation';
+export * from './standards';
+export * from './prism';

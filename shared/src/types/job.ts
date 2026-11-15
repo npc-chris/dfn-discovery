@@ -15,14 +15,28 @@ export enum JobStatus {
   StaleData = 'stale_data',
 }
 
+export type JobStatusType =
+  | 'draft'
+  | 'submitted'
+  | 'normalized'
+  | 'analyzing'
+  | 'scored'
+  | 'recommended'
+  | 'published'
+  | 'archived'
+  | 'validation_failed'
+  | 'analysis_failed'
+  | 'scoring_failed'
+  | 'stale_data';
+
 export interface Location {
-  latitude?: number;
-  longitude?: number;
-  address?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
   country: string;
-  region?: string;
-  state?: string;
-  lga?: string;
+  region?: string | null;
+  state?: string | null;
+  lga?: string | null;
 }
 
 export interface Attachment {
@@ -30,7 +44,7 @@ export interface Attachment {
   filename: string;
   mime_type: string;
   size_bytes: number;
-  uploaded_at: Date;
+  uploaded_at?: Date | string;
   source_type: 'form' | 'file' | 'survey';
 }
 
@@ -88,8 +102,8 @@ export interface ManufacturingDAG {
   title?: string;
   stages: ProcessStageNode[];
   edges: StageTransitionEdge[];
-  created_at?: Date;
-  updated_at?: Date;
+  created_at?: Date | string;
+  updated_at?: Date | string;
 }
 
 /**
@@ -118,26 +132,26 @@ export interface BillOfProcess {
 
 export interface Job {
   id: string;
-  org_id: string;
-  created_by: string;
+  org_id?: string;
+  created_by?: string;
   project_id?: string;
   batch_id?: string;
   rfq_code?: string;
   company_name: string;
   product_name: string;
-  process_type: string;
-  material_type: string;
-  volume_band: string;
+  process_type?: string | null;
+  material_type?: string | null;
+  volume_band?: string | null;
   location: Location;
   delivery_location?: Location;
-  target_price_max?: number;
-  requirements?: Record<string, unknown>;
+  target_price_max?: number | null;
+  requirements?: Record<string, unknown> | null;
   attachments: Attachment[];
-  status: JobStatus;
+  status: JobStatus | JobStatusType;
   version: number;
-  created_at: Date;
-  updated_at: Date;
-  metadata?: Record<string, unknown>;
+  created_at: Date | string;
+  updated_at: Date | string;
+  metadata?: Record<string, unknown> | null;
   bop?: BillOfProcess;
   dag?: ManufacturingDAG;
 }
@@ -150,10 +164,11 @@ export interface JobInput {
   volume_band?: string;
   location: Location;
   delivery_location?: Location;
-  attachments?: File[];
+  target_price_max?: number;
+  requirements?: Record<string, unknown>;
+  attachments?: File[] | Attachment[];
   metadata?: Record<string, unknown>;
   bop?: BillOfProcess;
   dag?: ManufacturingDAG;
   target_ceiling_ngn?: number;
 }
-

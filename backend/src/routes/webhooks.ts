@@ -175,4 +175,95 @@ router.post('/upkeep', webhookRateLimiter, async (req: Request, res: Response): 
   }
 });
 
+// ---------------------------------------------------------------------------
+// POST /webhooks/prism
+// ---------------------------------------------------------------------------
+
+/**
+ * Receive DFN Prism CAD analysis report payloads (PrismReportManifest).
+ *
+ * Expected headers:
+ *   x-prism-signature: sha256=<hmac-hex>
+ *
+ * Expected body:
+ *   PrismReportManifest (schema_version, report_id, job_id, geometry, features, material, workflows, dfm_issues, complexity_score)
+ *
+ * On success: enqueues a 'score-fit' analysis pipeline and returns HTTP 200.
+ */
+router.post('/prism', webhookRateLimiter, async (req: Request, res: Response): Promise<void> => {
+  const rawBody: Buffer = (req as any).rawBody;
+  const signature = req.headers['x-prism-signature'] as string | undefined;
+  const secret = process.env.PRISM_WEBHOOK_SECRET;
+
+  if (secret) {
+    if (signature) {
+      if (!rawBody || !verifyWebhookSignature(rawBody, signature, secret)) {
+        res.status(401).json({ error: 'Invalid Prism webhook signature' });
+        return;
+      }
+    } else {
+      console.warn('[webhooks/prism] Missing x-prism-signature header when PRISM_WEBHOOK_SECRET is set');
+      res.status(401).json({ error: 'Missing x-prism-signature header' });
+      return;
+    }
+  } else {
+    console.warn('[webhooks/prism] PRISM_WEBHOOK_SECRET not set — skipping verification (dev mode)');
+  }
+
+  let payload: Record<string, unknown>;
+  try {
+    payload = rawBody ? JSON.parse(rawBody.toString('utf8')) : req.body;
+  } catch {
+    res.status(400).json({ error: 'Invalid JSON payload' });
+    return;
+  }
+
+  const jobId = (payload.job_id as string) || (payload.jobId as string);
+  const reportId = (payload.report_id as string) || (payload.reportId as string);
+
+  if (!jobId || !reportId) {
+    res.status(400).json({ error: 'Missing required manifest fields: job_id or report_id' });
+    return;
+  }
+
+  try {
+    const queueJobId = await enqueueJob('score-fit', jobId, {
+      job_id: jobId,
+      report_id: reportId,
+      trigger: 'prism-webhook',
+      manifest: payload,
+    });
+    res.status(200).json({
+      received: true,
+      queued: true,
+      queueJobId,
+      report_id: reportId,
+      job_id: jobId,
+      complexity_score: payload.complexity_score,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('already queued')) {
+      res.status(200).json({
+        received: true,
+        queued: false,
+        reason: 'already queued',
+        report_id: reportId,
+        job_id: jobId,
+      });
+      return;
+    }
+    // If DB is offline in dev mode, still gracefully accept the valid webhook
+    console.warn('[webhooks/prism] Database queue enqueue skipped (offline/error):', msg);
+    res.status(200).json({
+      received: true,
+      queued: false,
+      reason: 'queue_deferred',
+      report_id: reportId,
+      job_id: jobId,
+      complexity_score: payload.complexity_score,
+    });
+  }
+});
+
 export default router;

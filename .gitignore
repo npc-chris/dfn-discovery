@@ -44,3 +44,6 @@ dump_*
 
 # TypeScript
 *.tsbuildinfo
+
+# Static assets
+static/
