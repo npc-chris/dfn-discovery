@@ -3,6 +3,7 @@
 
 import express, { Router, Request, Response, NextFunction } from 'express';
 import * as jobIntake from '../services/job-intake';
+import { intakeCadAsset } from '../services/cad-intake';
 import { enqueueJob } from '../workers/queue';
 import { QueueJobType } from '../types/queue';
 import { AppError } from '../middleware/error';
@@ -159,6 +160,43 @@ router.post('/:jobId/submit', async (req, res, next) => {
       queueJobId,
       queueStage: QueueJobType.CLASSIFY_JOB,
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Ingest CAD asset and dispatch asynchronous geometry analysis
+router.post('/:jobId/cad-intake', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const auth = res.locals.auth;
+    const orgId = auth?.orgId || 'unknown';
+    const { filename, mimeType, sizeBytes, hashSha256, storageUrl, declaredBudgetCeilingNgn } = req.body;
+
+    if (!filename || !mimeType || sizeBytes === undefined) {
+      throw new AppError(400, 'filename, mimeType, and sizeBytes are required');
+    }
+
+    const result = await intakeCadAsset({
+      jobId: req.params.jobId,
+      orgId,
+      filename,
+      mimeType,
+      sizeBytes,
+      hashSha256,
+      storageUrl,
+      declaredBudgetCeilingNgn,
+    });
+
+    await recordActivity({
+      job_id: req.params.jobId,
+      orgId,
+      eventType: 'attachment_uploaded',
+      title: 'CAD File Ingested',
+      description: `Ingested ${filename} (${sizeBytes} bytes) with declared budget ₦${declaredBudgetCeilingNgn || 0}`,
+      severity: 'info',
+    });
+
+    res.status(201).json(result);
   } catch (error) {
     next(error);
   }
