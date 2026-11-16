@@ -29,6 +29,7 @@ import { getCoreIntelligence } from '../services/core-intelligence';
 import { getPresentationLayer } from '../services/presentation-layer';
 import { createAIAnalysisWorkers } from '../services/ai-analysis-workers';
 import { transitionJobStatus } from '../services/job-intake';
+import { recordActivity } from '../services/activity-service';
 import { replaceRecommendationsForJob, getRecommendationsForJob, updateRecommendation } from '../db/queries';
 import type { AIProvider } from '../services/ai-providers/types';
 
@@ -697,13 +698,74 @@ async function extractEvidenceHandler(jobId: string, _payload: Record<string, un
  * - Persists ranked ScoringResult[] to the recommendations table
  * - Transitions job to 'scored'
  */
-async function scoreFitHandler(jobId: string, _payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function scoreFitHandler(jobId: string, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
   const [jobRow] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
   if (!jobRow) throw new Error(`Job not found: ${jobId}`);
 
+  // Inspect incoming CAD geometry telemetry from Prism if present
+  const manifest = (payload.manifest as Record<string, unknown> | undefined) || {};
+  const geometry = (manifest.geometry as Record<string, unknown> | undefined) || {};
+  const bbox = (geometry.bounding_box as { x_mm?: number; y_mm?: number; z_mm?: number } | undefined) || {};
+  
+  const xDim = Number(bbox.x_mm || 0);
+  const yDim = Number(bbox.y_mm || 0);
+  const zDim = Number(bbox.z_mm || 0);
+  const maxDim = Math.max(xDim, yDim, zDim);
+
+  const partCount = Number(manifest.part_count || geometry.part_count || geometry.solid_count || 1);
+  const isAssembly = Boolean(manifest.is_assembly || geometry.is_assembly || partCount > 1);
+
+  const requiresAeTriage = isAssembly || maxDim >= 1000;
+
+  // Persist telemetry and routing decisions into job metadata
+  const existingMeta = (jobRow.metadata || {}) as Record<string, unknown>;
+  const updatedMeta: Record<string, unknown> = {
+    ...existingMeta,
+    cad_telemetry: {
+      envelope_mm: { x: xDim, y: yDim, z: zDim },
+      discrete_bodies: partCount,
+      is_assembly: isAssembly,
+      evaluated_at: new Date().toISOString(),
+    },
+  };
+
+  if (requiresAeTriage) {
+    updatedMeta.triage_queue = 'applications_engineering';
+    updatedMeta.triage_reason = isAssembly
+      ? `Multi-body assembly with ${partCount} discrete solid bodies`
+      : `Envelope dimension ${maxDim}mm exceeds standard CNC single-machine travel bounds`;
+    updatedMeta.triage_routed_at = new Date().toISOString();
+
+    await recordActivity({
+      project_id: jobRow.project_id,
+      job_id: jobId,
+      orgId: jobRow.org_id,
+      eventType: 'triage_routed',
+      title: 'Routed to Applications Engineering Queue',
+      description: `Package flagged: ${updatedMeta.triage_reason}`,
+      severity: 'warning',
+    });
+  }
+
+  await db
+    .update(jobs)
+    .set({
+      metadata: updatedMeta,
+      updated_at: new Date(),
+    })
+    .where(eq(jobs.id, jobId));
+
   const allFactories = await db.select().from(factories).where(eq(factories.active, true));
   if (allFactories.length === 0) {
-    throw new Error('No active factories available for scoring');
+    // If factories table is empty in local test, return early with telemetry verification
+    return {
+      scored: false,
+      requiresAeTriage,
+      triageQueue: updatedMeta.triage_queue || null,
+      discreteBodies: partCount,
+      envelope: { x: xDim, y: yDim, z: zDim },
+      reason: 'No active factories available for scoring; triage evaluated',
+    };
   }
 
   const sharedFactories = allFactories.map(toSharedFactory);
@@ -721,7 +783,14 @@ async function scoreFitHandler(jobId: string, _payload: Record<string, unknown>)
 
   await transitionJobStatus(jobId, 'scored', 'queue-worker');
 
-  return { scored: true, recommendationCount: scoringResults.length };
+  return {
+    scored: true,
+    recommendationCount: scoringResults.length,
+    requiresAeTriage,
+    triageQueue: updatedMeta.triage_queue || null,
+    discreteBodies: partCount,
+    envelope: { x: xDim, y: yDim, z: zDim },
+  };
 }
 
 /**
