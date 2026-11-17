@@ -20,6 +20,7 @@ import queueRouter from './routes/queue';
 import batchRouter from './routes/batch';
 import webhooksRouter from './routes/webhooks';
 import analyticsApp from './routes/analytics';
+import aeWorkbenchRouter from './routes/ae-workbench';
 
 const app = express();
 const portValue = process.env.PORT;
@@ -103,6 +104,7 @@ app.use('/api/v1/enrichment', enrichmentRouter);
 app.use('/api/v1/queue', queueRouter);
 app.use('/api/v1/batch', batchRouter);
 app.use('/api/v1/analytics', analyticsApp);
+app.use('/api/v1/ae-workbench', aeWorkbenchRouter);
 
 // ---------------------------------------------------------------------------
 // Root aliases for backward compatibility
@@ -118,6 +120,7 @@ app.use('/enrichment', enrichmentRouter);
 app.use('/recommendations', recommendationsRouter);
 app.use('/queue', queueRouter);
 app.use('/batch', batchRouter);
+app.use('/ae-workbench', aeWorkbenchRouter);
 
 
 // Error handler (must be last)
