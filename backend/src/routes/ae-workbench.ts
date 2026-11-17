@@ -1,12 +1,15 @@
 /**
  * API Routes for Applications Engineer Triage Workbench [KAN-32]
- * Endpoints for BOM splitting, standard cold-drawn stock recommendations,
+ * Endpoints for BOM splitting, physics-based standard stock recommendations,
  * and parameter normalization with deterministic quote recalculation.
  */
 
 import express, { Router, Request, Response, NextFunction } from 'express';
 import {
+  ALL_STOCK_TYPES,
+  DEFAULT_SHOP_RATE_CARD,
   getStandardStockCatalog,
+  getMaterialReferenceTable,
   recommendStandardStock,
   splitJobBom,
   applyStockNormalization,
@@ -19,26 +22,37 @@ const router: Router = express.Router();
 
 /**
  * GET /stock-catalog
- * Returns standard metric cold-drawn round bar and sheet metal stock size tables (mm).
+ * Returns standard metric stock size tables (mm), material reference specs, and default shop rates.
  */
 router.get('/stock-catalog', (_req: Request, res: Response) => {
   res.json({
     catalog: getStandardStockCatalog(),
+    materials: getMaterialReferenceTable(),
+    defaultRateCard: DEFAULT_SHOP_RATE_CARD,
   });
 });
 
 /**
  * POST /stock-recommendations
- * Evaluates a specified dimension against standard stock tables and projects waste/cost savings.
+ * Evaluates a specified dimension against standard stock tables and projects physical & cost savings.
  */
 router.post('/stock-recommendations', (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { stockType, specifiedDimensionMm, quantity } = req.body || {};
+    const {
+      stockType,
+      specifiedDimensionMm,
+      lengthMm,
+      widthMm,
+      wallThicknessMm,
+      materialGrade,
+      quantity,
+      rateCard,
+    } = req.body || {};
 
     if (!isValidStockType(stockType)) {
       throw new AppError(
         400,
-        'stockType is required and must be "cold_drawn_round_bar" or "sheet_metal"',
+        `stockType is required and must be one of: ${ALL_STOCK_TYPES.join(', ')}`,
       );
     }
 
@@ -49,7 +63,12 @@ router.post('/stock-recommendations', (req: Request, res: Response, next: NextFu
     const recommendation = recommendStandardStock({
       stockType,
       specifiedDimensionMm,
+      lengthMm,
+      widthMm,
+      wallThicknessMm,
+      materialGrade,
       quantity,
+      rateCard,
     });
 
     res.json(recommendation);
@@ -78,12 +97,13 @@ router.get('/jobs/:jobId', async (req: Request, res: Response, next: NextFunctio
 router.post('/jobs/:jobId/split-bom', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const auth = res.locals.auth;
-    const { workPackages, initialEstimatedQuoteNgn, reviewedBy } = req.body || {};
+    const { workPackages, initialEstimatedQuoteNgn, rateCard, reviewedBy } = req.body || {};
 
     const result = await splitJobBom({
       jobId: req.params.jobId,
       workPackages,
       initialEstimatedQuoteNgn,
+      rateCard,
       reviewedBy: reviewedBy || auth?.userId || 'applications-engineer',
     });
 
@@ -102,8 +122,18 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const auth = res.locals.auth;
-      const { workPackageId, targetDimensionMm, stockType, appliedBy, engineeringNote } =
-        req.body || {};
+      const {
+        workPackageId,
+        targetDimensionMm,
+        stockType,
+        lengthMm,
+        widthMm,
+        wallThicknessMm,
+        materialGrade,
+        rateCard,
+        appliedBy,
+        engineeringNote,
+      } = req.body || {};
 
       if (targetDimensionMm === undefined || typeof targetDimensionMm !== 'number') {
         throw new AppError(400, 'targetDimensionMm is required and must be a number');
@@ -114,6 +144,11 @@ router.post(
         workPackageId,
         targetDimensionMm,
         stockType,
+        lengthMm,
+        widthMm,
+        wallThicknessMm,
+        materialGrade,
+        rateCard,
         appliedBy: appliedBy || auth?.userId || 'applications-engineer',
         engineeringNote,
       });
