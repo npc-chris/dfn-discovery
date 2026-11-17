@@ -1,20 +1,14 @@
-import assert from 'assert';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import crypto from 'crypto';
 import express, { Express } from 'express';
+import type { Server } from 'http';
 import router from './webhooks';
 import type { PrismReportManifest } from '@dfn/shared/types';
 
-// Create test express app
-const app: Express = express();
-app.use(express.json({
-  verify: (req: any, _res, buf) => {
-    req.rawBody = buf;
-  }
-}));
-app.use('/webhooks', router);
-
-async function testPrismWebhook() {
-  console.log('Testing POST /webhooks/prism handling...');
+describe('Prism Webhook Handler [KAN-12]', () => {
+  let app: Express;
+  let server: Server;
+  let baseUrl: string;
 
   const manifest: PrismReportManifest = {
     schema_version: '1.1',
@@ -58,45 +52,60 @@ async function testPrismWebhook() {
 
   const payloadStr = JSON.stringify(manifest);
 
-  // Test 1: Missing job_id or report_id returns 400
-  const server = app.listen(0);
-  const port = (server.address() as any).port;
-  const baseUrl = `http://127.0.0.1:${port}/webhooks`;
+  beforeAll(async () => {
+    app = express();
+    app.use(express.json({
+      verify: (req: any, _res, buf) => {
+        req.rawBody = buf;
+      }
+    }));
+    app.use('/webhooks', router);
 
-  try {
-    // 1. Invalid payload missing job_id
+    await new Promise<void>((resolve) => {
+      server = app.listen(0, () => {
+        const port = (server.address() as any).port;
+        baseUrl = `http://127.0.0.1:${port}/webhooks`;
+        resolve();
+      });
+    });
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+  });
+
+  it('returns 400 when required manifest fields are missing', async () => {
     const resBad = await fetch(`${baseUrl}/prism`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ invalid: true }),
     });
-    assert.strictEqual(resBad.status, 400, 'Expected 400 for missing job_id');
+    expect(resBad.status).toBe(400);
     const badData = await resBad.json();
-    assert.ok(badData.error.includes('Missing required manifest fields'));
-    console.log('  ✓ 400 returned for missing manifest fields');
+    expect(badData.error).toContain('Missing required manifest fields');
+  });
 
-    // 2. Valid payload without secret (dev mode fallback)
+  it('returns 200 and extracts telemetry in dev mode without secret', async () => {
     delete process.env.PRISM_WEBHOOK_SECRET;
     const resDev = await fetch(`${baseUrl}/prism`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: payloadStr,
     });
-    assert.strictEqual(resDev.status, 200, 'Expected 200 in dev mode');
+    expect(resDev.status).toBe(200);
     const devData = await resDev.json();
-    assert.strictEqual(devData.received, true);
-    assert.strictEqual(devData.job_id, 'job-uuid-101');
-    assert.strictEqual(devData.report_id, 'rep-uuid-001');
-    assert.strictEqual(devData.complexity_score, 4.8);
-    console.log('  ✓ 200 returned in dev mode with extracted manifest telemetry');
+    expect(devData.received).toBe(true);
+    expect(devData.job_id).toBe('job-uuid-101');
+    expect(devData.report_id).toBe('rep-uuid-001');
+    expect(devData.complexity_score).toBe(4.8);
+  });
 
-    // 3. HMAC signature verification with secret set
+  it('verifies HMAC signature and rejects mismatched signatures with 401', async () => {
     const testSecret = 'secret-prism-token-2026';
     process.env.PRISM_WEBHOOK_SECRET = testSecret;
 
-    const validSig = 'sha256=' + crypto.createHmac('sha256', testSecret).update(payloadStr).digest('hex');
-
-    // 3a. Invalid signature returns 401
     const resInvalidSig = await fetch(`${baseUrl}/prism`, {
       method: 'POST',
       headers: {
@@ -105,10 +114,9 @@ async function testPrismWebhook() {
       },
       body: payloadStr,
     });
-    assert.strictEqual(resInvalidSig.status, 401, 'Expected 401 for invalid HMAC');
-    console.log('  ✓ 401 returned for mismatched HMAC signature');
+    expect(resInvalidSig.status).toBe(401);
 
-    // 3b. Valid signature returns 200
+    const validSig = 'sha256=' + crypto.createHmac('sha256', testSecret).update(payloadStr).digest('hex');
     const resValidSig = await fetch(`${baseUrl}/prism`, {
       method: 'POST',
       headers: {
@@ -117,18 +125,8 @@ async function testPrismWebhook() {
       },
       body: payloadStr,
     });
-    assert.strictEqual(resValidSig.status, 200, 'Expected 200 for valid HMAC signature');
+    expect(resValidSig.status).toBe(200);
     const validData = await resValidSig.json();
-    assert.strictEqual(validData.received, true);
-    console.log('  ✓ 200 returned for valid HMAC signature');
-
-    console.log('\nAll Prism Webhook contract tests passed successfully!\n');
-  } finally {
-    server.close();
-  }
-}
-
-testPrismWebhook().catch((err) => {
-  console.error('Test failed:', err);
-  process.exit(1);
+    expect(validData.received).toBe(true);
+  });
 });
