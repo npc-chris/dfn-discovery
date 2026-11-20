@@ -1,0 +1,687 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "DFN Discovery API",
+    "description": "Cross-service manufacturing job routing, supplier matchmaking, and engineering triage for Nigerian Fabrication Network",
+    "version": "1.1.0",
+    "contact": {
+      "name": "DFN Engineering Team",
+      "url": "https://fabnetwork.com.ng"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    },
+    {
+      "url": "https://api.fabnetwork.com.ng",
+      "description": "Production API cluster"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Public health check endpoint. Reports operational status of API and timestamp.",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "Service is operational",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  },
+                  "required": ["status", "timestamp"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs": {
+      "get": {
+        "summary": "List Manufacturing Jobs",
+        "description": "Retrieves filtered list of RFQ jobs for the active tenant organization.",
+        "operationId": "listJobs",
+        "parameters": [
+          { "name": "orgId", "in": "query", "schema": { "type": "string" }, "required": false },
+          { "name": "status", "in": "query", "schema": { "type": "string" }, "required": false }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of jobs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Job" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Manufacturing Job",
+        "description": "Submits a new manufacturing RFQ job into the intake pipeline.",
+        "operationId": "createJob",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateJobRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Job created successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Job" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{id}": {
+      "get": {
+        "summary": "Get Job by ID",
+        "description": "Returns full details of a single RFQ job.",
+        "operationId": "getJobById",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Job" }
+              }
+            }
+          },
+          "404": {
+            "description": "Job not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ae-workbench/stock-recommendations": {
+      "post": {
+        "summary": "Get Raw Stock Recommendations",
+        "description": "Evaluates CAD geometry and tolerances against the Nigerian standard raw stock catalog (bars, plates, billets).",
+        "operationId": "getStockRecommendations",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/StockRecommendationRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stock sizing recommendations and cost breakdown",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StockRecommendationResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid geometry or stock query parameters",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ae-workbench/normalize-stock": {
+      "post": {
+        "summary": "Normalize Raw Stock Dimension",
+        "description": "Normalizes a non-standard engineered dimension to the nearest commercial NIS/DIN/ISO stock size.",
+        "operationId": "normalizeStock",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NormalizeStockRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Normalized stock dimension and commercial availability",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NormalizeStockResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/standards": {
+      "get": {
+        "summary": "List Standards Catalog",
+        "description": "Queries the active standards catalog (SON, ISO, ASTM, ASME, DIN, BSI).",
+        "operationId": "listStandards",
+        "parameters": [
+          { "name": "sdo", "in": "query", "schema": { "type": "string" }, "required": false },
+          { "name": "category", "in": "query", "schema": { "type": "string" }, "required": false }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of engineering standards",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Standard" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/standards/cross-references": {
+      "get": {
+        "summary": "Query Standards Cross-References",
+        "description": "Resolves international standard equivalences (e.g. NIS 102 vs ASTM A36 vs DIN EN 10025).",
+        "operationId": "getStandardCrossReferences",
+        "parameters": [
+          { "name": "standardCode", "in": "query", "schema": { "type": "string" }, "required": false }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cross reference mappings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/StandardCrossReference" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quotes": {
+      "get": {
+        "summary": "List Supplier Quotes",
+        "description": "Retrieves bids and quotations submitted by workshops.",
+        "operationId": "listQuotes",
+        "responses": {
+          "200": {
+            "description": "List of quotes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Quote" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Submit Quote",
+        "description": "Workshops submit price, lead time, and terms for a job.",
+        "operationId": "createQuote",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Quote" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Quote recorded successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Quote" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects": {
+      "get": {
+        "summary": "List Projects",
+        "description": "Lists multi-item manufacturing projects for an organization.",
+        "operationId": "listProjects",
+        "responses": {
+          "200": {
+            "description": "List of projects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Project" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Project",
+        "description": "Initializes a new manufacturing project container.",
+        "operationId": "createProject",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Project" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project created successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Project" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/prism": {
+      "post": {
+        "summary": "Ingest Prism CAD Analysis Manifest",
+        "description": "Receives asynchronous CAD analysis telemetry from DFN Prism (schema_version 1.1). Enforces Tier 1 Design Freeze rejection rule rejecting unsupported schema versions with HTTP 422.",
+        "operationId": "ingestPrismWebhook",
+        "parameters": [
+          {
+            "name": "x-prism-signature",
+            "in": "header",
+            "required": false,
+            "description": "HMAC SHA-256 signature calculated with PRISM_WEBHOOK_SECRET",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PrismReportManifest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Manifest accepted and enqueued for score-fit processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "received": { "type": "boolean", "example": true },
+                    "queued": { "type": "boolean", "example": true },
+                    "report_id": { "type": "string" },
+                    "job_id": { "type": "string" },
+                    "complexity_score": { "type": "number" }
+                  },
+                  "required": ["received", "report_id", "job_id"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON payload or missing job_id/report_id",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing HMAC signature when secret is configured",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Tier 1 Schema Version Mismatch. The payload schema_version is unsupported.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SchemaVersionMismatchError" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string", "example": "Invalid request parameter" },
+          "details": { "type": "object" }
+        },
+        "required": ["error"]
+      },
+      "SchemaVersionMismatchError": {
+        "type": "object",
+        "description": "Standardized Tier 1 Schema Mismatch rejection error payload",
+        "properties": {
+          "error": { "type": "string", "example": "Unsupported Schema Version" },
+          "received": { "type": "string", "example": "1.0" },
+          "expected": { "type": "string", "example": "1.1" }
+        },
+        "required": ["error", "received", "expected"]
+      },
+      "Job": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "org_id": { "type": "string" },
+          "created_by": { "type": "string" },
+          "project_id": { "type": "string", "format": "uuid", "nullable": true },
+          "rfq_code": { "type": "string", "nullable": true },
+          "company_name": { "type": "string" },
+          "product_name": { "type": "string" },
+          "process_type": { "type": "string", "nullable": true },
+          "material_type": { "type": "string", "nullable": true },
+          "volume_band": { "type": "string", "nullable": true },
+          "location": { "type": "object" },
+          "status": { "type": "string", "enum": ["draft", "analyzing", "scored", "recommended", "published", "failed"] },
+          "procurement_stage": { "type": "string", "enum": ["draft", "source", "commit", "build", "accept"] },
+          "target_ceiling_ngn": { "type": "integer", "nullable": true },
+          "version": { "type": "integer", "default": 1 },
+          "metadata": { "type": "object", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "org_id", "company_name", "product_name", "location", "status", "procurement_stage"]
+      },
+      "CreateJobRequest": {
+        "type": "object",
+        "properties": {
+          "company_name": { "type": "string" },
+          "product_name": { "type": "string" },
+          "project_id": { "type": "string", "format": "uuid" },
+          "location": { "type": "object" },
+          "target_ceiling_ngn": { "type": "integer" },
+          "material_type": { "type": "string" },
+          "process_type": { "type": "string" }
+        },
+        "required": ["company_name", "product_name", "location"]
+      },
+      "Project": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "org_id": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "status": { "type": "string", "default": "active" },
+          "budget_ceiling_ngn": { "type": "integer", "nullable": true },
+          "target_delivery_date": { "type": "string", "format": "date-time", "nullable": true },
+          "delivery_location": { "type": "object", "nullable": true },
+          "created_by": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "org_id", "title", "created_by"]
+      },
+      "Quote": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "job_id": { "type": "string", "format": "uuid" },
+          "factory_id": { "type": "string", "format": "uuid" },
+          "org_id": { "type": "string" },
+          "unit_price_ngn": { "type": "integer" },
+          "total_price_ngn": { "type": "integer" },
+          "lead_time_days": { "type": "integer" },
+          "status": { "type": "string", "enum": ["submitted", "under_review", "awarded", "rejected", "expired"] },
+          "terms": { "type": "string", "nullable": true },
+          "notes": { "type": "string", "nullable": true }
+        },
+        "required": ["id", "job_id", "factory_id", "org_id", "unit_price_ngn", "total_price_ngn", "lead_time_days", "status"]
+      },
+      "Standard": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "sdo": { "type": "string" },
+          "standard_code": { "type": "string" },
+          "title": { "type": "string" },
+          "category": { "type": "string" },
+          "status": { "type": "string" }
+        },
+        "required": ["id", "sdo", "standard_code", "title", "category", "status"]
+      },
+      "StandardCrossReference": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "source_standard_id": { "type": "string", "format": "uuid" },
+          "target_standard_id": { "type": "string", "format": "uuid" },
+          "equivalence_level": { "type": "string" },
+          "technical_notes": { "type": "string", "nullable": true }
+        },
+        "required": ["id", "source_standard_id", "target_standard_id", "equivalence_level"]
+      },
+      "StockRecommendationRequest": {
+        "type": "object",
+        "properties": {
+          "material": { "type": "string" },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "x_mm": { "type": "number" },
+              "y_mm": { "type": "number" },
+              "z_mm": { "type": "number" }
+            },
+            "required": ["x_mm", "y_mm", "z_mm"]
+          },
+          "quantity": { "type": "integer", "default": 1 }
+        },
+        "required": ["material", "bounding_box"]
+      },
+      "StockRecommendationResponse": {
+        "type": "object",
+        "properties": {
+          "recommended_stock": { "type": "object" },
+          "alternatives": { "type": "array", "items": { "type": "object" } },
+          "estimated_material_cost_ngn": { "type": "number" }
+        },
+        "required": ["recommended_stock", "estimated_material_cost_ngn"]
+      },
+      "NormalizeStockRequest": {
+        "type": "object",
+        "properties": {
+          "dimension_mm": { "type": "number" },
+          "stock_type": { "type": "string", "enum": ["round_bar", "flat_bar", "sheet", "plate"] }
+        },
+        "required": ["dimension_mm", "stock_type"]
+      },
+      "NormalizeStockResponse": {
+        "type": "object",
+        "properties": {
+          "requested_mm": { "type": "number" },
+          "normalized_mm": { "type": "number" },
+          "delta_mm": { "type": "number" },
+          "standard": { "type": "string" }
+        },
+        "required": ["requested_mm", "normalized_mm", "delta_mm", "standard"]
+      },
+      "PrismReportManifest": {
+        "type": "object",
+        "description": "Canonical CAD analysis telemetry report generated by dfn-prism (v1.1)",
+        "properties": {
+          "schema_version": { "type": "string", "enum": ["1.1"], "example": "1.1" },
+          "report_id": { "type": "string", "format": "uuid" },
+          "job_id": { "type": "string", "format": "uuid" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "source_file": {
+            "type": "object",
+            "properties": {
+              "filename": { "type": "string" },
+              "format": { "type": "string", "enum": ["STEP", "IGES", "STL"] },
+              "size_bytes": { "type": "integer" },
+              "hash_sha256": { "type": "string" }
+            },
+            "required": ["filename", "format", "size_bytes", "hash_sha256"]
+          },
+          "geometry": {
+            "type": "object",
+            "properties": {
+              "volume_mm3": { "type": "number" },
+              "surface_area_mm2": { "type": "number" },
+              "bounding_box": {
+                "type": "object",
+                "properties": {
+                  "x_mm": { "type": "number" },
+                  "y_mm": { "type": "number" },
+                  "z_mm": { "type": "number" }
+                },
+                "required": ["x_mm", "y_mm", "z_mm"]
+              },
+              "center_of_mass_mm": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "aspect_ratio": { "type": "number" },
+              "surface_to_volume_ratio": { "type": "number" },
+              "is_watertight": { "type": "boolean" },
+              "face_count": { "type": "integer" },
+              "edge_count": { "type": "integer" },
+              "shell_count": { "type": "integer" },
+              "face_type_distribution": {
+                "type": "object",
+                "additionalProperties": { "type": "integer" }
+              }
+            },
+            "required": ["volume_mm3", "surface_area_mm2", "bounding_box", "is_watertight"]
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "diameter_mm": { "type": "number" },
+                "depth_mm": { "type": "number" },
+                "confidence": { "type": "number" }
+              },
+              "required": ["type", "confidence"]
+            }
+          },
+          "material": {
+            "type": "object",
+            "properties": {
+              "inferred": { "type": "string" },
+              "confidence": { "type": "number" },
+              "source": { "type": "string" },
+              "density_kg_m3": { "type": "number" }
+            },
+            "required": ["inferred", "source"]
+          },
+          "is_assembly": { "type": "boolean" },
+          "part_count": { "type": "integer" },
+          "workflows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "steps": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "process": { "type": "string" },
+                      "confidence": { "type": "number" },
+                      "is_primary": { "type": "boolean" }
+                    },
+                    "required": ["process", "confidence", "is_primary"]
+                  }
+                },
+                "reasoning": { "type": "string" },
+                "estimated_complexity": { "type": "string" }
+              },
+              "required": ["steps"]
+            }
+          },
+          "dfm_issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "severity": { "type": "string" },
+                "message": { "type": "string" }
+              },
+              "required": ["type", "severity", "message"]
+            }
+          },
+          "complexity_score": { "type": "number", "minimum": 0.0, "maximum": 10.0 }
+        },
+        "required": [
+          "schema_version",
+          "report_id",
+          "job_id",
+          "created_at",
+          "source_file",
+          "geometry",
+          "material",
+          "workflows",
+          "dfm_issues",
+          "complexity_score"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "PrismWebhookSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-prism-signature"
+      }
+    }
+  }
+}

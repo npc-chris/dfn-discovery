@@ -6,5 +6,6 @@ export * from './types/factory';
 export type { FactoryProfile as Factory } from './types/factory';
 export * from './types/recommendation';
 export * from './types/standards';
+export * from './types/prism';
 export * from './constants/scoring';
-
+export * from './adapters';

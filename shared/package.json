@@ -18,6 +18,10 @@
       "import": "./dist/constants/scoring.js",
       "types": "./dist/constants/scoring.d.ts"
     },
+    "./adapters": {
+      "import": "./dist/adapters/index.js",
+      "types": "./dist/adapters/index.d.ts"
+    },
     "./schemas/*": "./schemas/*"
   },
   "scripts": {
