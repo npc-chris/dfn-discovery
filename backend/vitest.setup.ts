@@ -54,11 +54,13 @@ export async function initializeTestDatabase() {
     // Test connection with retries for slow local startup.
     const connected = await waitForDatabaseConnection(testPool);
     if (!connected) {
+      process.env.DB_AVAILABLE = 'false';
       console.warn('⚠️ Database not reachable, skipping DB initialization for unit tests');
       await testPool.end();
       testPool = null;
       return;
     }
+    process.env.DB_AVAILABLE = 'true';
     console.log('✅ Database connected');
 
     // Create tables if they don't exist

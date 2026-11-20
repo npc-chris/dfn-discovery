@@ -431,7 +431,7 @@ describe('Applications Engineer BOM Splitting & Stock Normalization [KAN-32]', (
     });
   });
 
-  describe('Gherkin Acceptance Criteria & Service Persistence', () => {
+  describe.skipIf(process.env.DB_AVAILABLE !== 'true')('Gherkin Acceptance Criteria & Service Persistence', () => {
     it('splits 31.5 mm shaft assembly into Weldment & Shaft work packages, normalizes to 30.0 mm, and drops ₦98,000 quote into ~₦78,000 range from physics', async () => {
       // Arrange: Given an assembly with a 31.5 mm specified shaft diameter and calibrated Lagos shop rate card
       const shopRateCard: ShopRateCard = {
@@ -738,7 +738,7 @@ describe('Applications Engineer BOM Splitting & Stock Normalization [KAN-32]', (
       expect(data.defaultRateCard.machineHourlyRateNgn).toBeGreaterThan(0);
     });
 
-    it('executes full AE triage workbench HTTP flow with physical breakdown and custom rateCard', async () => {
+    it.skipIf(process.env.DB_AVAILABLE !== 'true')('executes full AE triage workbench HTTP flow with physical breakdown and custom rateCard', async () => {
       const rateCard: ShopRateCard = {
         materialCostNgnPerKg: 2600,
         machineHourlyRateNgn: 22000,
@@ -842,7 +842,7 @@ describe('Applications Engineer BOM Splitting & Stock Normalization [KAN-32]', (
       expect(stateData.workbench.work_packages).toHaveLength(2);
     });
 
-    it('returns 400 for invalid inputs and 404 for unknown job over HTTP', async () => {
+    it.skipIf(process.env.DB_AVAILABLE !== 'true')('returns 400 for invalid inputs and 404 for unknown job over HTTP', async () => {
       const badStockTypeRes = await fetch(`${baseUrl}/stock-recommendations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
