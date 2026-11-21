@@ -5,7 +5,7 @@ and verification algorithms for machining low-volume hardware.
 """
 
 from enum import Enum
-from typing import Dict, NamedTuple, Optional, Tuple
+from typing import Any, Dict, NamedTuple, Optional, Tuple
 
 
 class ToleranceClass(str, Enum):
@@ -152,4 +152,64 @@ def verify_tolerance_fit(
         "precision_ratio": round(precision_ratio, 4),
         "target_class": target_class.value,
         "classification": classification,
+    }
+
+
+def ingest_prism_tolerance_report(prism_report: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Ingest tolerance and feature extraction payload from dfn-prism.
+    
+    Parses extracted geometric tolerances, DFM alerts, and ISO classes emitted by Prism.
+    """
+    if not prism_report:
+        return {
+            "has_prism_data": False,
+            "detected_tolerance_class": ToleranceClass.MEDIUM.value,
+            "detected_class_name": "medium",
+            "tight_features": [],
+            "dfm_warnings": [],
+        }
+
+    analysis = prism_report.get("analysis", {})
+    dfm = prism_report.get("dfm", {})
+    meta = prism_report.get("metadata", {})
+    tol_analysis = prism_report.get("tolerance_analysis") or meta.get("tolerance_analysis", {})
+
+    raw_class = str(
+        prism_report.get("tolerance_class")
+        or meta.get("tolerance_class")
+        or tol_analysis.get("tolerance_class")
+        or analysis.get("tolerance_class", "medium")
+    ).lower().strip()
+    class_map = {
+        "f": ToleranceClass.FINE,
+        "fine": ToleranceClass.FINE,
+        "m": ToleranceClass.MEDIUM,
+        "medium": ToleranceClass.MEDIUM,
+        "c": ToleranceClass.COARSE,
+        "coarse": ToleranceClass.COARSE,
+        "v": ToleranceClass.VERY_COARSE,
+        "very_coarse": ToleranceClass.VERY_COARSE,
+    }
+    detected_class = class_map.get(raw_class, ToleranceClass.MEDIUM)
+
+    tight_features = (
+        dfm.get("tight_tolerances")
+        or tol_analysis.get("tight_tolerance_features")
+        or []
+    )
+    dfm_warnings = (
+        dfm.get("warnings")
+        or tol_analysis.get("dfm_warnings")
+        or []
+    )
+
+    return {
+        "has_prism_data": True,
+        "detected_tolerance_class": detected_class.value,
+        "detected_class_code": detected_class.value,
+        "detected_class_name": detected_class.name.lower(),
+        "tight_features": tight_features,
+        "dfm_warnings": dfm_warnings,
+        "min_internal_bend_radius_mm": dfm.get("min_bend_radius_mm"),
+        "max_pocket_depth_ratio": dfm.get("max_pocket_depth_ratio"),
     }
