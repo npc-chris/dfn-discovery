@@ -7,12 +7,13 @@ machinability metrics, and cluster workshop routing into a comprehensive
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from .alloy_registry import AlloyGrade, AlloySpecification, get_alloy_specification, verify_alloy_composition
 from .clusters import ClusterRegion, WorkshopRoutingResult, route_job_to_workshops, WORKSHOP_REGISTRY
-from .din_iso_2768 import ToleranceClass, get_linear_tolerance, verify_tolerance_fit
+from .din_iso_2768 import ToleranceClass, get_linear_tolerance, ingest_prism_tolerance_report, verify_tolerance_fit
 from .machinability import evaluate_machinability, MachinabilityScorecard
+from .process_strategies import ManufacturingProcessType, resolve_process_strategy
 from .quotation import QuoteBreakdown, calculate_fabrication_quote
 
 
@@ -53,7 +54,9 @@ def generate_48hr_feasibility_scorecard(
     batch_size: int = 1,
     target_tolerance_class: ToleranceClass = ToleranceClass.MEDIUM,
     destination_region: Optional[ClusterRegion] = None,
-    chemical_assay_data: Optional[Dict[str, float]] = None
+    chemical_assay_data: Optional[Dict[str, float]] = None,
+    process_type: str = "subtractive_cnc",
+    prism_report: Optional[Dict[str, Any]] = None,
 ) -> FeasibilityScorecard:
     """Generate comprehensive 48-hour feasibility diagnostic scorecard.
     
@@ -84,7 +87,7 @@ def generate_48hr_feasibility_scorecard(
             )
             recommendations.append("Source stock from certified DFN metal stockist with mill test certificate (MTC).")
 
-    # 2. Evaluate DIN ISO 2768 tolerance fit
+    # 2. Evaluate DIN ISO 2768 tolerance fit & Prism DFM report
     largest_dimension = max(length_mm, width_mm, height_mm)
     tol_eval = verify_tolerance_fit(
         nominal_dim_mm=largest_dimension,
@@ -97,39 +100,56 @@ def generate_48hr_feasibility_scorecard(
             f"(±{tol_eval['iso_standard_allowance_mm']}mm); requires fine finishing or grinding."
         )
 
-    # 3. Machinability & Spindle Dynamics
-    effective_diameter = max(10.0, min(largest_dimension * 0.25, 80.0))
-    mach_score = evaluate_machinability(
-        alloy_spec=alloy_spec,
-        diameter_mm=effective_diameter,
-        tolerance_mm=tolerance_mm,
-        available_spindle_power_kw=15.0,  # Standard cluster baseline
-        max_spindle_rpm=8000.0,
-    )
-    if not mach_score.meets_first_pass_yield_threshold:
-        bottlenecks.append(
-            f"Estimated first-pass yield ({mach_score.estimated_first_pass_yield_pct}%) below 90% threshold."
-        )
-        recommendations.append("Open tolerance band or allocate secondary grinding operation to achieve >90% yield.")
+    if prism_report:
+        prism_data = ingest_prism_tolerance_report(prism_report)
+        for warn in prism_data.get("dfm_warnings", []):
+            bottlenecks.append(f"Prism CAD DFM Alert: {warn}")
 
-    # 4. Cluster Workshop Routing (Lagos, Aba, Nnewi)
+    # 3. Polymorphic Manufacturing Process Feasibility Evaluation
+    strategy = resolve_process_strategy(process_type)
+    eval_result = strategy.evaluate(
+        length_mm=length_mm,
+        width_mm=width_mm,
+        height_mm=height_mm,
+        volume_cm3=volume_cm3,
+        tolerance_mm=tolerance_mm,
+        alloy_spec=alloy_spec,
+        batch_size=batch_size,
+    )
+    fpy_pct = eval_result.first_pass_yield_pct
+    meets_fpy = eval_result.meets_yield_threshold
+    bottlenecks.extend(eval_result.diagnostics)
+    recommendations.extend(eval_result.recommendations)
+
+    # 4. Nationwide Cluster Workshop Routing (Lagos, Aba, Nnewi, Kano, Kaduna, etc.)
+    required_power = (
+        eval_result.primary_metric_value
+        if strategy.process_type == ManufacturingProcessType.SUBTRACTIVE_CNC
+        else 0.0
+    )
+    required_rpm = 500.0 if strategy.process_type == ManufacturingProcessType.SUBTRACTIVE_CNC else 0.0
+
     routes = route_job_to_workshops(
         length_mm=length_mm,
         width_mm=width_mm,
         height_mm=height_mm,
-        required_spindle_power_kw=mach_score.cutting_power_kw,
-        required_spindle_rpm=mach_score.spindle_speed_rpm,
+        required_spindle_power_kw=required_power,
+        required_spindle_rpm=required_rpm,
         tolerance_mm=tolerance_mm,
         material_grade=alloy_spec.grade.value,
         target_tolerance_class=target_tolerance_class,
         preferred_region=destination_region,
-        min_first_pass_yield_pct=88.0,  # Filter threshold
+        min_first_pass_yield_pct=85.0,  # Filter threshold
         min_generator_kva=25.0,
+        process_type=process_type,
     )
 
     if not routes:
-        bottlenecks.append("No workshop in Lagos, Aba, or Nnewi currently matches both envelope and spindle power.")
-        recommendations.append("Consider multi-piece split or sub-assembly fabrication to fit smaller machine beds.")
+        if strategy.process_type == ManufacturingProcessType.SUBTRACTIVE_CNC:
+            bottlenecks.append("No workshop in Lagos, Aba, or Nnewi currently matches both envelope and spindle power.")
+        else:
+            bottlenecks.append(f"No workshop currently matches both physical envelope and capability for {process_type}.")
+        recommendations.append("Consider multi-piece split or alternative manufacturing route in regional network.")
         generator_secured = False
         spindle_adequate = False
         quote = None
@@ -150,13 +170,16 @@ def generate_48hr_feasibility_scorecard(
             batch_size=batch_size,
             tolerance_class=target_tolerance_class,
             destination_region=destination_region,
+            process_type=process_type,
+            tolerance_mm=tolerance_mm,
         )
 
     # 5. Feasibility Status Determination
     has_critical_blocker = (
         not routes or
         alloy_verification_status == "COMPOSITION_REJECTED" or
-        mach_score.estimated_first_pass_yield_pct < 75.0
+        fpy_pct < 75.0 or
+        not eval_result.is_feasible
     )
 
     if has_critical_blocker:
@@ -175,8 +198,8 @@ def generate_48hr_feasibility_scorecard(
         feasibility_status=status,
         overall_confidence_score=confidence,
         sla_hours_guarantee=48,
-        first_pass_yield_estimate_pct=mach_score.estimated_first_pass_yield_pct,
-        meets_90_pct_first_pass_yield=mach_score.meets_first_pass_yield_threshold,
+        first_pass_yield_estimate_pct=fpy_pct,
+        meets_90_pct_first_pass_yield=meets_fpy,
         alloy_verification_status=alloy_verification_status,
         din_iso_2768_class=f"DIN ISO 2768-1 ({target_tolerance_class.value})",
         spindle_power_adequate=spindle_adequate if routes else False,

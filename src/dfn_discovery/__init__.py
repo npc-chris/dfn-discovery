@@ -14,6 +14,17 @@ from .din_iso_2768 import (
     get_broken_edge_tolerance,
     get_angular_tolerance,
     verify_tolerance_fit,
+    ingest_prism_tolerance_report,
+)
+from .process_strategies import (
+    ManufacturingProcessType,
+    ProcessEvaluationResult,
+    ProcessFeasibilityStrategy,
+    SubtractiveMachiningStrategy,
+    SheetMetalFormingStrategy,
+    FoundryCastingStrategy,
+    StructuralWeldingStrategy,
+    resolve_process_strategy,
 )
 from .alloy_registry import (
     AlloyGrade,

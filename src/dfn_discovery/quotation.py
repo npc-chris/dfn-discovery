@@ -11,6 +11,7 @@ from typing import Dict, List, Optional
 from .alloy_registry import AlloySpecification, get_alloy_specification
 from .clusters import ClusterRegion, WorkshopProfile
 from .din_iso_2768 import ToleranceClass
+from .process_strategies import ManufacturingProcessType, resolve_process_strategy
 
 
 @dataclass
@@ -49,11 +50,14 @@ def calculate_fabrication_quote(
     batch_size: int = 1,
     tolerance_class: ToleranceClass = ToleranceClass.MEDIUM,
     destination_region: Optional[ClusterRegion] = None,
-    diesel_fuel_price_ngn_liter: float = 1350.0
+    diesel_fuel_price_ngn_liter: float = 1350.0,
+    process_type: str = "subtractive_cnc",
+    tolerance_mm: float = 0.15,
 ) -> QuoteBreakdown:
     """Calculate physics-grounded production quote and escrow milestones.
     
-    Actively references volume_cm3 and batch_size in calculations.
+    Actively references length_mm, width_mm, height_mm, volume_cm3, tolerance_mm,
+    and batch_size in calculations.
     """
     safe_batch = max(1, batch_size)
     
@@ -77,15 +81,28 @@ def calculate_fabrication_quote(
         (scrap_mass_kg * alloy_spec.base_material_cost_ngn_kg * 0.15)
     )
 
-    # 2. Machining time derived from Material Removal Rate (MRR)
+    # 2. Cycle and setup time derived from selected process strategy
+    strategy = resolve_process_strategy(process_type)
     chip_vol_cm3 = max(1.0, stock_volume_cm3 - volume_cm3)
-    # Estimate average shop MRR based on alloy machinability index
-    # Benchmark MRR ~ 35 cm^3/min for mild steel, scaled by machinability
-    effective_mrr = max(4.0, 35.0 * alloy_spec.machinability_index)
-    cutting_time_mins = chip_vol_cm3 / effective_mrr
-    
-    # Setup time: 35 mins amortized over batch size
-    setup_mins_per_unit = 35.0 / safe_batch
+
+    if strategy.process_type != ManufacturingProcessType.SUBTRACTIVE_CNC:
+        eval_res = strategy.evaluate(
+            length_mm=length_mm,
+            width_mm=width_mm,
+            height_mm=height_mm,
+            volume_cm3=volume_cm3,
+            tolerance_mm=tolerance_mm,
+            alloy_spec=alloy_spec,
+            batch_size=safe_batch,
+        )
+        cutting_time_mins = eval_res.cycle_time_minutes
+        setup_mins_per_unit = eval_res.setup_time_minutes
+    else:
+        # Standard subtractive MRR calculations
+        effective_mrr = max(4.0, 35.0 * alloy_spec.machinability_index)
+        cutting_time_mins = chip_vol_cm3 / effective_mrr
+        setup_mins_per_unit = 35.0 / safe_batch
+
     total_machine_hours = (cutting_time_mins + setup_mins_per_unit) / 60.0
     unit_machining_cost = total_machine_hours * workshop.hourly_rate_ngn
 

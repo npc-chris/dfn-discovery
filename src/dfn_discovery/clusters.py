@@ -16,6 +16,13 @@ class ClusterRegion(str, Enum):
     LAGOS = "lagos"
     ABA = "aba"
     NNEWI = "nnewi"
+    KANO = "kano"
+    KADUNA = "kaduna"
+    IBADAN = "ibadan"
+    ABUJA = "abuja"
+    PORT_HARCOURT = "port_harcourt"
+    BENIN = "benin"
+    ENUGU = "enugu"
 
 
 @dataclass(frozen=True)
@@ -57,6 +64,7 @@ class WorkshopProfile:
     certified_materials: List[str]
     has_calibrated_granite_plate: bool
     lead_time_days_baseline: int
+    supported_processes: Optional[List[str]] = None
 
 
 @dataclass
@@ -324,6 +332,141 @@ WORKSHOP_REGISTRY: List[WorkshopProfile] = [
         certified_materials=["ductile_iron_ggg40", "gray_iron_gg25", "mild_steel_s235"],
         has_calibrated_granite_plate=False,
         lead_time_days_baseline=8,
+        supported_processes=["foundry_casting", "subtractive_cnc"],
+    ),
+    WorkshopProfile(
+        workshop_id="KAN-BMP-01",
+        name="Northern Precision Foundries & Machinists",
+        region=ClusterRegion.KANO,
+        cluster_zone="Bompai Industrial Area",
+        machines=[
+            MachineSpecification(
+                machine_id="INDUCTION-FURNACE-500KG",
+                machine_type="furnace",
+                bed_x_mm=1200.0,
+                bed_y_mm=1000.0,
+                bed_z_mm=800.0,
+                spindle_power_kw=30.0,
+                max_spindle_rpm=1000.0,
+                spindle_taper="CUSTOM",
+                positional_accuracy_mm=0.040,
+                repeatability_std_mm=0.025,
+                num_axes=1,
+            ),
+            MachineSpecification(
+                machine_id="HEAVY-TURNING-CW61100",
+                machine_type="cnc_lathe",
+                bed_x_mm=2000.0,
+                bed_y_mm=500.0,
+                bed_z_mm=500.0,
+                spindle_power_kw=18.5,
+                max_spindle_rpm=2200.0,
+                spindle_taper="A2-11",
+                positional_accuracy_mm=0.015,
+                repeatability_std_mm=0.010,
+                num_axes=2,
+            ),
+        ],
+        power_profile=PowerResilienceProfile(
+            has_dedicated_generator=True,
+            generator_rating_kva=200.0,
+            has_automatic_transfer_switch=True,
+            fuel_autonomy_hours=48.0,
+            average_grid_outage_hours_per_day=8.0,
+            power_reliability_score=0.96,
+        ),
+        supported_tolerance_class=ToleranceClass.COARSE,
+        historical_first_pass_yield_pct=92.5,
+        hourly_rate_ngn=20000.0,
+        certified_materials=["gray_iron_gg25", "ductile_iron_ggg40", "mild_steel_s235", "en8_1045"],
+        has_calibrated_granite_plate=True,
+        lead_time_days_baseline=7,
+        supported_processes=["foundry_casting", "subtractive_cnc"],
+    ),
+    WorkshopProfile(
+        workshop_id="KAD-KAK-01",
+        name="Arewa Heavy Metal & Press Brake Works",
+        region=ClusterRegion.KADUNA,
+        cluster_zone="Kakuri Heavy Industrial Estate",
+        machines=[
+            MachineSpecification(
+                machine_id="PRESS-BRAKE-250T",
+                machine_type="press_brake",
+                bed_x_mm=4000.0,
+                bed_y_mm=1200.0,
+                bed_z_mm=900.0,
+                spindle_power_kw=22.0,
+                max_spindle_rpm=500.0,
+                spindle_taper="CUSTOM",
+                positional_accuracy_mm=0.030,
+                repeatability_std_mm=0.020,
+                num_axes=2,
+            ),
+            MachineSpecification(
+                machine_id="WELDING-GANTRY-MIG",
+                machine_type="welding_bay",
+                bed_x_mm=5000.0,
+                bed_y_mm=2000.0,
+                bed_z_mm=1500.0,
+                spindle_power_kw=15.0,
+                max_spindle_rpm=100.0,
+                spindle_taper="CUSTOM",
+                positional_accuracy_mm=0.050,
+                repeatability_std_mm=0.030,
+                num_axes=3,
+            ),
+        ],
+        power_profile=PowerResilienceProfile(
+            has_dedicated_generator=True,
+            generator_rating_kva=160.0,
+            has_automatic_transfer_switch=True,
+            fuel_autonomy_hours=36.0,
+            average_grid_outage_hours_per_day=7.0,
+            power_reliability_score=0.94,
+        ),
+        supported_tolerance_class=ToleranceClass.MEDIUM,
+        historical_first_pass_yield_pct=93.0,
+        hourly_rate_ngn=22000.0,
+        certified_materials=["mild_steel_s235", "stainless_304", "6061_t6"],
+        has_calibrated_granite_plate=True,
+        lead_time_days_baseline=6,
+        supported_processes=["sheet_metal_forming", "structural_welding"],
+    ),
+    WorkshopProfile(
+        workshop_id="PHC-TRA-01",
+        name="Trans-Amadi Marine & Structural Yards",
+        region=ClusterRegion.PORT_HARCOURT,
+        cluster_zone="Trans-Amadi Industrial Layout",
+        machines=[
+            MachineSpecification(
+                machine_id="HEAVY-MIG-TIG-STATION",
+                machine_type="welding_bay",
+                bed_x_mm=6000.0,
+                bed_y_mm=2500.0,
+                bed_z_mm=2000.0,
+                spindle_power_kw=25.0,
+                max_spindle_rpm=100.0,
+                spindle_taper="CUSTOM",
+                positional_accuracy_mm=0.040,
+                repeatability_std_mm=0.025,
+                num_axes=3,
+            ),
+        ],
+        power_profile=PowerResilienceProfile(
+            has_dedicated_generator=True,
+            generator_rating_kva=250.0,
+            has_automatic_transfer_switch=True,
+            fuel_autonomy_hours=72.0,
+            average_grid_outage_hours_per_day=5.5,
+            power_reliability_score=0.98,
+        ),
+        supported_tolerance_class=ToleranceClass.MEDIUM,
+        historical_first_pass_yield_pct=94.0,
+        hourly_rate_ngn=28000.0,
+        certified_materials=["mild_steel_s235", "stainless_316l", "stainless_304", "alloy_steel_4140"],
+        has_calibrated_granite_plate=True,
+        lead_time_days_baseline=7,
+        supported_processes=["structural_welding"],
     ),
 ]
 
@@ -339,7 +482,8 @@ def route_job_to_workshops(
     target_tolerance_class: ToleranceClass = ToleranceClass.MEDIUM,
     preferred_region: Optional[ClusterRegion] = None,
     min_first_pass_yield_pct: float = 90.0,
-    min_generator_kva: float = 25.0
+    min_generator_kva: float = 25.0,
+    process_type: str = "subtractive_cnc",
 ) -> List[WorkshopRoutingResult]:
     """Filter and rank Nigerian workshops matching physical fabrication envelopes.
     
@@ -386,6 +530,12 @@ def route_job_to_workshops(
         if shop_level < required_level:
             continue
 
+        # Filter 5: Manufacturing process capability check
+        if process_type and workshop.supported_processes:
+            clean_proc = process_type.lower()
+            if not any(clean_proc in p.lower() or p.lower() in clean_proc for p in workshop.supported_processes):
+                continue
+
         # Find best fitting machine in workshop
         for machine in workshop.machines:
             # Check bed size envelope
@@ -428,7 +578,7 @@ def route_job_to_workshops(
             reason = (
                 f"Machine {machine.machine_id} in {workshop.cluster_zone} matches envelope with "
                 f"{power_margin}kW spindle margin, {pp.generator_rating_kva}kVA generator backup, "
-                f"and certified for {material_grade}."
+                f"certified for {material_grade} across {process_type}."
             )
 
             candidates.append(
