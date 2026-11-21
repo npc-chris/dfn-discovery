@@ -1,0 +1,309 @@
+// Prisma Schema for DFN Discovery & Ecosystem Parity
+// Generator and DataSource definitions
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model BatchManifest {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId          String    @map("org_id")
+  status         String    @default("pending")
+  idempotencyKey String?   @unique @map("idempotency_key")
+  metadata       Json?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  jobs           Job[]
+
+  @@index([orgId], map: "batch_manifests_org_id_idx")
+  @@map("batch_manifests")
+}
+
+model Project {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId              String            @map("org_id")
+  title              String
+  description        String?
+  status             String            @default("active")
+  budgetCeilingNgn   Int?              @map("budget_ceiling_ngn")
+  targetDeliveryDate DateTime?         @map("target_delivery_date")
+  deliveryLocation   Json?             @map("delivery_location")
+  createdBy          String            @map("created_by")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @default(now()) @updatedAt @map("updated_at")
+
+  jobs               Job[]
+  activities         ProjectActivity[]
+
+  @@index([orgId], map: "projects_org_id_idx")
+  @@map("projects")
+}
+
+model Job {
+  id                String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId             String                 @map("org_id")
+  createdBy         String                 @map("created_by")
+  projectId         String?                @map("project_id") @db.Uuid
+  batchId           String?                @map("batch_id") @db.Uuid
+  rfqCode           String?                @map("rfq_code")
+  companyName       String                 @map("company_name")
+  productName       String                 @map("product_name")
+  processType       String?                @map("process_type")
+  materialType      String?                @map("material_type")
+  volumeBand        String?                @map("volume_band")
+  location          Json
+  status            String                 @default("draft")
+  procurementStage  String                 @default("draft") @map("procurement_stage")
+  targetCeilingNgn  Int?                   @map("target_ceiling_ngn")
+  version           Int                    @default(1)
+  metadata          Json?
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @default(now()) @updatedAt @map("updated_at")
+
+  project           Project?               @relation(fields: [projectId], references: [id])
+  batch             BatchManifest?         @relation(fields: [batchId], references: [id])
+  recommendations   Recommendation[]
+  attachments       Attachment[]
+  quotes            Quote[]
+  queueItems        JobQueue[]
+  activities        ProjectActivity[]
+  complianceSpecs   StageComplianceSpec[]
+  prismAnalyses     PrismAnalysis[]
+
+  @@index([orgId], map: "jobs_org_id_idx")
+  @@index([projectId], map: "jobs_project_id_idx")
+  @@map("jobs")
+}
+
+model Factory {
+  id              String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orgId           String                 @map("org_id")
+  factoryName     String                 @map("factory_name")
+  capabilities    Json
+  materials       Json
+  capacityBand    String                 @map("capacity_band")
+  locations       Json
+  certifications  Json?
+  verifiedSources Json                   @map("verified_sources")
+  active          Boolean                @default(true)
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @default(now()) @updatedAt @map("updated_at")
+
+  recommendations Recommendation[]
+  quotes          Quote[]
+  certAccreditations FactoryCertification[]
+
+  @@index([orgId], map: "factories_org_id_idx")
+  @@map("factories")
+}
+
+model Recommendation {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId            String    @map("job_id") @db.Uuid
+  factoryId        String    @map("factory_id") @db.Uuid
+  orgId            String    @map("org_id")
+  fitScore         Int       @map("fit_score")
+  feasibilityScore Int       @map("feasibility_score")
+  confidenceScore  Int       @map("confidence_score")
+  componentScores  Json?     @map("component_scores")
+  rank             Int?
+  evidence         Json
+  caveats          Json?
+  generatedAt      DateTime  @default(now()) @map("generated_at")
+  version          Int       @default(1)
+
+  job              Job       @relation(fields: [jobId], references: [id])
+  factory          Factory   @relation(fields: [factoryId], references: [id])
+
+  @@index([orgId], map: "recommendations_org_id_idx")
+  @@map("recommendations")
+}
+
+model Attachment {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId      String   @map("job_id") @db.Uuid
+  orgId      String   @map("org_id")
+  filename   String
+  mimeType   String   @map("mime_type")
+  sizeBytes  Int      @map("size_bytes")
+  sourceType String   @map("source_type")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  job        Job      @relation(fields: [jobId], references: [id])
+
+  @@index([orgId], map: "attachments_org_id_idx")
+  @@map("attachments")
+}
+
+model JobQueue {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId       String?   @map("job_id") @db.Uuid
+  queueType   String    @map("queue_type")
+  payload     Json
+  status      String    @default("pending")
+  result      Json?
+  attempts    Int       @default(0)
+  error       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+  completedAt DateTime? @map("completed_at")
+
+  job         Job?      @relation(fields: [jobId], references: [id])
+
+  @@map("job_queue")
+}
+
+model Quote {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId         String    @map("job_id") @db.Uuid
+  factoryId     String    @map("factory_id") @db.Uuid
+  orgId         String    @map("org_id")
+  unitPriceNgn  Int       @map("unit_price_ngn")
+  totalPriceNgn Int       @map("total_price_ngn")
+  leadTimeDays  Int       @map("lead_time_days")
+  status        String    @default("submitted")
+  terms         String?
+  notes         String?
+  submittedAt   DateTime  @default(now()) @map("submitted_at")
+  validUntil    DateTime? @map("valid_until")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  job           Job       @relation(fields: [jobId], references: [id])
+  factory       Factory   @relation(fields: [factoryId], references: [id])
+
+  @@index([orgId], map: "quotes_org_id_idx")
+  @@index([jobId], map: "quotes_job_id_idx")
+  @@index([factoryId], map: "quotes_factory_id_idx")
+  @@map("quotes")
+}
+
+model ProjectActivity {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId   String?  @map("project_id") @db.Uuid
+  jobId       String?  @map("job_id") @db.Uuid
+  orgId       String   @map("org_id")
+  eventType   String   @map("event_type")
+  title       String
+  description String
+  severity    String   @default("info")
+  metadata    Json?
+  actor       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  project     Project? @relation(fields: [projectId], references: [id])
+  job         Job?     @relation(fields: [jobId], references: [id])
+
+  @@index([orgId], map: "project_activities_org_id_idx")
+  @@index([projectId], map: "project_activities_project_id_idx")
+  @@index([jobId], map: "project_activities_job_id_idx")
+  @@map("project_activities")
+}
+
+model StandardsCatalog {
+  id            String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sdo           String
+  standardCode  String                   @unique @map("standard_code")
+  title         String
+  category      String
+  status        String                   @default("active")
+  scopeSummary  String?                  @map("scope_summary")
+  icsCode       String?                  @map("ics_code")
+  metadata      Json?
+  publishedDate DateTime?                @map("published_date")
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  updatedAt     DateTime                 @default(now()) @updatedAt @map("updated_at")
+
+  sourceCrossRefs StandardCrossReference[] @relation("SourceStandard")
+  targetCrossRefs StandardCrossReference[] @relation("TargetStandard")
+  certifications  FactoryCertification[]
+  complianceSpecs StageComplianceSpec[]
+
+  @@index([sdo], map: "standards_catalog_sdo_idx")
+  @@index([category], map: "standards_catalog_category_idx")
+  @@index([standardCode], map: "standards_catalog_code_idx")
+  @@map("standards_catalog")
+}
+
+model StandardCrossReference {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceStandardId String           @map("source_standard_id") @db.Uuid
+  targetStandardId String           @map("target_standard_id") @db.Uuid
+  equivalenceLevel String           @map("equivalence_level")
+  technicalNotes   String?          @map("technical_notes")
+  propertyMapping  Json?            @map("property_mapping")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  sourceStandard   StandardsCatalog @relation("SourceStandard", fields: [sourceStandardId], references: [id])
+  targetStandard   StandardsCatalog @relation("TargetStandard", fields: [targetStandardId], references: [id])
+
+  @@index([sourceStandardId], map: "std_cross_ref_source_idx")
+  @@index([targetStandardId], map: "std_cross_ref_target_idx")
+  @@map("standard_cross_references")
+}
+
+model FactoryCertification {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  factoryId          String           @map("factory_id") @db.Uuid
+  standardId         String           @map("standard_id") @db.Uuid
+  orgId              String           @map("org_id")
+  certificateNumber  String?          @map("certificate_number")
+  certificationBody  String           @map("certification_body")
+  iafCertsearchId    String?          @map("iaf_certsearch_id")
+  isIafVerified      Boolean          @default(false) @map("is_iaf_verified")
+  issuedAt           DateTime?        @map("issued_at")
+  expiresAt          DateTime?        @map("expires_at")
+  verificationStatus String           @default("unverified") @map("verification_status")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @default(now()) @updatedAt @map("updated_at")
+
+  factory            Factory          @relation(fields: [factoryId], references: [id])
+  standard           StandardsCatalog @relation(fields: [standardId], references: [id])
+
+  @@index([factoryId], map: "factory_certs_factory_id_idx")
+  @@index([standardId], map: "factory_certs_standard_id_idx")
+  @@index([orgId], map: "factory_certs_org_id_idx")
+  @@map("factory_certifications")
+}
+
+model StageComplianceSpec {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId            String           @map("job_id") @db.Uuid
+  stageId          String           @map("stage_id")
+  standardId       String           @map("standard_id") @db.Uuid
+  orgId            String           @map("org_id")
+  isMandatory      Boolean          @default(true) @map("is_mandatory")
+  inspectionMethod String           @default("MTC") @map("inspection_method")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  job              Job              @relation(fields: [jobId], references: [id])
+  standard         StandardsCatalog @relation(fields: [standardId], references: [id])
+
+  @@index([jobId], map: "stage_compliance_job_id_idx")
+  @@index([standardId], map: "stage_compliance_standard_id_idx")
+  @@index([orgId], map: "stage_compliance_org_id_idx")
+  @@map("stage_compliance_specs")
+}
+
+model PrismAnalysis {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId      String   @map("job_id") @db.Uuid
+  orderId    String?  @map("order_id") @db.Uuid
+  bookingId  String?  @map("booking_id") @db.Uuid
+  status     String   @default("complete")
+  report     Json     @map("report")
+  bop        Json?    @map("bop")
+  bom        Json?    @map("bom")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+
+  job        Job      @relation(fields: [jobId], references: [id])
+
+  @@index([jobId], map: "prism_analyses_job_id_idx")
+  @@map("prism_analyses")
+}
