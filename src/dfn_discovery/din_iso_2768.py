@@ -171,8 +171,15 @@ def ingest_prism_tolerance_report(prism_report: Optional[Dict[str, Any]]) -> Dic
 
     analysis = prism_report.get("analysis", {})
     dfm = prism_report.get("dfm", {})
+    meta = prism_report.get("metadata", {})
+    tol_analysis = prism_report.get("tolerance_analysis") or meta.get("tolerance_analysis", {})
 
-    raw_class = str(prism_report.get("tolerance_class") or analysis.get("tolerance_class", "medium")).lower().strip()
+    raw_class = str(
+        prism_report.get("tolerance_class")
+        or meta.get("tolerance_class")
+        or tol_analysis.get("tolerance_class")
+        or analysis.get("tolerance_class", "medium")
+    ).lower().strip()
     class_map = {
         "f": ToleranceClass.FINE,
         "fine": ToleranceClass.FINE,
@@ -185,8 +192,16 @@ def ingest_prism_tolerance_report(prism_report: Optional[Dict[str, Any]]) -> Dic
     }
     detected_class = class_map.get(raw_class, ToleranceClass.MEDIUM)
 
-    tight_features = dfm.get("tight_tolerances", [])
-    dfm_warnings = dfm.get("warnings", [])
+    tight_features = (
+        dfm.get("tight_tolerances")
+        or tol_analysis.get("tight_tolerance_features")
+        or []
+    )
+    dfm_warnings = (
+        dfm.get("warnings")
+        or tol_analysis.get("dfm_warnings")
+        or []
+    )
 
     return {
         "has_prism_data": True,

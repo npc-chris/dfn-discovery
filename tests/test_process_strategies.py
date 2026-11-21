@@ -155,6 +155,43 @@ def test_prism_tolerance_report_ingestion():
     assert len(ingested["dfm_warnings"]) == 1
 
 
+def test_authentic_prism_v1_1_metadata_ingestion():
+    """Verify ingestion of authentic PrismReportManifest v1.1 payload with metadata tolerance_analysis."""
+    prism_v1_1_payload = {
+        "schema_version": "1.1",
+        "report_id": "rep_12345",
+        "geometry": {
+            "bounding_box": [100.0, 50.0, 25.0],
+            "volume_mm3": 125000.0,
+        },
+        "metadata": {
+            "parser_version": "0.1.0",
+            "inference_engine": "rule_based_v1",
+            "tolerance_class": "f",
+            "tolerance_analysis": {
+                "tolerance_class": "f",
+                "class_name": "fine",
+                "tight_tolerance_features": [
+                    {
+                        "feature_id": "hole_1",
+                        "feature_type": "through_hole",
+                        "nominal_mm": 20.0,
+                        "specified_tolerance_mm": 0.012,
+                        "classification": "precision_bearing_seat",
+                    }
+                ],
+                "dfm_warnings": ["Pocket depth exceeds 3.5x endmill reach"],
+            },
+        },
+    }
+    ingested = ingest_prism_tolerance_report(prism_v1_1_payload)
+    assert ingested["has_prism_data"] is True
+    assert ingested["detected_tolerance_class"] == "f"
+    assert ingested["detected_class_name"] == "fine"
+    assert len(ingested["tight_features"]) == 1
+    assert len(ingested["dfm_warnings"]) == 1
+
+
 def test_nationwide_cluster_routing_kano_foundry():
     """Verify that a sand casting job routes to Northern Precision Foundries in Kano."""
     routes = route_job_to_workshops(
