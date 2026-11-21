@@ -22,6 +22,7 @@ import { Router, Request, Response } from 'express';
 import { enqueueJob } from '../workers/queue';
 import { requireWebhookSignature, verifyWebhookSignature } from '../middleware/webhook-auth';
 import { webhookRateLimiter } from '../middleware/rate-limiter';
+import { validateSchemaVersion } from '@dfn/shared';
 
 const router: Router = Router();
 
@@ -215,6 +216,17 @@ router.post('/prism', webhookRateLimiter, async (req: Request, res: Response): P
     payload = rawBody ? JSON.parse(rawBody.toString('utf8')) : req.body;
   } catch {
     res.status(400).json({ error: 'Invalid JSON payload' });
+    return;
+  }
+
+  // Tier 1 Schema Version Enforcement (Reject unsupported versions with HTTP 422)
+  const versionValidation = validateSchemaVersion(payload, '1.1');
+  if (!versionValidation.valid) {
+    res.status(422).json({
+      error: versionValidation.error,
+      received: versionValidation.received,
+      expected: versionValidation.expected,
+    });
     return;
   }
 

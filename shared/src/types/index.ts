@@ -5,3 +5,4 @@ export type { FactoryProfile as Factory } from './factory';
 export * from './recommendation';
 export * from './standards';
 export * from './prism';
+export * from './feasibility';
