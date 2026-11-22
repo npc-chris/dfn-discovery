@@ -60,6 +60,14 @@ from .feasibility_engine import (
     FeasibilityScorecard,
     generate_48hr_feasibility_scorecard,
 )
+from .pyrometer_audit import (
+    HeatTreatmentProcess,
+    ThermocoupleSample,
+    ThermocoupleLog,
+    HeatTreatmentBatch,
+    DispatchAuditDecision,
+    evaluate_dispatch_authorization,
+)
 
 __all__ = [
     "ToleranceClass",
@@ -93,4 +101,10 @@ __all__ = [
     "FeasibilityStatus",
     "FeasibilityScorecard",
     "generate_48hr_feasibility_scorecard",
+    "HeatTreatmentProcess",
+    "ThermocoupleSample",
+    "ThermocoupleLog",
+    "HeatTreatmentBatch",
+    "DispatchAuditDecision",
+    "evaluate_dispatch_authorization",
 ]
