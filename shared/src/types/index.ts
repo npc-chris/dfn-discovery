@@ -6,3 +6,4 @@ export * from './recommendation';
 export * from './standards';
 export * from './prism';
 export * from './feasibility';
+export * from './inspection';

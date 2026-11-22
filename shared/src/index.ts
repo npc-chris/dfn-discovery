@@ -8,5 +8,6 @@ export * from './types/recommendation';
 export * from './types/standards';
 export * from './types/prism';
 export * from './types/feasibility';
+export * from './types/inspection';
 export * from './constants/scoring';
 export * from './adapters';
