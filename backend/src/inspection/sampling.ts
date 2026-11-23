@@ -38,11 +38,11 @@ function createPrng(seedStr: string | number): () => number {
 
 /**
  * Calculate ISO 2859-1 / 15% sample size based on lot quantity.
- * For pilot delivery batches of 200 units, standardizes on 5 units.
+ * For pilot verification runs, applies the statutory pilot gate (minimum 5 units).
  */
 export function calculateSampleSize(totalQuantity: number, isPilot = false): number {
   if (totalQuantity <= 0) return 0;
-  if (isPilot || totalQuantity === 200) {
+  if (isPilot) {
     return Math.min(totalQuantity, 5);
   }
   const calculated = Math.ceil(totalQuantity * 0.15);

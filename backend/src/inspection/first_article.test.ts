@@ -43,11 +43,11 @@ describe('First-Article Rejection & Batch Run Lockout [KAN-39]', () => {
       expect(evalResult.lockoutReason).toBe('FIRST ARTICLE REJECTED: BATCH LOCKED');
       expect(isBatchLocked('BATCH-BUSHING-2026-X1')).toBe(true);
 
-      // Verify tool wear offset guidance
+      // Verify tool wear offset guidance (centered on tolerance midpoint 48.013 mm)
       expect(evalResult.offsetGuide).toBeDefined();
-      expect(evalResult.offsetGuide?.recommendedWearOffsetMm).toBe(-0.022);
-      expect(evalResult.offsetGuide?.targetDimension).toBe(48.023);
-      expect(evalResult.offsetGuide?.guidanceText).toContain('-0.022 mm');
+      expect(evalResult.offsetGuide?.recommendedWearOffsetMm).toBe(-0.032);
+      expect(evalResult.offsetGuide?.targetDimension).toBe(48.013);
+      expect(evalResult.offsetGuide?.guidanceText).toContain('-0.032 mm');
       expect(evalResult.offsetGuide?.guidanceText).toContain('CNC-LATHE-02');
 
       // Verify cryptographic audit seal
@@ -56,8 +56,8 @@ describe('First-Article Rejection & Batch Run Lockout [KAN-39]', () => {
 
     it('calculates mathematical wear offset accurately across various tolerance ranges', () => {
       const { targetDimension, recommendedWearOffsetMm } = calculateToolWearOffset(50.08, 50.0, 0.05, 0.0);
-      expect(targetDimension).toBe(50.046);
-      expect(recommendedWearOffsetMm).toBe(-0.034);
+      expect(targetDimension).toBe(50.025);
+      expect(recommendedWearOffsetMm).toBe(-0.055);
     });
   });
 

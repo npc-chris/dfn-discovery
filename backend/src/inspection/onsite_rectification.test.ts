@@ -40,9 +40,9 @@ describe('Emergency On-Site Metrology Rectification [KAN-53]', () => {
       expect(mission.travelerStatus).toBe('LOCKED_FITMENT_ERROR');
       expect(mission.status).toBe('DISPATCHED_TO_SITE');
 
-      // Verify Target Restoration Dimension & Skim Cut Offset
-      expect(mission.targetKeywayDimensionMm).toBe(25.012);
-      expect(mission.requiredSkimCutMm).toBe(0.28);
+      // Verify Target Restoration Dimension & Skim Cut Offset (Midpoint of 25.000 +0.021/-0.000 zone)
+      expect(mission.targetKeywayDimensionMm).toBe(25.011);
+      expect(mission.requiredSkimCutMm).toBe(0.291);
 
       // Verify Dispatch ETA and Tooling Rig Assignment
       expect(mission.technicianDispatchEta).toBe('03:30 AM WAT'); // Prior to 3:45 AM deadline

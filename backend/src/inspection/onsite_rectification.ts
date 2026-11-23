@@ -18,16 +18,19 @@ const missionRegistry = new Map<string, MobileRectificationMission>();
 export class OnSiteRectificationDispatcher {
   /**
    * Calculate required skim cut and target dimensions to restore fitment within tolerance limits.
+   * Targets process midpoint of tolerance band per ISO 10012 measurement management.
    */
   public calculateSkimOffset(
     measuredMm: number,
     nominalMm: number,
-    toleranceUpperMm: number
+    toleranceUpperMm: number,
+    toleranceLowerMm: number = 0.0
   ): { targetDimensionMm: number; requiredSkimCutMm: number } {
-    // Target dimension restored to midpoint of tolerance (+0.012 mm above nominal for 25.000 +0.021/-0.000 spec)
-    const midToleranceOffset = toleranceUpperMm > 0 ? parseFloat((toleranceUpperMm * 0.5714).toFixed(3)) : 0.012;
+    const toleranceBand = toleranceUpperMm - toleranceLowerMm;
+    const midToleranceOffset = toleranceLowerMm + toleranceBand * 0.5;
     const targetDimensionMm = parseFloat((nominalMm + midToleranceOffset).toFixed(3));
-    const requiredSkimCutMm = parseFloat((nominalMm - measuredMm).toFixed(3));
+    // Stock removal required to enlarge undersized internal feature up to target dimension
+    const requiredSkimCutMm = parseFloat(Math.abs(targetDimensionMm - measuredMm).toFixed(3));
 
     return {
       targetDimensionMm,
@@ -37,14 +40,38 @@ export class OnSiteRectificationDispatcher {
 
   /**
    * Compute urgent technician dispatch schedule and transit arrival window.
-   * Ensures mobile technician arrives at plant before 03:45 AM WAT for morning line restart.
+   * Uses realistic logistics transit duration (minutes) from central hub to manufacturing cluster.
    */
-  public computeDispatchEta(assemblyLocation: string): string {
-    const defaultEta = '03:45 AM WAT';
-    if (assemblyLocation.toLowerCase().includes('agbara')) {
-      return '03:30 AM WAT';
+  public computeDispatchEta(assemblyLocation: string, departureTimeStr?: string): string {
+    const transitEstimatesMinutes: Record<string, number> = {
+      agbara: 75,
+      ikeja: 30,
+      mushin: 45,
+      apapa: 60,
+      lekki: 90,
+      sagamu: 105,
+    };
+
+    const loc = assemblyLocation.toLowerCase();
+    let transitMinutes = 60; // Default 1 hour transit
+    for (const [cluster, mins] of Object.entries(transitEstimatesMinutes)) {
+      if (loc.includes(cluster)) {
+        transitMinutes = mins;
+        break;
+      }
     }
-    return defaultEta;
+
+    const baseDate = departureTimeStr ? new Date(departureTimeStr) : new Date();
+    // WAT is UTC+1 (60 min offset from UTC)
+    const arrivalEpochMs = baseDate.getTime() + (transitMinutes * 60 * 1000);
+    const arrivalDate = new Date(arrivalEpochMs);
+
+    const watHours = (arrivalDate.getUTCHours() + 1) % 24;
+    const watMinutes = arrivalDate.getUTCMinutes();
+    const period = watHours >= 12 ? 'PM' : 'AM';
+    const displayHours = watHours % 12 || 12;
+
+    return `${displayHours.toString().padStart(2, '0')}:${watMinutes.toString().padStart(2, '0')} ${period} WAT`;
   }
 
   /**
@@ -54,11 +81,12 @@ export class OnSiteRectificationDispatcher {
     const { targetDimensionMm, requiredSkimCutMm } = this.calculateSkimOffset(
       input.measuredKeywayMm,
       input.nominalKeywayMm,
-      input.toleranceUpperMm
+      input.toleranceUpperMm,
+      input.toleranceLowerMm
     );
 
     const missionId = `HOTSHOT-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-    const technicianDispatchEta = this.computeDispatchEta(input.assemblyLocation);
+    const technicianDispatchEta = this.computeDispatchEta(input.assemblyLocation, input.rejectionTimestamp);
     const now = new Date().toISOString();
 
     const rawPayload = JSON.stringify({

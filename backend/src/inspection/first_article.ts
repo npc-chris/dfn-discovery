@@ -28,8 +28,8 @@ export function calculateToolWearOffset(
   toleranceLower: number
 ): { targetDimension: number; recommendedWearOffsetMm: number } {
   const toleranceBand = toleranceUpper - toleranceLower;
-  const isOversized = measuredValue > nominalValue + toleranceUpper;
-  const setpointOffset = isOversized ? toleranceUpper * 0.92 : toleranceLower + toleranceBand * 0.5;
+  // Process-centering setpoint: center of the tolerance zone to maximize process capability (Cpk)
+  const setpointOffset = toleranceLower + (toleranceBand * 0.5);
   const targetDimension = parseFloat((nominalValue + setpointOffset).toFixed(3));
   const rawOffset = targetDimension - measuredValue;
   const recommendedWearOffsetMm = parseFloat(rawOffset.toFixed(3));
