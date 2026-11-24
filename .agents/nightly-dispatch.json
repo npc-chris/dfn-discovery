@@ -1,0 +1,470 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "dispatch_metadata": {
+    "title": "DFN Nightly Master PM Orchestration & Swarm Dispatch Manifest",
+    "timestamp": "2026-11-21T20:00:23+01:00",
+    "operating_window": "20:00 - 23:00 WAT",
+    "operational_headquarters": "dfn-scrutiny",
+    "lead_pm": "Antigravity (Lead Product Manager & Technical Scrum PO)",
+    "doctrine": "Ian Sommerville Software Product Engineering Standard (Engineering Software Products)",
+    "target_release_date": "2026-12-06",
+    "sprint_countdown_days_remaining": 15,
+    "current_sprint_day": 6,
+    "sprint_cycle": "Sprint 1 / Wave-1 Execution & Wave-2 Staging",
+    "jql_triage_query": "project = KAN AND issueType in (Feature, Task) AND statusCategory != Done ORDER BY status DESC, priority DESC, created ASC"
+  },
+  "freeze_tier_verification": {
+    "tier_1_schema_and_contract_freeze": {
+      "status": "LOCKED",
+      "scope": "@dfn/shared types, REST/WebSocket API signatures, PrismReportManifest BRep schema",
+      "governing_rule": "At Epic Inception / Wave Boundary. Breaking contract changes prohibited; non-breaking additive fields require RFC.",
+      "compliance": "VERIFIED (100% Contract Parity across dfn-ui, dfn-discovery, dfn-prism, and dfn-parametrics)"
+    },
+    "tier_2_ui_and_interaction_freeze": {
+      "status": "LOCKED",
+      "scope": "Shell geometry tokens (Rule R30), intake workflows, and status surfaces",
+      "tokens": {
+        "sidebar_width": "240px",
+        "topbar_height": "48px",
+        "statusbar_height": "24px",
+        "right_panel_width": "340px",
+        "cumulative_layout_shift": "0.000"
+      },
+      "governing_rule": "dfn-workspace.css layout tokens locked 1 sprint pre-pilot. Zero visual refactoring; stability and Playwright E2E focus only.",
+      "compliance": "VERIFIED (Rule R30 calibrated in dfn-workspace.css; zero layout shift, CLS = 0.000)"
+    },
+    "tier_3_release_soak_freeze": {
+      "status": "STAGED",
+      "scope": "Entire multi-repo ecosystem release branch",
+      "activation_target": "2026-12-04T00:00:00+01:00 (48 hours prior to December 6, 2026 SemVer v0.1.0 release)",
+      "governing_rule": "Zero feature commits. Strictly P0 hotfixes, data corruption, and critical security patches."
+    }
+  },
+  "quality_gate_baseline": {
+    "gate_name": "Sommerville 6-Point Deterministic Quality Gate",
+    "point_1_static_typecheck": "PASS (TypeScript --noEmit & Python compileall)",
+    "point_2_automated_tests": "PASS (Unit & service suites >= 80% DoD coverage, Arrange-Action-Assert)",
+    "point_3_contract_parity": "PASS (@dfn/shared schemas synchronized)",
+    "point_4_anti_ai_linter": "PASS (0 formulaic preambles, 0 decorative tropes, direct engineering voice)",
+    "point_5_system_invariants": "PASS (Rule R30 shell tokens, state machine transitions)",
+    "point_6_anti_overfitting": "PASS (audit_anti_overfitting.py --strict clean across rules AO-01 to AO-05; 0 errors across 454 files)"
+  },
+  "active_pbis": [
+    {
+      "key": "KAN-78",
+      "title": "[DISC-002] Multi-Process Feasibility Engine & Pluggable Manufacturing Strategy Architecture",
+      "status": "In Progress",
+      "issue_type": "Feature",
+      "priority": "High",
+      "target_repo": "dfn-discovery",
+      "subsystem": "SUB-01",
+      "subsystem_name": "Intake & Geometry Pre-Flight",
+      "domain_specialist": "Discovery Specialist",
+      "branch": "feat/KAN-78-multi-process-feasibility-strategy",
+      "specification": {
+        "user_story": "As a Lead Applications Engineer, I want the feasibility engine to evaluate multi-process manufacturing strategies (CNC 3-axis, 5-axis, sheet metal stamping, wire EDM, investment casting) via pluggable heuristics so that complex hardware designs receive optimized fabrication routes across registered Nigerian clusters.",
+        "input": "PrismReportManifest BRep geometry, tolerance classes ISO 2768-m/f, material specification (e.g. 6061-T6 aluminum, 4140 chromoly steel), quantity bracket (10-100 units).",
+        "action": "Execute Directed Acyclic Graph (DAG) process routing engine; match bounding envelopes and tooling constraints against nationwide cluster capacity; compute multi-process cost bracket and lead-time confidence score.",
+        "output": "MultiProcessFeasibilityReport JSON with ranked manufacturing strategies, cost breakdown in NGN, cycle time in business days, and cluster workshop routing targets."
+      },
+      "acceptance_criteria_gherkin": "Given an intake RFQ for 50 CNC-milled sensor enclosures with thin walls (1.8 mm) and M4 tapped holes\nWhen the multi-process feasibility engine executes the pluggable strategy routing pipeline\nThen it decomposes operations into rough milling (3-axis), finishing, and single-point tapping\nAnd calculates an estimated unit cost of \u20a616,200 \u00b1 8% with 6-day lead time\nAnd routes the job to 3 qualified shops in the Ikeja/Ilupeju cluster with active spindle capacity.",
+      "technical_subtasks": [
+        "ST-DISC-01: Create pluggable manufacturing strategy heuristic modules under src/dfn_discovery/strategies/.",
+        "ST-DISC-02: Implement DAG process sequencing engine accepting PrismReportManifest v1.1 BRep geometry.",
+        "ST-DISC-03: Connect routing engine with cluster workshop database evaluating machine bed limits, spindle power, and generator ratings.",
+        "ST-DISC-04: Implement first-article tolerance verification state machine for KAN-38.",
+        "ST-DISC-05: Build pyrometer thermal soak telemetry analyzer for KAN-41.",
+        "ST-DISC-06: Run 6-point quality gate and submit DoD PR."
+      ]
+    },
+    {
+      "key": "KAN-76",
+      "title": "[SUB-06] Core Platform: Workshop KYC Onboarding, Multi-Tenant Auth & Escrow Integration",
+      "status": "In Progress",
+      "issue_type": "Feature",
+      "priority": "High",
+      "target_repo": "digital-fabrication-network",
+      "subsystem": "SUB-06",
+      "subsystem_name": "Workshop Onboarding & KYC",
+      "domain_specialist": "Platform Specialist",
+      "branch": "feat/KAN-76-core-platform-kyc",
+      "specification": {
+        "user_story": "As a Machine Shop Owner (Alhaji Musa / Sunday), I want to complete self-service workshop KYC, upload machine spindle specs and generator backup certificates, and link bank settlement accounts so that our workshop receives authenticated, escrow-funded purchase orders.",
+        "input": "Workshop registration payload (CAC registration certificate, machine inventory: bed dimensions, max spindle RPM, generator kVA rating, metrology asset serials, NUBAN bank account).",
+        "action": "Verify CAC credentials against business registry; validate machine specifications against ISO machine taxonomy; verify operational power uptime score; instantiate multi-tenant workshop tenant and escrow settlement endpoint.",
+        "output": "VettedWorkshopProfile record with verified tier badge, active quote intake webhook, and cryptographic escrow payout authorization."
+      },
+      "acceptance_criteria_gherkin": "Given an unregistered machine shop in Aba Precision Machining Cluster\nWhen the shop master submits CAC registration, machine inventory (3-axis CNC mill, 800x500x500mm), and 45kVA generator certificate\nThen the platform validates the machine envelope and assigns an operational power resilience score of 94%\nAnd sets workshop KYC status to 'VERIFIED_ACTIVE'\nAnd binds the workshop to receive programmatic RFQ quote dispatches.",
+      "technical_subtasks": [
+        "ST-PLAT-01: Implement multi-tenant workshop onboarding KYC service validating CAC credentials, machine taxonomy, and generator backup.",
+        "ST-PLAT-02: Build cluster capability indexing and geographic corridor search endpoints for KAN-4.",
+        "ST-PLAT-03: Implement multi-milestone escrow state machine partitioning funds into 3 tranches for KAN-45.",
+        "ST-PLAT-04: Implement MeasuringToolCalibrationService for KAN-61.",
+        "ST-PLAT-05: Maintain 24/24 passing backend integration test invariant.",
+        "ST-PLAT-06: Run 6-point quality gate and submit DoD PR."
+      ]
+    },
+    {
+      "key": "KAN-75",
+      "title": "[SUB-08] Procedural Tooling, Modular Clamps & Enclosure Parametrics",
+      "status": "In Progress",
+      "issue_type": "Task",
+      "priority": "High",
+      "target_repo": "dfn-parametrics",
+      "subsystem": "SUB-08",
+      "subsystem_name": "Parametric Tooling & Fixture Gen",
+      "domain_specialist": "Parametrics Specialist",
+      "branch": "feat/KAN-75-procedural-tooling-clamps",
+      "specification": {
+        "user_story": "As a Tooling Engineer, I want parametric generators for modular soft jaws, clamp strap assemblies, and sheet metal enclosures so that low-volume CNC fixture setups and bend allowances are generated deterministically without manual CAD drafting.",
+        "input": "Part envelope dimensions (L x W x H mm), clamping force requirement (kN), machine T-slot table pitch (14mm / 18mm DIN 650), sheet thickness and material grade.",
+        "action": "Execute algorithmic BRep geometry synthesizer; calculate DIN 6935 bend deduction and clamp bolt torque ratings; export standardized DXF flat-patterns and STEP fixture models.",
+        "output": "ParametricToolingManifest with generated fixture geometry, BOM line items, and machine setup traveler instructions."
+      },
+      "acceptance_criteria_gherkin": "Given a rectangular 6061-T6 workpiece (150 x 80 x 25 mm) requiring 4-axis second-operation facing\nWhen the parametric tooling generator executes with 14mm T-slot table parameters\nThen it generates a stepped soft-jaw profile with 2.5 mm step height and 0.05 mm clamping relief\nAnd outputs compliant fixture STEP geometry and bolt torque specifications (45 N\u00b7m)\nAnd validates against the 92/92 test suite in dfn-parametrics with zero failures.",
+      "technical_subtasks": [
+        "ST-PARAM-01: Implement parametric soft-jaw and clamp strap geometry generators supporting 14mm/18mm DIN 650 T-slot tables.",
+        "ST-PARAM-02: Build DIN 6935 bend deduction and sheet-metal enclosure flat-pattern unfolding generator.",
+        "ST-PARAM-03: Implement OES spark spectrometry scrap interception filter for KAN-37.",
+        "ST-PARAM-04: Build digital finishing process traveler generator for KAN-40.",
+        "ST-PARAM-05: Maintain 92/92 passing test suite invariant with zero regressions.",
+        "ST-PARAM-06: Run 6-point quality gate and submit DoD PR."
+      ]
+    },
+    {
+      "key": "KAN-8",
+      "title": "[PRISM-004] 3D CAD Interpreter, DFM Anomaly Detection & BOP/BOM Engine",
+      "status": "In Progress",
+      "issue_type": "Feature",
+      "priority": "Medium",
+      "target_repo": "dfn-prism",
+      "subsystem": "SUB-02",
+      "subsystem_name": "Applications Engineer DFM Triage",
+      "domain_specialist": "CAD Prism Specialist",
+      "branch": "feat/KAN-8-cad-brep-dfm-bop-bom",
+      "specification": {
+        "user_story": "As an Applications Engineer, I want the system to parse STEP/IGES/STL CAD geometry, evaluate DIN ISO 2768 tolerances, and flag deep pockets and tool collisions before metal is cut.",
+        "input": "Binary or text STEP (AP203/AP214/AP242) or binary STL/IGES CAD model.",
+        "action": "Execute OpenCASCADE BRep topological traversal; extract bounding box, surface area, volume, and wall thicknesses; compute DIN ISO 2768-1/2 tolerance bounds; run heuristic anomaly detectors for deep pockets (>4:1 aspect ratio), zero-radius internal corners, and tool reach interference.",
+        "output": "PrismReportManifest v1.1 containing feature topology graph, bounding dimensions, DFM violation list with severity (Warning/Error), raw stock envelope, and Bill of Process (BOP) sequence."
+      },
+      "acceptance_criteria_gherkin": "Given a STEP AP214 file of an aluminum mounting bracket with 3.0 mm walls and an internal pocket of depth 45 mm and width 8 mm (aspect ratio 5.6:1)\nWhen the OpenCASCADE BRep interpreter executes geometric extraction\nThen it flags a DFM anomaly 'TOOLING_ASPECT_RATIO_EXCEEDED: Pocket depth 45mm requires >4:1 reach endmill'\nAnd evaluates DIN ISO 2768-m linear tolerances for all extracted features\nAnd generates signed HMAC-SHA256 PrismReportManifest v1.1 payload.",
+      "technical_subtasks": [
+        "ST-CAD-01: Enhance OpenCASCADE BRep topological traversal in src/dfn_prism/geometry/brep_analyzer.py for STEP AP214 and IGES CAD files.",
+        "ST-CAD-02: Implement heuristic anomaly detectors for deep internal pockets (>4:1 aspect ratio) and R0 corners.",
+        "ST-CAD-03: Integrate DIN ISO 2768-1/2 tolerance engine directly into PrismReportManifest v1.1.",
+        "ST-CAD-04: Build fatigue stress evaluator (src/dfn_prism/stress/fatigue_evaluator.py) for KAN-34.",
+        "ST-CAD-05: Run PyTest suite in .venv with zero regressions across 44 tests.",
+        "ST-CAD-06: Run 6-point quality gate and submit DoD PR."
+      ]
+    },
+    {
+      "key": "KAN-4",
+      "title": "[CLUS-002] SME Fabrication Cluster Registry & Capability Vetting",
+      "status": "In Progress",
+      "issue_type": "Feature",
+      "priority": "Medium",
+      "target_repo": "digital-fabrication-network",
+      "subsystem": "SUB-04",
+      "subsystem_name": "Cluster Capability & Routing",
+      "domain_specialist": "Platform Specialist",
+      "branch": "feat/KAN-4-cluster-registry-vetting",
+      "specification": {
+        "user_story": "As a Cluster Machine Shop Master (Alhaji Musa / Sunday), I want to register and verify our workshop machine specifications, spindle envelopes, generator capacities, and metrology calibrations so that our shop receives pre-matched, low-volume fabrication orders.",
+        "input": "Workshop registration payload (business credentials, machine inventory: bed dimensions X/Y/Z, spindle power kW, max RPM, tolerance class ISO 2768-m/f, generator kVA rating, location GPS).",
+        "action": "Validate machine specifications against industrial capability schemas; verify business KYC documents; compute operational resilience score based on secondary power backup and metrology assets.",
+        "output": "VettedWorkshopProfile record with verified capability tier badge (Tier 1/2/3), searchable index entry in cluster registry, and active quote reception webhook."
+      },
+      "acceptance_criteria_gherkin": "Given a machine shop master registering a CNC machine shop in Aba with a 3-axis mill (800x500x500mm envelope) and 45kVA Perkins generator\nWhen Sunday submits machine serial numbers, calibration certificates, and CAC registration\nThen the platform validates the machine envelope against ISO machine taxonomy\nAnd calculates an operational power resilience rating of 94%\nAnd publishes the workshop to the DFN Cluster Registry under 'Aba Precision Machining Cluster'."
+    },
+    {
+      "key": "KAN-1",
+      "title": "[DISC-001] Low-Volume RFQ & Fabrication Feasibility Engine",
+      "status": "In Progress",
+      "issue_type": "Feature",
+      "priority": "High",
+      "target_repo": "dfn-discovery",
+      "subsystem": "SUB-01",
+      "subsystem_name": "Intake & Geometry Pre-Flight",
+      "domain_specialist": "Discovery Specialist",
+      "branch": "feat/KAN-1-feasibility-rfq-engine",
+      "specification": {
+        "user_story": "As a Hardware Founder (Femi), I want to upload a validated CAD/BOM specification so that I receive an instant multi-operation fabrication feasibility score, cost estimate, and cluster routing recommendation for 10-100 units.",
+        "input": "PrismReportManifest containing extracted BRep geometry (bounding box, volume, recognized holes/pockets/thin-walls, machine envelope limits, material: 6061-T6/4140, quantity: 10-100 units).",
+        "action": "Execute multi-operation Directed Acyclic Graph (DAG) process routing across CNC milling, turning, heat-treatment, and finishing; evaluate machine envelopes and power uptime across registered Nigerian clusters.",
+        "output": "FabricationFeasibilityReport JSON with deterministic feasibility score (0-100), estimated cost bracket (NGN), cycle time in business days, and ranked cluster workshop matches."
+      },
+      "acceptance_criteria_gherkin": "Given an intake RFQ for 30 units of a CNC-milled 6061-T6 sensor enclosure with PrismReportManifest\nWhen the feasibility engine executes the DAG process routing pipeline\nThen it returns a feasibility scorecard with process breakdown (3-axis milling: 42 min/unit, deburr: 8 min, clear anodizing: 24h)\nAnd calculates an estimated unit cost of \u20a618,500 \u00b1 10%\nAnd identifies 3 qualified workshops in the Ikeja/Ilupeju cluster with active spindle capacity and generator backup."
+    },
+    {
+      "key": "KAN-2",
+      "title": "[SPRINT-0] Problem Validation Interviews: 10 Nigerian Hardware Innovators",
+      "status": "In Progress",
+      "issue_type": "Task",
+      "priority": "Medium",
+      "target_repo": "dfn-docs",
+      "subsystem": "SUB-11",
+      "subsystem_name": "Architecture & Documentation",
+      "domain_specialist": "Lead PM & Technical Scrum PO",
+      "branch": "docs/KAN-2-founder-discovery-synthesis",
+      "specification": {
+        "user_story": "As Lead Product Manager, I want to synthesize problem validation interviews with 10 Nigerian hardware innovators so that our product features directly address empirical operational failure modes.",
+        "input": "Semi-structured interview recordings, transcripts, and operational notes from 10 hardware builders across consumer IoT, agricultural machinery, and medical devices.",
+        "action": "Code qualitative transcripts for lead-time variance, scrap percentage, counterfeit material frequency, and cost inflation; extract quantitative operational benchmarks; update proto-personas and user scenarios.",
+        "output": "Empirical Discovery Synthesis report in Notion Field Notes; calibrated failure metrics (average cycle time: 7.2 weeks, scrap rate: 22.4%, material substitution: 31%); updated Persona 'Femi the Hardware Founder'."
+      },
+      "acceptance_criteria_gherkin": "Given interview transcripts and field data from 10 Nigerian hardware innovators\nWhen the Lead PM synthesizes the discovery findings\nThen the report establishes empirical benchmarks for low-volume iteration friction (7-week cycle time, 20%+ scrap)\nAnd maps verified root causes to DFN Discovery functional requirements (DISC-001, CLUS-002, MAT-003)\nAnd updates the Living PRD in Notion with leadership sign-off."
+    }
+  ],
+  "evening_dispatched_pbis": [
+    {
+      "key": "KAN-85",
+      "title": "[UI-015] Research & Technical Plan: Animated Phosphor Icons for State Telemetry & Micro-Interactions",
+      "status": "Ready for Implementation",
+      "issue_type": "Task",
+      "priority": "High",
+      "target_repo": "dfn-ui",
+      "subsystem": "SUB-07",
+      "subsystem_name": "Industrial UI Cockpit & Telemetry",
+      "domain_specialist": "UI Specialist",
+      "branch": "feat/KAN-85-animated-phosphor-telemetry-icons",
+      "specification": {
+        "user_story": "As a Frontend Engineer / Cockpit User, I want animated phosphor icons for state telemetry and micro-interactions so that spindle status, inspection passes, network connectivity, and layout toggles provide instant, calibrated industrial feedback.",
+        "input": "Phosphor Icon asset specifications, Rule R30 cockpit tokens, telemetry states (IDLE, ACTIVE, WARNING, ERROR, SUCCESS), micro-interaction transition definitions (180ms cubic-bezier).",
+        "action": "Integrate animated SVG/CSS micro-interaction states into @dfn/ui icon primitives; implement layout collapse indicators ('[', ']', 'Ctrl+J'); maintain 0.000 CLS and 60fps rendering without layout recalculations.",
+        "output": "Reusable PhosphorTelemetryIcon component family with verified dark-cockpit styling, animation benchmarks, and Playwright visual regression assertions."
+      },
+      "acceptance_criteria_gherkin": "Given a machine telemetry status badge transitioning from 'IDLE' to 'SPINDLE_RUNNING'\nWhen the Phosphor telemetry icon updates state\nThen it triggers an amber-to-green phosphor glow transition with 180ms duration\nAnd preserves 0.000 Cumulative Layout Shift across all viewport sizes\nAnd executes Playwright accessibility and visual tests with zero regressions.",
+      "technical_subtasks": [
+        "ST-UI-01: Implement PhosphorTelemetryIcon component family in @dfn/ui with animated glow transitions.",
+        "ST-UI-02: Add layout shortcut telemetry indicators ([ , ] , Ctrl+J) preserving Rule R30 tokens.",
+        "ST-UI-03: Build interactive StructuralStressWaiverModal component for KAN-34.",
+        "ST-UI-04: Execute 3-Stage Non-Rubber-Stamp Review Protocol (Before screenshot -> Playwright tests -> After comparison).",
+        "ST-UI-05: Verify 0.000 CLS layout invariant across all viewport sizes.",
+        "ST-UI-06: Run 6-point quality gate and submit DoD PR."
+      ]
+    },
+    {
+      "key": "KAN-38",
+      "title": "[US-C-01] First-Article Tolerance Verification Gate",
+      "status": "Ready for Implementation",
+      "issue_type": "Feature",
+      "priority": "High",
+      "target_repo": "dfn-discovery",
+      "subsystem": "SUB-09",
+      "subsystem_name": "Quality, Inspection & Metrology",
+      "domain_specialist": "Discovery Specialist & Contracts Specialist",
+      "branch": "feat/KAN-38-first-article-tolerance-gate",
+      "specification": {
+        "user_story": "As a Quality Inspector / Machinist (Sunday), I want to record first-article dimensional readings and micrometer photos so that the platform authorizes full batch production only after dimensional compliance is verified.",
+        "input": "First-article telemetry: nominal dimension, lower/upper tolerance limits (40.000 mm to 40.012 mm), three sequential micrometer readings, tool serial ID, and timestamped verification photograph.",
+        "action": "Compute dimensional deviation, circular taper (|max - min|), and tolerance band containment; compare taper against maximum permissible threshold (0.003 mm); evaluate pass/fail criteria.",
+        "output": "FirstArticleAuthorization state object: status ('ACCEPTED' | 'REJECTED'), authorization token to run batch, immutable audit log entry in job traveler."
+      },
+      "acceptance_criteria_gherkin": "Given an order for 30 motor shafts with bearing journal tolerance 40.000 mm to 40.012 mm\nWhen Sunday enters first-article readings of 40.008 mm, 40.007 mm, and 40.009 mm with a micrometer photo\nThen the platform calculates a taper of 0.002 mm (within 0.003 mm limit)\nAnd displays: 'FIRST ARTICLE ACCEPTED: AUTHORIZED TO RUN BATCH (29 UNITS REMAINING)'\nAnd logs the timestamped inspection record to the job audit trail."
+    },
+    {
+      "key": "KAN-37",
+      "title": "[US-B-03] Hub Optical Emission Spectrometry (OES) Scrap Interception (Negative / Exception)",
+      "status": "Ready for Implementation",
+      "issue_type": "Feature",
+      "priority": "High",
+      "target_repo": "dfn-parametrics",
+      "subsystem": "SUB-03",
+      "subsystem_name": "Materials, Alloy & Heat Registry",
+      "domain_specialist": "Parametrics Specialist & Contracts Specialist",
+      "branch": "feat/KAN-37-hub-oes-scrap-interception",
+      "specification": {
+        "user_story": "As a Hub Metallurgical Technician, I want to input raw billet OES spark emission spectrometer readings so that counterfeit or off-spec scrap alloys are intercepted before reaching CNC machine spindles.",
+        "input": "Material lot intake payload: claimed alloy grade (e.g. AISI 4340), supplier ID, raw stock heat number, percentage chemical composition readings (%C, %Mn, %Si, %Cr, %Ni, %Mo, %S, %P).",
+        "action": "Query ASTM/ISO material chemistry envelope; compare spark scan readouts against elemental composition bounds (ASTM A29 specifies Cr: 0.70-0.90%, Ni: 1.65-2.00%); flag discrepancies.",
+        "output": "MaterialInspectionResult with interception status ('PASSED' | 'DISCREPANCY_INTERCEPTED'), dispatch lockout flag, automated debit note against supplier account, customer escrow refund trigger."
+      },
+      "acceptance_criteria_gherkin": "Given a delivery of purported AISI 4340 alloy bar stock\nWhen the technician enters OES spark scan readings showing Chromium at 0.38% and Nickel at 0.11%\nThen the platform flags an 'Alloy Composition Discrepancy (Failed ASTM A29)'\nAnd locks dispatch to the CNC machine shop\nAnd issues a debit note against the supplier's platform account\nAnd refunds the customer's material escrow line."
+    },
+    {
+      "key": "KAN-34",
+      "title": "[US-A-05] Non-Standard Geometry Structural Stress Waiver (Negative / Exception)",
+      "status": "Ready for Implementation",
+      "issue_type": "Feature",
+      "priority": "High",
+      "target_repo": "dfn-ui",
+      "subsystem": "SUB-01",
+      "subsystem_name": "Intake & Geometry Pre-Flight",
+      "domain_specialist": "UI Specialist & CAD Prism Specialist",
+      "branch": "feat/KAN-34-stress-waiver-modal",
+      "specification": {
+        "user_story": "As a Hardware Founder / Student (Tobi), I want to review an engineering modification waiver when I reject recommended shaft geometry changes so that I understand fatigue risks, review custom tooling surcharges, and choose de-scoping options to protect my budget ceiling.",
+        "input": "Customer rejection event of an AE geometry recommendation (38.0 mm shaft vs recommended 35.0 mm standard stock), budget ceiling (\u20a642,000), custom tooling surcharge model (+\u20a614,000).",
+        "action": "Render mandatory interactive Structural Stress & Fatigue Disclaimer; calculate custom tooling surcharge; display customer-supplied raw stock de-scoping selector to maintain quote under ceiling.",
+        "output": "SignedWaiverRecord with cryptographic customer signature, modified quote state, updated BOP traveler with customer-supplied stock flag."
+      },
+      "acceptance_criteria_gherkin": "Given an engineer's recommendation to change a 38.0 mm shaft to 35.0 mm\nWhen Tobi clicks 'Reject Technical Modification'\nThen the platform presents a mandatory 'Structural Stress & Fatigue Disclaimer'\nAnd when Tobi signs the waiver, recalculates machining surcharges (+\u20a614,000)\nAnd displays a de-scoping selector allowing Tobi to supply his own raw stock to keep the quote under \u20a642,000."
+    },
+    {
+      "key": "KAN-40",
+      "title": "[US-C-03] Substrate-Verified Finishing Process Traveler",
+      "status": "Ready for Implementation",
+      "issue_type": "Feature",
+      "priority": "High",
+      "target_repo": "dfn-parametrics",
+      "subsystem": "SUB-09",
+      "subsystem_name": "Quality, Inspection & Metrology",
+      "domain_specialist": "Parametrics Specialist & Discovery Specialist",
+      "branch": "feat/KAN-40-substrate-finishing-traveler",
+      "specification": {
+        "user_story": "As a Surface Finishing Specialist (Chukwudi), I want to access a digital process traveler displaying verified substrate chemistry and process parameters so that electrolyte baths are protected from contamination and anodized parts achieve certified coating thickness.",
+        "input": "Batch routing traveler: batch ID, component count (35 units), process type (black sulfuric anodizing), substrate alloy lot cert (6061-T6, Si < 0.4%).",
+        "action": "Validate substrate alloy compatibility with chemical bath; compute tank temperature (18\u00b0C), current density (1.5 A/dm\u00b2), and immersion duration (45 min); enforce pre-shipment eddy-current coating thickness entry gate.",
+        "output": "FinishingTravelerManifest with validated chemistry parameters, step-by-step operator sign-off checklist, and mandatory eddy-current verification gate."
+      },
+      "acceptance_criteria_gherkin": "Given a batch of 35 CNC-milled enclosures routed for black sulfuric anodizing\nWhen Chukwudi opens the digital traveler\nThen it verifies substrate alloy as certified 6061-T6 (Silicon < 0.4%)\nAnd prescribes tank temperature at 18\u00b0C, current density at 1.5 A/dm\u00b2, and 45-minute immersion\nAnd mandates an eddy-current coating thickness entry before shipment."
+    },
+    {
+      "key": "KAN-41",
+      "title": "[US-C-04] Mandatory Heat-Treatment Pyrometer Log Enforcement (Negative / Exception)",
+      "status": "Ready for Implementation",
+      "issue_type": "Feature",
+      "priority": "High",
+      "target_repo": "dfn-discovery",
+      "subsystem": "SUB-09",
+      "subsystem_name": "Quality, Inspection & Metrology",
+      "domain_specialist": "Discovery Specialist & Platform Specialist",
+      "branch": "feat/KAN-41-pyrometer-log-enforcement",
+      "specification": {
+        "user_story": "As a Quality Inspector, I want the system to require continuous pyrometer soak temperature logs for quench-and-temper heat treatments so that unverified or under-soaked parts are intercepted before dispatch.",
+        "input": "Batch traveler ID, heat treatment specification (e.g. 4140 oil quench at 845\u00b0C, 60-min soak, temper at 540\u00b0C), furnace thermocouple/pyrometer time-series log.",
+        "action": "Validate pyrometer readings against required soak temperature tolerance window (\u00b110\u00b0C) and minimum duration; detect thermal drops or missing telemetry; flag under-soaked batches.",
+        "output": "HeatTreatmentAuditResult: 'CERTIFIED' if soak verified, 'QUARANTINE_UNDER_SOAKED' if temperature dropped > 15\u00b0C; blocks batch authorization if uncertified."
+      },
+      "acceptance_criteria_gherkin": "Given a batch of 20 AISI 4140 drive shafts requiring 845\u00b0C austenitizing for 60 minutes\nWhen the furnace pyrometer log indicates a temperature drop to 790\u00b0C at minute 38 for 12 minutes\nThen the system flags a 'THERMAL_SOAK_VIOLATION: Under-temperature excursion detected'\nAnd locks the batch status to 'QUARANTINE_HEAT_TREAT_DEFICIT'\nAnd notifies the applications engineer and prevents dispatch."
+    },
+    {
+      "key": "KAN-45",
+      "title": "[US-E-01] Multi-Milestone Escrow Contract Funding",
+      "status": "Ready for Implementation",
+      "issue_type": "Feature",
+      "priority": "High",
+      "target_repo": "digital-fabrication-network",
+      "subsystem": "SUB-05",
+      "subsystem_name": "Quotation, Lead-Time & Escrow",
+      "domain_specialist": "Platform Specialist & Contracts Specialist",
+      "branch": "feat/KAN-45-escrow-contract-funding",
+      "specification": {
+        "user_story": "As an Enterprise Hardware Founder (Babatunde), I want to deposit project funds into a multi-milestone escrow contract so that payments are released in verified tranches upon passing metrology and delivery gates.",
+        "input": "Accepted quote breakdown (\u20a6680,000 for 16 hardened sprockets), milestone tranche schedule (Milestone 1: \u20a6200,000; Milestone 2: \u20a6300,000; Milestone 3: \u20a6180,000), payment transaction token.",
+        "action": "Instantiate locked escrow contract record; partition funds into distinct programmatic escrow milestone accounts; issue cryptographic work authorization tokens to machine shop upon fund confirmation.",
+        "output": "EscrowContractRecord with status 'FUNDED_LOCKED', milestone ledger rows, work authorization tickets issued to supplier dashboard."
+      },
+      "acceptance_criteria_gherkin": "Given an accepted quote of \u20a6680,000 for 16 hardened drive sprockets\nWhen Babatunde funds the escrow deposit\nThen the platform creates three locked milestone lines: Milestone 1 (\u20a6200,000), Milestone 2 (\u20a6300,000), and Milestone 3 (\u20a6180,000)\nAnd issues work authorization tickets to the machine shop."
+    },
+    {
+      "key": "KAN-61",
+      "title": "[US-X-03] Measuring Tool Calibration Registry Check",
+      "status": "Ready for Implementation",
+      "issue_type": "Feature",
+      "priority": "High",
+      "target_repo": "digital-fabrication-network",
+      "subsystem": "SUB-09",
+      "subsystem_name": "Quality, Inspection & Metrology",
+      "domain_specialist": "Platform Specialist & Discovery Specialist",
+      "branch": "feat/KAN-61-tool-calibration-registry-check",
+      "specification": {
+        "user_story": "As a Quality Inspector / Machinist, I want the system to check measuring tool calibration dates before accepting dimensional readings so that defective or expired tools cannot certify production parts.",
+        "input": "Measuring tool identifier (tool serial ID, e.g. digital micrometer MIC-2041), inspection entry payload, operator ID.",
+        "action": "Query CalibrationRegistry for tool serial ID; check annual calibration expiration timestamp against current system date; evaluate calibration currency.",
+        "output": "ValidationResult: if valid -> permit submission; if expired -> block submission, display alert message with hub recalibration link, require entry of certified tool ID."
+      },
+      "acceptance_criteria_gherkin": "Given a digital micrometer with an annual calibration stamp that expired 14 days ago\nWhen Sunday enters the tool ID to log first-article journal readings\nThen the app blocks submission\nAnd displays: 'TOOL CALIBRATION EXPIRED: Use certified tool or schedule hub recalibration'\nAnd requires entry of an accredited tool serial number to proceed."
+    },
+    {
+      "key": "KAN-28",
+      "title": "[GOV-04] Trust Architecture & Metrology Safeguards Specification",
+      "status": "Ready for Implementation",
+      "issue_type": "Task",
+      "priority": "High",
+      "target_repo": "dfn-scrutiny",
+      "subsystem": "SUB-12",
+      "subsystem_name": "Scrutiny, Governance & CI/CD",
+      "domain_specialist": "Scrutiny & Governance Specialist",
+      "branch": "docs/KAN-28-trust-architecture-metrology-safeguards",
+      "specification": {
+        "user_story": "As Lead Product Manager & Quality Gatekeeper, I want an end-to-end specification for DFN trust architecture and metrology safeguards so that all 8 subsystems enforce double-blind inspection, calibration verification, and escrow release gates.",
+        "input": "Metrology procedures, ISO 2768 tolerances, double-blind sampling criteria, and escrow release protocols.",
+        "action": "Compile formal engineering specification covering metrology equipment calibration, scrap interception, first-article inspection gates, and crypto-signed certificates of conformity.",
+        "output": "Formal governance specification document in dfn-docs and enforcement test suite in dfn-scrutiny."
+      },
+      "acceptance_criteria_gherkin": "Given the DFN trust architecture requirements across inspection, metrology, and escrow\nWhen the specification is verified against the 6-point quality gate\nThen it defines explicit pass/fail tolerances for first-article, in-process, and final inspection\nAnd documents cryptographic hash verification for digital travelers\nAnd establishes zero-tolerance scrap interception protocols across all partner machine shops."
+    }
+  ],
+  "domain_specialist_assignments": {
+    "Contracts Specialist": {
+      "repository": "dfn-ui/packages/shared",
+      "primary_pbis": [
+        "KAN-45",
+        "KAN-38",
+        "KAN-28"
+      ],
+      "focus": "@dfn/shared contract synchronization, escrow schemas, metrology gate payload parity",
+      "tier_1_gate": "LOCKED"
+    },
+    "CAD Prism Specialist": {
+      "repository": "dfn-prism",
+      "primary_pbis": [
+        "KAN-8",
+        "KAN-34"
+      ],
+      "focus": "OpenCASCADE BRep geometric feature extraction, DFM anomaly rules, DIN ISO 2768-1/2 tolerances, fatigue stress waiver math",
+      "branch": "feat/KAN-8-cad-brep-dfm-bop-bom"
+    },
+    "Discovery Specialist": {
+      "repository": "dfn-discovery",
+      "primary_pbis": [
+        "KAN-78",
+        "KAN-1",
+        "KAN-38",
+        "KAN-41"
+      ],
+      "focus": "Pluggable manufacturing strategy architecture, DAG multi-operation routing, first-article tolerance verification gate, pyrometer soak verification",
+      "branch": "feat/KAN-78-multi-process-feasibility-strategy"
+    },
+    "Parametrics Specialist": {
+      "repository": "dfn-parametrics",
+      "primary_pbis": [
+        "KAN-75",
+        "KAN-37",
+        "KAN-40"
+      ],
+      "focus": "Procedural tooling, modular clamps, manufacturing process physics models, OES alloy scrap interception, substrate finishing travelers",
+      "branch": "feat/KAN-75-procedural-tooling-clamps"
+    },
+    "UI Specialist": {
+      "repository": "dfn-ui",
+      "primary_pbis": [
+        "KAN-85",
+        "KAN-34"
+      ],
+      "focus": "Rule R30 dark cockpit (48px TopBar, 24px StatusBar, 340px RightPanel), CLS 0.000, animated Phosphor icons for telemetry, layout collapse shortcuts, stress waiver modal",
+      "branch": "feat/KAN-85-animated-phosphor-telemetry-icons"
+    },
+    "Platform Specialist": {
+      "repository": "digital-fabrication-network",
+      "primary_pbis": [
+        "KAN-76",
+        "KAN-4",
+        "KAN-45",
+        "KAN-61"
+      ],
+      "focus": "Workshop KYC onboarding, multi-tenant auth, cluster capability vetting, multi-milestone escrow state machine, calibration registry check",
+      "branch": "feat/KAN-76-core-platform-kyc"
+    },
+    "Scrutiny & Governance Specialist": {
+      "repository": "dfn-scrutiny",
+      "primary_pbis": [
+        "KAN-28"
+      ],
+      "focus": "6-Point Deterministic Quality Gate, anti-overfitting rules AO-01..05, nightly dispatch manifest, lead PM coordination",
+      "branch": "master"
+    }
+  }
+}
