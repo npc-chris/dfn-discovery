@@ -4,7 +4,11 @@ import { AuthContext } from './auth';
 import { getRedisClient } from '../services/redis-client';
 import axios from 'axios';
 
-const BILLING_API_URL = process.env.BILLING_API_URL || 'https://billing.fabnetwork.com.ng';
+const BILLING_API_URL = (
+  process.env.FINWORLD_API_URL ||
+  process.env.BILLING_API_URL ||
+  'http://localhost:4200'
+).replace(/\/+$/, '');
 
 export const quotaMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {

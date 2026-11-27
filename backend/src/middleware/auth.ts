@@ -2,7 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { AppError } from './error';
 
-const AUTH_ISSUER_URL = process.env.AUTH_ISSUER_URL;
+const RAW_ISSUER_URL = process.env.AUTH_ISSUER_URL;
+const AUTH_ISSUER_URL = RAW_ISSUER_URL ? RAW_ISSUER_URL.replace(/\/+$/, '') : undefined;
 const AUTH_AUDIENCE = process.env.AUTH_AUDIENCE || 'dfn-discovery';
 const AUTH_CLAIM_NAMESPACE = process.env.AUTH_CLAIM_NAMESPACE || 'https://fabnetwork.com.ng/';
 
@@ -10,10 +11,10 @@ if (!AUTH_ISSUER_URL) {
   console.warn('AUTH_ISSUER_URL is not set. Auth middleware will fail if called.');
 }
 
-// Create a cached JWKS from Auth0's endpoint.
-// jose handles the 24h caching and debounced retries under the hood automatically.
-const JWKS = AUTH_ISSUER_URL 
-  ? createRemoteJWKSet(new URL(`${AUTH_ISSUER_URL}.well-known/jwks.json`))
+// Create a cached JWKS from dfn-digisec / IdP endpoint.
+// jose handles caching and debounced retries under the hood automatically.
+const JWKS = AUTH_ISSUER_URL
+  ? createRemoteJWKSet(new URL(`${AUTH_ISSUER_URL}/.well-known/jwks.json`))
   : null;
 
 export interface QuotaClaims {
@@ -45,7 +46,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     }
 
     const { payload } = await jwtVerify(token, JWKS, {
-      issuer: AUTH_ISSUER_URL,
+      issuer: [AUTH_ISSUER_URL!, `${AUTH_ISSUER_URL}/`],
       audience: AUTH_AUDIENCE,
     });
 
@@ -54,8 +55,11 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       throw new AppError(401, 'Token is missing orgId claim');
     }
 
+    const rawUserId =
+      payload[`${AUTH_CLAIM_NAMESPACE}user_id`] ?? payload.userId ?? payload.sub ?? '';
+
     const authContext: AuthContext = {
-      userId: payload.sub as string,
+      userId: String(rawUserId),
       orgId,
       orgRole: (payload[`${AUTH_CLAIM_NAMESPACE}orgRole`] as any) || 'viewer',
       plan: (payload[`${AUTH_CLAIM_NAMESPACE}plan`] as any) || 'free',

@@ -7,6 +7,7 @@ import express, { Router, Request, Response, NextFunction } from 'express';
 import { createQuote, getQuoteById, getJobById } from '../db/queries';
 import { awardQuote } from '../services/sourcing-service';
 import { recordActivity } from '../services/activity-service';
+import { finworldClient } from '../services/finworld-client';
 import { AppError } from '../middleware/error';
 
 const router: Router = express.Router();
@@ -88,6 +89,43 @@ router.post('/:quoteId/award', async (req: Request, res: Response, next: NextFun
       success: true,
       message: 'Quote awarded successfully',
       quote: awardedQuote,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Initialize Flutterwave-default milestone escrow deposit via dfn-finworld
+router.post('/:quoteId/escrow', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const auth = res.locals.auth;
+    const orgId = auth?.orgId || 'unknown';
+    const quote = await getQuoteById(req.params.quoteId, orgId);
+    if (!quote) {
+      throw new AppError(404, 'Quote not found');
+    }
+
+    const totalAmount = Number(req.body.totalAmount || quote.total_price_ngn || 0);
+    if (!totalAmount || totalAmount <= 0) {
+      throw new AppError(400, 'Positive quote totalAmount is required to initialize escrow');
+    }
+
+    const escrowInit = await finworldClient.initializeEscrowDeposit(
+      {
+        rfqId: req.body.rfqId || quote.id,
+        totalAmount,
+        tenantId: req.body.tenantId || 1,
+        callbackUrl: req.body.callbackUrl,
+        paymentProvider: req.body.paymentProvider || 'flutterwave',
+        currency: req.body.currency || 'NGN',
+      },
+      req.headers.authorization
+    );
+
+    res.status(200).json({
+      quoteId: quote.id,
+      orgId,
+      escrow: escrowInit,
     });
   } catch (error) {
     next(error);
